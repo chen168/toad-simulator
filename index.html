@@ -106,6 +106,19 @@
   .newsbox{ text-align:left; overflow-y:auto; background:#f2f8ee; border-radius:16px; padding:12px 14px; margin:8px 0 14px; font-size:14px; font-weight:600; line-height:1.55; min-height:120px; }
   .newsver{ color:var(--leaf); font-weight:900; margin-top:10px; }
   .newsver:first-child{ margin-top:0; }
+  .sethead{ text-align:left; font-weight:900; font-size:14px; color:var(--leaf); margin-top:2px; }
+  #exprBar{ position:fixed; bottom:calc(env(safe-area-inset-bottom) + 14px); left:50%; transform:translateX(-50%);
+            display:flex; gap:8px; z-index:7; background:rgba(255,255,255,0.92); border-radius:999px; padding:8px 12px;
+            box-shadow:0 4px 14px rgba(0,0,0,.2); flex-wrap:wrap; justify-content:center; max-width:92vw; }
+  .exprchip{ border:none; border-radius:999px; background:#f2f8ee; font-size:24px; width:44px; height:44px;
+             display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .exprchip:active{ transform:scale(.9); }
+  .needbtn{ border:none; border-radius:14px; padding:10px 6px; font-family:var(--ui-font); font-weight:800; font-size:13px; cursor:pointer; background:#e6f6de; color:var(--ink); }
+  .needbtn:disabled{ background:#eef2ea; color:#9aa79a; }
+  .needbar{ height:7px; border-radius:99px; background:#dfe8da; margin-top:5px; overflow:hidden; }
+  .needbar>div{ height:100%; border-radius:99px; background:linear-gradient(90deg,#7ed957,#ffcf4d,#e0554f); }
+  .xpbar{ height:12px; border-radius:99px; background:#dfe8da; margin:6px 0 12px; overflow:hidden; }
+  .xpbar>div{ height:100%; background:linear-gradient(90deg,#7ed957,#4c9a3a); }
   .item.locked{ opacity:.55; }
   .mysticnote{ grid-column:1 / -1; text-align:center; font-weight:800; font-size:13px; color:#8a6ab0; margin:-4px 0 2px; }
   .hidden{ display:none !important; }
@@ -117,12 +130,14 @@
 <div class="hud">
   <div class="pill">🪙 <span id="coinCount">0</span></div>
   <div class="btns">
+    <button class="iconbtn" id="exprBtn" title="Expressions">😊</button>
     <button class="iconbtn" id="dayBtn" title="Time of day">☀️</button>
     <button class="iconbtn" id="bossBtn" title="Boss fight">⚔️</button>
     <button class="iconbtn" id="setBtn" title="Settings">⚙️</button>
     <button class="iconbtn" id="chatBtn" title="Toad Chat">💬</button>
     <button class="iconbtn" id="elevBtn" title="Elevator">🛗</button>
     <button class="iconbtn" id="homeBtn" title="My Home">🏡</button>
+    <button class="iconbtn" id="petBtn" title="Pet Station">🐾</button>
     <button class="iconbtn" id="shopBtn" title="Shop">🛍️</button>
   </div>
 </div>
@@ -161,16 +176,19 @@
     <h1 style="font-size:30px;">⚔️ Boss Battle</h1>
     <p class="by">Pick your difficulty and your boss!</p>
     <div class="segrow" id="diffRow1"></div>
+    <div class="sethead" style="text-align:center;">👒 Boss outfit</div>
+    <div class="segrow" id="bossSkinRow"></div>
     <button class="bigbtn" id="bossHeron">🐦 Heron</button>
     <button class="bigbtn" id="bossFly" style="background:linear-gradient(#8a8a92,#45454e);box-shadow:0 8px 20px rgba(69,69,78,.5);margin-top:10px;">🪰 Giant Fly</button>
     <button class="bigbtn" id="bossSnake" style="background:linear-gradient(#7ed957,#2e7a26);box-shadow:0 8px 20px rgba(46,122,38,.5);margin-top:10px;">🐍 Snake</button>
+    <button class="bigbtn" id="bossBat" style="background:linear-gradient(#7a5cc0,#3a2a6a);box-shadow:0 8px 20px rgba(58,42,106,.5);margin-top:10px;">🦇 Bat</button>
     <button class="closebtn" id="bossPickClose" style="margin-top:12px;">Cancel</button>
   </div>
 </div>
 
 <div class="overlay hidden" id="shopScreen">
   <div class="card">
-    <h1 style="font-size:30px;">🛍️ Toad Shop</h1>
+    <h1 style="font-size:30px;" id="shopTitle">🛍️ Toad Shop</h1>
     <p class="by">You have <b id="shopCoins">0</b> 🪙</p>
     <div class="shopgrid" id="shopGrid"></div>
     <button class="closebtn" id="closeShop">Done</button>
@@ -178,14 +196,37 @@
 </div>
 
 <div class="overlay hidden" id="settingsScreen">
-  <div class="card">
+  <div class="card" style="overflow-y:auto;">
     <h1 style="font-size:30px;">⚙️ Settings</h1>
     <div style="display:flex;flex-direction:column;gap:12px;margin:14px 0 18px;">
       <button class="toggle on" id="musicToggle">🎵 Music: On</button>
+      <div class="sethead">🎼 Song</div>
+      <div class="segrow" id="musicRow" style="flex-wrap:wrap;margin:0;"></div>
       <button class="toggle on" id="sfxToggle">🔊 Sound effects: On</button>
+      <div class="sethead">🎮 Controls (game pauses while you're here)</div>
+      <div class="segrow" id="speedRow" style="margin:0;"></div>
+      <div class="segrow" id="stickRow" style="margin:0;"></div>
+      <button class="toggle" id="petCareToggle">🐾 Pet Care: Off</button>
       <button class="toggle" id="resetBtn" style="background:#fdeaea;color:#c0392b;">🔄 Reset game</button>
     </div>
     <button class="closebtn" id="closeSettings">Done</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="petScreen">
+  <div class="card" style="overflow-y:auto;">
+    <h1 style="font-size:30px;">🐾 Pet Station</h1>
+    <div id="petBody"></div>
+    <button class="closebtn" id="closePet" style="margin-top:12px;">Done</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="petAsk">
+  <div class="card">
+    <h1 style="font-size:28px;">🐾 Pet Care mode?</h1>
+    <p class="by">Want your pets to have real needs? They'll get hungry, sleepy, need to potty and want cuddles — take care of them in the Pet Station 🐾 and they'll grow up (and one day you can RIDE them)!</p>
+    <button class="bigbtn" id="petAskYes">Yes! Pet Care on 🐾</button>
+    <button class="closebtn" id="petAskNo" style="margin-top:12px;">No thanks (you can turn it on in ⚙️)</button>
   </div>
 </div>
 
@@ -235,11 +276,14 @@
     <button class="bigbtn" id="elevForest" style="background:linear-gradient(#7ed957,#3f8230);box-shadow:0 8px 20px rgba(63,130,48,.5);margin-top:10px;">🌲 Forest</button>
     <button class="bigbtn" id="elevMountain" style="background:linear-gradient(#a8b6c8,#6a7890);box-shadow:0 8px 20px rgba(106,120,144,.5);margin-top:10px;">🏔️ Mountain</button>
     <button class="bigbtn" id="elevGround" style="margin-top:10px;">🌳 Ground</button>
+    <button class="bigbtn" id="elevCity" style="background:linear-gradient(#8fa8c8,#4a5a7a);box-shadow:0 8px 20px rgba(74,90,122,.5);margin-top:10px;">🏙️ City</button>
     <button class="bigbtn" id="elevUnder" style="background:linear-gradient(#a5763f,#5a3a22);box-shadow:0 8px 20px rgba(90,58,34,.5);margin-top:10px;">⛏️ Underground</button>
     <button class="bigbtn" id="elevSpace" style="background:linear-gradient(#3a2a6a,#140f38);box-shadow:0 8px 20px rgba(20,15,56,.5);margin-top:10px;">🚀 Space (150 🪙)</button>
     <button class="closebtn" id="elevClose" style="margin-top:12px;">Cancel</button>
   </div>
 </div>
+
+<div id="exprBar" class="hidden"></div>
 
 <div id="gardenPanel" class="hidden">
   <div class="hint">Plant a seed (buy with 🪙) · tap a grown plot to harvest 🌻</div>
@@ -288,6 +332,7 @@
     <button class="bigbtn" id="gameFruit" style="background:linear-gradient(#ff8fb0,#d95a86);box-shadow:0 8px 20px rgba(217,90,134,.5);margin-top:10px;">🍓 Fruit Catch</button>
     <button class="bigbtn" id="gameLily" style="background:linear-gradient(#5ad4a8,#2e9a76);box-shadow:0 8px 20px rgba(46,154,118,.5);margin-top:10px;">🪷 Lily Pad Race</button>
     <button class="bigbtn" id="gameVolley" style="background:linear-gradient(#ffcf4d,#e07a2a);box-shadow:0 8px 20px rgba(224,122,42,.5);margin-top:10px;">🏐 Tongue Volley (team up!)</button>
+    <button class="bigbtn" id="gameHide" style="background:linear-gradient(#8a8a92,#3a3a44);box-shadow:0 8px 20px rgba(58,58,68,.5);margin-top:10px;">🕵️ Find the Fly</button>
     <button class="closebtn" id="gamePickBack" style="margin-top:12px;">Back</button>
   </div>
 </div>
@@ -303,8 +348,13 @@ let W=0,H=0,DPR=1,groundY=0;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 /* ---------------- Audio (synthesized, no files) ---------------- */
-let AC=null, musicOn=true, sfxOn=true, musicTimer=null, mi=0;
-const MELODY=[523,587,659,784,659,587,523,440,523,659,587,494,523,392,440,523];
+let AC=null, musicOn=true, sfxOn=true, musicTimer=null, mi=0, musicTrack='classic';
+const MUSIC_TRACKS={
+  classic:{name:'Classic 🎵', step:300, wave:'triangle', vol:0.05, notes:[523,587,659,784,659,587,523,440,523,659,587,494,523,392,440,523]},
+  lullaby:{name:'Lullaby 🌙', step:480, wave:'sine',     vol:0.045,notes:[392,440,523,440,392,330,294,330,392,523,440,392]},
+  bouncy: {name:'Bouncy 🎉',  step:210, wave:'square',   vol:0.032,notes:[523,659,784,659,880,784,659,523,587,698,880,698,784,659,587,523]},
+  waves:  {name:'Underwater 🌊', step:430, wave:'sine',  vol:0.05, notes:[262,294,330,392,330,294,262,247,262,330,294,262]},
+};
 function initAudio(){ if(AC) return; try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } if(AC && AC.state==='suspended') AC.resume(); }
 function tone(freq,dur,type,vol,when){ if(!AC) return; const t0=when||AC.currentTime; const o=AC.createOscillator(), g=AC.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,t0); o.connect(g); g.connect(AC.destination); g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(vol||0.2,t0+0.012); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur); o.start(t0); o.stop(t0+dur+0.03); }
 function sfx(name){ if(!sfxOn||!AC) return; const n=AC.currentTime;
@@ -317,7 +367,9 @@ function sfx(name){ if(!sfxOn||!AC) return; const n=AC.currentTime;
   else if(name==='mad'){ tone(200,0.16,'sawtooth',0.22); tone(150,0.20,'sawtooth',0.2,n+0.13); }
   else if(name==='splash'){ tone(420,0.16,'sine',0.13); tone(280,0.2,'sine',0.1,n+0.05); }
 }
-function startMusic(){ if(!AC||!musicOn||musicTimer) return; musicTimer=setInterval(()=>{ if(!musicOn||!AC){ return; } const f=MELODY[mi%MELODY.length]; tone(f,0.26,'triangle',0.05); if(mi%2===0) tone(f/2,0.42,'sine',0.045); mi++; }, 300); }
+function startMusic(){ if(!AC||!musicOn||musicTimer) return; const tr=MUSIC_TRACKS[musicTrack]||MUSIC_TRACKS.classic;
+  musicTimer=setInterval(()=>{ if(!musicOn||!AC){ return; } const f=tr.notes[mi%tr.notes.length]; tone(f,tr.step/1000*0.88,tr.wave,tr.vol); if(mi%2===0) tone(f/2,tr.step/1000*1.4,'sine',0.04); mi++; }, tr.step); }
+function setMusicTrack(k){ if(!MUSIC_TRACKS[k]) return; musicTrack=k; mi=0; stopMusic(); if(musicOn) startMusic(); save(); }
 function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null; } }
 
 const pond = { x1:0, x2:0, surfaceY:0, bottom:0 };
@@ -381,6 +433,7 @@ const BUG_INFO = {
   glowfish:{cat:'fly',val:8}, jelly:{cat:'fly',val:5},
   starcoin:{cat:'fly',val:5}, gift:{cat:'fly',val:0},
   fruit_speed:{cat:'fly',val:0}, fruit_tongue:{cat:'fly',val:0}, fruit_coins:{cat:'fly',val:0},
+  fruit_magnet:{cat:'fly',val:0}, fruit_calm:{cat:'fly',val:0},
 };
 const AREAS = {
   sky:      { name:'Sky ☁️',        bugs:['butterfly','dragonfly','bee'] },
@@ -389,6 +442,7 @@ const AREAS = {
   mountain: { name:'Mountain 🏔️',    bugs:['butterfly','bee','dragonfly'], platform:true },
   cave:     { name:'Secret Water Cave 💧', bugs:['glowfish','jelly','glowfish'] },
   space:    { name:'Space 🚀',       bugs:['starcoin','starcoin','starcoin','starcoin','gift'] },
+  city:     { name:'City 🏙️',        bugs:['fly','roach','ant','butterfly'] },
 };
 let bigMsg='', bigMsgT=0;
 function showReward(txt){ bigMsg=txt; bigMsgT=150; sfx('win'); }
@@ -414,20 +468,24 @@ function rollSpaceReward(){
     else pick=nonSkin[Math.floor(Math.random()*nonSkin.length)];
     owned[pick]=true; const it=SHOP.find(s=>s.id===pick); save(); showReward('✨ You found the '+(it?it.name:'Constellation item')+'!');
   } else {
-    const bonus=20+Math.floor(Math.random()*50); coins+=bonus; updateCoins(); showReward('✨ +'+bonus+' bonus coins!');
+    const bonus=20+Math.floor(Math.random()*50); gainCoins(bonus); showReward('✨ +'+bonus+' bonus coins!');
   }
 }
 let area = 'ground'; const areaBugs = []; let areaPlatforms = []; let diveTimer = 0;
-const FRUIT_BOOST={ fruit_speed:{b:'speed',msg:'🍓 Speedy! (10s)'}, fruit_tongue:{b:'tongue',msg:'🍎 Long tongue! (10s)'}, fruit_coins:{b:'coins',msg:'🍊 Double coins! (10s)'} };
-function curSpeed(){ return SPEED*(boost==='speed'&&boostT>0?1.7:1); }
-function curTongue(){ return R_TONGUE*(boost==='tongue'&&boostT>0?1.5:1); }
+const FRUIT_BOOST={ fruit_speed:{b:'speed',msg:'🍓 Speedy! (10s)'}, fruit_tongue:{b:'tongue',msg:'🍎 Long tongue! (10s)'}, fruit_coins:{b:'coins',msg:'🍊 Double coins! (10s)'},
+  fruit_magnet:{b:'magnet',msg:'🧲 Bug magnet! (10s)'}, fruit_calm:{b:'calm',msg:'🫐 Bugs stay calm! (10s)'} };
+const FRUIT_EMOJI={ fruit_speed:'🍓', fruit_tongue:'🍎', fruit_coins:'🍊', fruit_magnet:'🧲', fruit_calm:'🫐' };
+function curSpeed(){ return SPEED*moveMult*((boost==='speed'||boost==='sugar')&&boostT>0?1.7:1)*(slowT>0?0.55:1)*(ridingActive()?1.35:1); }
+function curTongue(){ return R_TONGUE*((boost==='tongue'||boost==='sugar')&&boostT>0?1.5:1); }
 function gainCoins(n){ coins += (boost==='coins'&&boostT>0? n*2 : n); updateCoins(); }
-function startBoost(b,msg){ boost=b; boostT=600; showReward(msg); }
+function startBoost(b,msg){ boost=b; boostT=600; if(b==='speed' && slowT>0){ slowT=0; msg+=' Slowness cured!'; } showReward(msg); }
 function startConstSky(){ constSky=true; constSkyT=5*60*60; showReward('🌌 Constellation Sky for 5 min!'); }
 const GARDEN_PLOTS=4;
 const garden=[];
 function initGarden(){ if(garden.length) return; for(let i=0;i<GARDEN_PLOTS;i++) garden.push({seed:null,t:0}); }
-const SEEDS={ coin:{name:'Coin Seed',emoji:'🪙',cost:20,grow:900}, fruit:{name:'Fruit Seed',emoji:'🍓',cost:25,grow:900}, con:{name:'Constellation Seed',emoji:'✨',cost:0,grow:1500} };
+const SEEDS={ coin:{name:'Coin Seed',emoji:'🪙',cost:20,grow:900}, fruit:{name:'Fruit Seed',emoji:'🍓',cost:25,grow:900},
+  golden:{name:'Golden Seed',emoji:'🌟',cost:60,grow:1400}, berry:{name:'Berry Seed',emoji:'🫐',cost:30,grow:900},
+  treat:{name:'Pet Treat Seed',emoji:'🦴',cost:40,grow:1100}, con:{name:'Constellation Seed',emoji:'✨',cost:0,grow:1500} };
 function areaPlatformsFor(a){
   const gy=groundY, top=H*0.12, cl=(y)=>Math.max(top,y);
   if(a==='forest') return [ {x:W*0.12,y:cl(gy-72),w:92},{x:W*0.42,y:cl(gy-142),w:92},{x:W*0.70,y:cl(gy-92),w:92},{x:W*0.28,y:cl(gy-212),w:92},{x:W*0.58,y:cl(gy-262),w:92} ];
@@ -435,11 +493,37 @@ function areaPlatformsFor(a){
   return [];
 }
 let tongue = { active:false, t:0, tx:0, ty:0, hit:false };
-let plant = { active:false, x:0, y:0, timer:0 };
+let plant = { active:false, x:0, y:0, timer:0, where:'ground' };
 const boss = { active:false, kind:'heron', x:0, y:0, hp:0, maxhp:6, state:'idle', timer:0, flash:0, vx:0 };
 let petAtk=0;
-const BOSS_KINDS={ heron:{name:'Heron 🐦',hp:6,reward:25}, fly:{name:'Giant Fly 🪰',hp:8,reward:35}, snake:{name:'Snake 🐍',hp:10,reward:50} };
+const BOSS_KINDS={ heron:{name:'Heron 🐦',hp:6,reward:25}, fly:{name:'Giant Fly 🪰',hp:8,reward:35}, snake:{name:'Snake 🐍',hp:10,reward:50}, bat:{name:'Bat 🦇',hp:12,reward:60} };
 let difficulty='normal';
+/* Update 7 state */
+let slowT=0;                      // boss-hit speed debuff (cured by Speedy Juice)
+let moveMult=1, ctrlMode='zones'; // movement settings
+let stick=null;                   // active thumbstick {id,ox,oy,dx,dy}
+let petCare=null;                 // null = not asked yet
+const petData={};                 // per-pet {age,xp,potion,needs:{food,sleep,potty,love}}
+let petTickN=0;
+let bossSkin='none';
+const BOSS_SKINS=[['none','🚫'],['tophat','🎩'],['crown','👑'],['shades','🕶️'],['bow','🎀']];
+let bossSayTxt='', bossSayT=0, coopSayTxt='', coopSayT=0, crystalT=0;
+let exprChar='', exprT=0;
+function bossSay(s,f){ bossSayTxt=s; bossSayT=f||130; }
+function coopSay(s,f){ coopSayTxt=s; coopSayT=f||130; }
+const BOSS_LINES={
+  heron:{intro:['Squawk! Toad snack time!','The heron has landed!'], hit:['Squawk!! Hey!','Ow, my feathers!'], lose:['Fine... I\'ll eat seeds. 😤']},
+  duck: {intro:['Quack quack! I CAN swim!'], hit:['Quaaack!!','Watch the feathers!'], lose:['Waddling away... 🦆']},
+  fly:  {intro:['Bzzz! Catch me if you can!'], hit:['Bzzt!! No fair!','My wing!!'], lose:['Bzz... too ssslow... 🪰']},
+  snake:{intro:['Sssurrender, little toad!'], hit:['Hisss!!','Sssstop that!'], lose:['Ssso embarrassssing...']},
+  bat:  {intro:['Screee! Who woke me up?!'], hit:['Eeek!!','My ears!!'], lose:['Back to my cave... 🦇']},
+  frozen:['S-s-so c-c-cold!','B-b-brrrr!!','I c-c-can\'t m-move!'],
+};
+function bossLineKey(){ return (boss.kind==='heron' && area==='cave') ? 'duck' : boss.kind; }
+function pickLine(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function ridingActive(){ return !!(worn.pet && petData[worn.pet] && petData[worn.pet].potion); }
+function magnetOn(){ return boost==='magnet' && boostT>0; }
+function calmOn(){ return boost==='calm' && boostT>0; }
 const DIFF={ easy:{label:'😊 Easy',hp:0.6,wind:1.6,hearts:7,reward:1}, normal:{label:'🙂 Normal',hp:1,wind:1,hearts:5,reward:1}, hard:{label:'😈 Hard',hp:1.5,wind:0.7,hearts:4,reward:2} };
 const bossFx=[]; let bossFrozen=0, toadShield=0, coopPetT=0;
 /* one hidden secret sparkle per world — stand on it! */
@@ -449,9 +533,16 @@ const SECRET_SPOTS={
   under:    {fx:0.50, fy:'g',  msg:'💎 You dug up a buried gem!'},
   cave:     {fx:0.08, fy:0.86, msg:'🏴‍☠️ Sunken pirate treasure!'},
   space:    {fx:0.78, fy:0.34, msg:'🛸 A friendly UFO says hi!'},
+  city:     {fx:0.93, fy:'g',  msg:'💰 You found a lost wallet — reward time!'},
 };
 const secretFound={}; let secretProg=0, secretDone=false;
-function secretPos(){ const s=SECRET_SPOTS[area]; if(!s) return null; return {x:W*s.fx, y: s.fy==='g'? groundY-14 : H*s.fy}; }
+function secretPos(){
+  const s=SECRET_SPOTS[area]; if(!s) return null;
+  // anchor to reachable places, not screen fractions — on tall iPads a fixed fraction floats out of jump range
+  if(area==='mountain'){ const p=areaPlatforms[areaPlatforms.length-1]; if(p) return {x:p.x+p.w*0.5, y:Math.max(H*0.1, p.y-70)}; }
+  if(area==='sky') return {x:W*s.fx, y:groundY-165};
+  return {x:W*s.fx, y: s.fy==='g'? groundY-14 : H*s.fy};
+}
 const villager = { state:'inside', timer:300, mad:0 };
 
 function headPos(){ return { x: toad.x + toad.facing*10, y: toad.y - toad.h - 26 }; }
@@ -486,13 +577,13 @@ function spawnIndoorBug(b){
   return b;
 }
 function fillRoomBugs(){ indoorBugs.length=0; for(let i=0;i<4;i++) indoorBugs.push(spawnIndoorBug()); }
-function enterHouse(){ inside=true; roomIndex=0; plant.active=false; toad.x=W*0.5; toad.y=groundY; toad.vy=0; toad.facing=-1; pointerDirs.clear(); fillRoomBugs(); sfx('jump'); }
+function enterHouse(){ inside=true; roomIndex=0; toad.x=W*0.5; toad.y=groundY; toad.vy=0; toad.facing=-1; pointerDirs.clear(); fillRoomBugs(); sfx('jump'); }
 function exitHouse(){ inside=false; toad.x=clamp(house.x-64, toad.w*0.5, W-toad.w*0.5); toad.y=groundY; toad.vy=0; toad.facing=-1; pointerDirs.clear(); }
 function goRoom(movedRight){ toad.x = movedRight ? toad.w*0.5+26 : W - toad.w*0.5 - 26; toad.vy=0; pointerDirs.clear(); fillRoomBugs(); sfx('jump'); }
 function spawnAreaBug(b){
   b = b || {};
   const list = AREAS[area] ? AREAS[area].bugs : ['fly']; b.type = list[Math.floor(Math.random()*list.length)];
-  if(area==='forest' && Math.random()<0.32){ b.type = ['fruit_speed','fruit_tongue','fruit_coins'][Math.floor(Math.random()*3)]; }
+  if(area==='forest' && Math.random()<0.32){ const fr=['fruit_speed','fruit_tongue','fruit_coins','fruit_magnet','fruit_calm']; b.type = fr[Math.floor(Math.random()*fr.length)]; }
   const info = BUG_INFO[b.type]; b.cat = info.cat; b.val = info.val;
   if(b.cat==='fly'){ b.x=60+Math.random()*(W-120); b.y=H*0.16+Math.random()*(groundY-H*0.16-60); b.vx=(Math.random()*2-1); b.vy=(Math.random()*2-1)*0.7; }
   else { b.x=60+Math.random()*(W-120); b.y=groundY-8; b.vx=(Math.random()<.5?-1:1)*((info.spd||1)); }
@@ -501,8 +592,8 @@ function spawnAreaBug(b){
 }
 function goArea(a){
   document.getElementById('elevPick').classList.add('hidden');
-  area=a; inside=false; plant.active=false; swimming=false; prevSwim=false;
-  secretDone=false; secretProg=0;
+  area=a; inside=false; swimming=false; prevSwim=false;   // the fly plant stays put in its own world now
+  secretDone=false; secretProg=0; cityLock=true; cityLockX=W*0.5;
   toad.x=W*0.5; toad.y=groundY; toad.vy=0; toad.facing=-1; toad.grounded=true; pointerDirs.clear();
   // the boss follows you between worlds — it flies in from the side of the new world
   if(boss.active){ boss.x=(toad.x<W/2? W-60 : 60); boss.y=groundY; boss.vx=0; if(boss.state!=='defeated'){ boss.state='approach'; boss.timer=0; } }
@@ -528,17 +619,41 @@ function updateArea(){
     toad.grounded=landed;
   }
   if(toadHurt>0) toadHurt--;
+  const hpA=headPos(), movingA=(dir!==null);
   for(const b of areaBugs){
-    if(b.cat==='fly'){ b.vx+=(Math.random()*2-1)*0.2; b.vy+=(Math.random()*2-1)*0.2; b.vx=clamp(b.vx,-1.5,1.5); b.vy=clamp(b.vy,-1.3,1.3); b.x+=b.vx; b.y+=b.vy; if(b.x<40){b.x=40;b.vx*=-1;} if(b.x>W-40){b.x=W-40;b.vx*=-1;} if(b.y<H*0.14){b.y=H*0.14;b.vy*=-1;} if(b.y>groundY-50){b.y=groundY-50;b.vy*=-1;} }
+    if(b.fleeing){
+      b.x+=b.vx; if(b.cat==='fly'){ b.y+=b.vy; b.vy-=0.12; }
+      if(b.x<-40||b.x>W+40||b.y<-40){ spawnAreaBug(b); b.fleeing=false; b.alarm=0; }
+      b.wig=(b.wig||0)+0.7; continue;
+    }
+    if(b.cat==='fly'){ b.vx+=(Math.random()*2-1)*0.2; b.vy+=(Math.random()*2-1)*0.2; b.vx=clamp(b.vx,-1.5,1.5); b.vy=clamp(b.vy,-1.3,1.3);
+      if(magnetOn() && !FRUIT_BOOST[b.type]){ b.vx+=(toad.x-b.x)*0.002; b.vy+=((toad.y-60)-b.y)*0.002; }
+      b.x+=b.vx; b.y+=b.vy; if(b.x<40){b.x=40;b.vx*=-1;} if(b.x>W-40){b.x=W-40;b.vx*=-1;} if(b.y<H*0.14){b.y=H*0.14;b.vy*=-1;} if(b.y>groundY-50){b.y=groundY-50;b.vy*=-1;} }
     else { b.x+=b.vx; if(b.x<30){b.x=30;b.vx*=-1;} if(b.x>W-30){b.x=W-30;b.vx*=-1;} b.y=groundY-8; }
+    if(!FRUIT_BOOST[b.type] && b.type!=='starcoin' && b.type!=='gift'){
+      const dA=Math.hypot(b.x-hpA.x, b.y-hpA.y);
+      if(movingA && dA<R_DETECT && !calmOn()) b.alarm=(b.alarm||0)+0.05; else b.alarm=Math.max(0,(b.alarm||0)-0.02);
+      if(b.alarm>=1){ b.fleeing=true; const away=(b.x<toad.x)?-1:1;
+        if(b.cat==='fly'){ b.vx=away*(3+Math.random()*2); b.vy=-(3+Math.random()*2); } else { b.vx=away*5; } }
+    }
     b.wig=(b.wig||0)+0.5;
+  }
+  if(plant.active && plant.where===area){
+    plant.timer--; if(plant.timer<=0) plant.active=false;
+    for(const b of areaBugs){ if(b.cat==='fly' && !b.fleeing && !FRUIT_BOOST[b.type]){ b.vx+=(plant.x-b.x)*0.004; b.vy+=((plant.y-16)-b.y)*0.004; b.alarm=0; } }
+  }
+  if(area==='city'){
+    if(cityLock && Math.abs(toad.x-cityLockX)>64) cityLock=false;
+    if(!cityLock && toad.grounded){
+      for(let i=0;i<3;i++){ if(Math.abs(toad.x-cityShopX(i))<18){ cityLock=true; cityLockX=toad.x; openCityShop(i); break; } }
+    }
   }
   updateBoss();
   const sp2=secretPos();
   if(sp2 && !secretDone){
-    const near = Math.hypot(toad.x-sp2.x, (toad.y-toad.h*0.6)-sp2.y) < 60;
+    const near = Math.hypot(toad.x-sp2.x, (toad.y-toad.h*0.6)-sp2.y) < 90;
     if(near) secretProg++; else secretProg=Math.max(0,secretProg-2);
-    if(secretProg>=80){
+    if(secretProg>=45){
       secretDone=true; secretProg=0;
       const first=!secretFound[area]; secretFound[area]=true; save();
       const bonus=first?60:10; gainCoins(bonus);
@@ -558,10 +673,22 @@ function updateInside(){
   toad.vy+=GRAV; toad.y+=toad.vy; if(toad.y>groundY){ toad.y=groundY; toad.vy=0; }
   toad.grounded = toad.y>=groundY-0.5;
   if(toadHurt>0) toadHurt--;
+  const hpI=headPos(), movingI=(dir!==null);
   for(const b of indoorBugs){
+    if(b.fleeing){
+      if(b.cat==='hang'){ b.y-=6; if(b.y<-20){ spawnIndoorBug(b); b.fleeing=false; b.alarm=0; } }
+      else { b.x+=b.vx; if(b.cat==='fly'){ b.y+=b.vy; b.vy-=0.12; } if(b.x<-40||b.x>W+40||b.y<-40){ spawnIndoorBug(b); b.fleeing=false; b.alarm=0; } }
+      b.wig=(b.wig||0)+0.7; continue;
+    }
     if(b.cat==='hang'){ b.phase+=0.03; b.y=b.baseY+Math.sin(b.phase)*30; }
-    else if(b.cat==='fly'){ b.vx+=(Math.random()*2-1)*0.2; b.vy+=(Math.random()*2-1)*0.2; b.vx=clamp(b.vx,-1.4,1.4); b.vy=clamp(b.vy,-1.2,1.2); b.x+=b.vx; b.y+=b.vy; if(b.x<40){b.x=40;b.vx*=-1;} if(b.x>W-40){b.x=W-40;b.vx*=-1;} if(b.y<H*0.2){b.y=H*0.2;b.vy*=-1;} if(b.y>groundY-60){b.y=groundY-60;b.vy*=-1;} }
+    else if(b.cat==='fly'){ b.vx+=(Math.random()*2-1)*0.2; b.vy+=(Math.random()*2-1)*0.2; b.vx=clamp(b.vx,-1.4,1.4); b.vy=clamp(b.vy,-1.2,1.2);
+      if(magnetOn()){ b.vx+=(toad.x-b.x)*0.002; b.vy+=((toad.y-60)-b.y)*0.002; }
+      b.x+=b.vx; b.y+=b.vy; if(b.x<40){b.x=40;b.vx*=-1;} if(b.x>W-40){b.x=W-40;b.vx*=-1;} if(b.y<H*0.2){b.y=H*0.2;b.vy*=-1;} if(b.y>groundY-60){b.y=groundY-60;b.vy*=-1;} }
     else { b.x+=b.vx; if(b.x<30){b.x=30;b.vx*=-1;} if(b.x>W-30){b.x=W-30;b.vx*=-1;} b.y=groundY-8; }
+    const dI=Math.hypot(b.x-hpI.x, b.y-hpI.y);
+    if(movingI && dI<R_DETECT && !calmOn()) b.alarm=(b.alarm||0)+0.05; else b.alarm=Math.max(0,(b.alarm||0)-0.02);
+    if(b.alarm>=1){ b.fleeing=true; const away=(b.x<toad.x)?-1:1;
+      if(b.cat==='fly'){ b.vx=away*(3+Math.random()*2); b.vy=-(3+Math.random()*2); } else if(b.cat!=='hang'){ b.vx=away*5; } }
     b.wig=(b.wig||0)+0.4;
   }
   if(tongue.active){ tongue.t+=0.14; if(tongue.t>=1) tongue.active=false; }
@@ -581,6 +708,7 @@ const pointerDirs = new Map();
 let kbLeft=false, kbRight=false;
 function zoneOf(x,y){ if(x < W*0.33) return 'left'; if(x > W*0.67) return 'right'; return (y < H*0.5) ? 'eat' : 'jump'; }
 function currentDir(){
+  if(stick){ if(stick.dx>14) return 'right'; if(stick.dx<-14) return 'left'; return null; }
   if(pointerDirs.size){ let last=null; for(const v of pointerDirs.values()) last=v; return last; }
   if(kbRight && !kbLeft) return 'right';
   if(kbLeft && !kbRight) return 'left';
@@ -591,16 +719,16 @@ function doEat(){
   const hp = headPos();
   if(inside){
     let best=null,bd=R_TONGUE,val=1;
-    for(const b of indoorBugs){ const d=Math.hypot(b.x-hp.x,b.y-hp.y); if(d<bd){ bd=d; best=b; val=b.val; } }
+    for(const b of indoorBugs){ if(b.fleeing) continue; const d=Math.hypot(b.x-hp.x,b.y-hp.y); if(d<bd){ bd=d; best=b; val=b.val; } }
     tongue.active=true; tongue.t=0; tongue.hit=!!best;
-    if(best){ tongue.tx=best.x; tongue.ty=best.y; coins+=val; updateCoins(); sfx('coin'); pops.push({x:best.x,y:best.y,t:0,val}); spawnIndoorBug(best); }
+    if(best){ tongue.tx=best.x; tongue.ty=best.y; gainCoins(val); sfx('coin'); pops.push({x:best.x,y:best.y,t:0,val}); spawnIndoorBug(best); }
     else { tongue.tx=hp.x+toad.facing*20; tongue.ty=hp.y-R_TONGUE*0.7; }
     return;
   }
   if(area!=='ground'){
     if(tryBossTongue(hp)) return;
     let best=null,bd=curTongue(),val=1;
-    for(const b of areaBugs){ const d=Math.hypot(b.x-hp.x,b.y-hp.y); if(d<bd){ bd=d; best=b; val=b.val; } }
+    for(const b of areaBugs){ if(b.fleeing) continue; const d=Math.hypot(b.x-hp.x,b.y-hp.y); if(d<bd){ bd=d; best=b; val=b.val; } }
     tongue.active=true; tongue.t=0; tongue.hit=!!best;
     if(best){ tongue.tx=best.x; tongue.ty=best.y;
       if(FRUIT_BOOST[best.type]){ startBoost(FRUIT_BOOST[best.type].b, FRUIT_BOOST[best.type].msg); }
@@ -632,15 +760,30 @@ function doEat(){
 
 cvs.addEventListener('pointerdown', (e)=>{
   if(!started || twoP || showMode || homeMode || gardenMode) return; e.preventDefault();
+  if(ctrlMode==='stick'){
+    if(e.clientX < W*0.45){ stick={id:e.pointerId, ox:e.clientX, oy:e.clientY, dx:0, dy:0}; return; }
+    if(e.clientY < H*0.5) doEat(); else doJump();
+    return;
+  }
   const z = zoneOf(e.clientX, e.clientY);
   if(z==='left'||z==='right'){ pointerDirs.set(e.pointerId, z); toad.facing = z==='right'?1:-1; }
   else if(z==='eat'){ doEat(); }
   else if(z==='jump'){ doJump(); }
 }, {passive:false});
-function releasePointer(e){ pointerDirs.delete(e.pointerId); }
+cvs.addEventListener('pointermove', (e)=>{
+  if(stick && e.pointerId===stick.id){ stick.dx=e.clientX-stick.ox; stick.dy=e.clientY-stick.oy; }
+});
+function releasePointer(e){ pointerDirs.delete(e.pointerId); if(stick && e.pointerId===stick.id) stick=null; }
 cvs.addEventListener('pointerup', releasePointer);
 cvs.addEventListener('pointercancel', releasePointer);
 cvs.addEventListener('pointerleave', releasePointer);
+function drawStick(){
+  if(ctrlMode!=='stick' || !stick || !started || twoP || showMode || homeMode || gardenMode) return;
+  ctx.globalAlpha=0.4; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(stick.ox, stick.oy, 40, 0, 7); ctx.fill();
+  ctx.globalAlpha=0.75; ctx.fillStyle='#4c9a3a';
+  const kx=stick.ox+clamp(stick.dx,-34,34), ky=stick.oy+clamp(stick.dy,-34,34);
+  ctx.beginPath(); ctx.arc(kx, ky, 20, 0, 7); ctx.fill(); ctx.globalAlpha=1;
+}
 
 window.addEventListener('keydown', (e)=>{
   if(!started) return;
@@ -678,7 +821,7 @@ function update(){
 
   if(swimming && toad.y >= pond.bottom-3){ diveTimer++; if(diveTimer>45){ diveTimer=0; goArea('cave'); return; } } else if(diveTimer>0){ diveTimer-=2; }
 
-  if(plant.active){ plant.timer--; if(plant.timer<=0) plant.active=false; }
+  if(plant.active && plant.where==='ground'){ plant.timer--; if(plant.timer<=0) plant.active=false; }
 
   // villager cycle
   villager.timer--; if(villager.mad>0) villager.mad--;
@@ -687,7 +830,7 @@ function update(){
   const hp = headPos();
   for(const f of flies){
     if(f.fleeing){ f.x+=f.vx; f.y+=f.vy; f.vy-=0.15; if(f.y<-40||f.x<-40||f.x>W+40) spawnFly(f); continue; }
-    if(plant.active){
+    if(plant.active && plant.where==='ground'){
       f.vx += (plant.x-f.x)*0.006; f.vy += ((plant.y-16)-f.y)*0.006;
       f.vx=clamp(f.vx,-3.2,3.2); f.vy=clamp(f.vy,-3.2,3.2);
       f.x+=f.vx; f.y+=f.vy; f.alarm=0; f.wing+=0.8; continue;
@@ -698,8 +841,9 @@ function update(){
     f.x += f.vx; f.y += f.vy;
     if(f.x<30){f.x=30;f.vx*=-1;} if(f.x>W-30){f.x=W-30;f.vx*=-1;}
     if(f.y<H*0.14){f.y=H*0.14;f.vy*=-1;} if(f.y>groundY-40){f.y=groundY-40;f.vy*=-1;}
+    if(magnetOn()){ f.vx += (toad.x-f.x)*0.002; f.vy += ((toad.y-60)-f.y)*0.002; }
     const d = Math.hypot(f.x-hp.x, f.y-hp.y);
-    if(d<R_DETECT && moving){ f.alarm += 0.035*(1-d/R_DETECT)+0.01; } else { f.alarm -= 0.02; }
+    if(d<R_DETECT && moving && !calmOn()){ f.alarm += 0.055*(1-d/R_DETECT)+0.012; } else { f.alarm -= 0.02; }
     f.alarm = clamp(f.alarm,0,1);
     if(f.alarm>=1){ f.fleeing=true; const away=(f.x<hp.x)?-1:1; f.vx=away*(3+Math.random()*2); f.vy=-(3+Math.random()*2); }
     f.wing += 0.6;
@@ -719,18 +863,20 @@ function update(){
   for(const c of clouds){ c.x += c.sp; if(c.x > W+120*c.s) c.x = -120*c.s; }
   if(guideTimer>0) guideTimer--;
 }
-function bossHeadY(){ if(boss.kind==='fly') return boss.y; if(boss.kind==='snake') return groundY-40; return groundY-92; }
+function bossHeadY(){ if(boss.kind==='fly'||boss.kind==='bat') return boss.y; if(boss.kind==='snake') return groundY-40; return groundY-92; }
 function isMystic(id){ return !!id && id.slice(0,3)==='mp_'; }
 function bossDefeatCheck(){
   if(boss.hp<=0 && boss.state!=='defeated'){
     boss.state='defeated'; boss.timer=0; boss.vx=(boss.x>=toad.x?4:-4); bossFrozen=0;
     const r=(BOSS_KINDS[boss.kind]?BOSS_KINDS[boss.kind].reward:25)*DIFF[difficulty].reward;
     coins+=r; updateCoins(); sfx('win'); pops.push({x:boss.x, y:groundY-90, t:0, val:r, big:true});
+    bossSay(pickLine(BOSS_LINES[bossLineKey()].lose), 170);
   }
 }
 function damageBoss(n){
   boss.hp-=n; boss.flash=12; sfx('bosshit');
   if(worn.pet==='mp_gold' && boss.hp>0){ gainCoins(2); pops.push({x:boss.x, y:bossHeadY()-34, t:0, val:2}); }
+  if(boss.hp>0 && Math.random()<0.35 && bossSayT<=0) bossSay(pickLine(BOSS_LINES[bossLineKey()].hit), 90);
   bossDefeatCheck();
 }
 function tryBossTongue(hp){
@@ -754,12 +900,14 @@ function petAssist1P(){
     if(petAtk>=rate){ petAtk=0; petPos.x=boss.x; petPos.y=groundY-80; damageBoss(1); }
     return;
   }
-  if(pid==='mp_frost'){ if(petAtk>=480){ petAtk=0; bossFrozen=240; sfx('splash'); showReward('❄️ Frost Dragon froze time!'); } }
+  if(pid==='mp_frost'){ if(petAtk>=480){ petAtk=0; bossFrozen=240; sfx('splash'); showReward('❄️ Frost Dragon froze time!'); bossSay(pickLine(BOSS_LINES.frozen), 200); } }
   else if(pid==='mp_fire'){ if(petAtk>=400){ petAtk=0; bossFx.push({type:'fireball', x:petPos.x, y:petPos.y-24, cx:petPos.x, cy:petPos.y-24, t:0}); sfx('jump'); } }
   else if(pid==='mp_shark'){ if(petAtk>=340){ petAtk=0; bossFx.push({type:'rainbow', x:petPos.x, y:petPos.y-24, t:0}); damageBoss(2); } }
   else if(pid==='mp_storm'){ if(petAtk>=240){ petAtk=0; bossFx.push({type:'bolt', t:0}); damageBoss(1); } }
   else if(pid==='mp_gold'){ if(petAtk>=240){ petAtk=0; petPos.x=boss.x; petPos.y=groundY-80; damageBoss(1); } }
   else if(pid==='mp_heal'){ if(petAtk>=300 && toadShield<=0){ petAtk=0; toadShield=600; pops.push({x:toad.x, y:toad.y-100, t:0, txt:'🛡️'}); sfx('buy'); } }
+  else if(pid==='mp_ghost'){ if(petAtk>=330){ petAtk=0; boss.vx += (boss.x>=toad.x?1:-1)*16; pops.push({x:boss.x, y:bossHeadY()-30, t:0, txt:'👻 BOO!', big:true}); bossSay('EEEK!! A g-g-ghost!!', 100); damageBoss(1); } }
+  else if(pid==='mp_lava'){ if(petAtk>=400){ petAtk=0; petPos.x=boss.x; petPos.y=groundY-80; damageBoss(1); } }
 }
 function updateBossFx(){
   for(let i=bossFx.length-1;i>=0;i--){ const f=bossFx[i];
@@ -773,11 +921,14 @@ function updateBossFx(){
 function bossHitToad(face){
   if(toadShield>0){ toadShield=0; pops.push({x:toad.x, y:toad.y-90, t:0, txt:'🛡️✨'}); sfx('buy'); return; }
   toadHurt=70; toad.x = clamp(toad.x - face*70, toad.w*0.5, W-toad.w*0.5); sfx('mad');
+  slowT=360; pops.push({x:toad.x, y:toad.y-100, t:0, txt:'🐌'});  // speed debuff — Speedy Juice cures it
+  if(worn.pet==='mp_lava' && boss.active && boss.state!=='defeated'){ pops.push({x:boss.x, y:bossHeadY()-30, t:0, txt:'🔥 OUCH!'}); damageBoss(2); }
 }
 function updateBoss(){
   if(!boss.active) return;
   boss.flash = Math.max(0, boss.flash-1);
   if(toadShield>0) toadShield--;
+  if(bossSayT>0) bossSayT--;
   updateBossFx();
   if(boss.state==='defeated'){ boss.x += boss.vx; boss.y -= 5; boss.timer++; if(boss.timer>70) boss.active=false; return; }
   petAssist1P();
@@ -785,12 +936,12 @@ function updateBoss(){
   if(bossFrozen>0){ bossFrozen--; return; }
   const dx = toad.x - boss.x, dist = Math.abs(dx), face = Math.sign(dx)||1;
   const windT=Math.round(36*DIFF[difficulty].wind), recT=Math.round(44*DIFF[difficulty].wind);
-  if(boss.kind==='fly'){
-    const hovY=H*0.26;
-    if(boss.state==='approach'){ boss.y+=(hovY-boss.y)*0.08; if(dist>110) boss.x+=face*2.4; else { boss.state='wind'; boss.timer=windT; } }
+  if(boss.kind==='fly'||boss.kind==='bat'){
+    const hovY=H*0.26, fsp=boss.kind==='bat'?1.25:1;
+    if(boss.state==='approach'){ boss.y+=(hovY-boss.y)*0.08; if(dist>110) boss.x+=face*2.4*fsp; else { boss.state='wind'; boss.timer=windT; } }
     else if(boss.state==='wind'){ boss.y+=(hovY-20-boss.y)*0.1; boss.timer--; if(boss.timer<=0){ boss.state='peck'; boss.timer=16; } }
     else if(boss.state==='peck'){
-      boss.timer--; boss.x+=face*3; boss.y+=(groundY-36-boss.y)*0.28;
+      boss.timer--; boss.x+=face*3*fsp; boss.y+=(groundY-36-boss.y)*0.28;
       if(toadHurt<=0 && dist<80 && toad.y>groundY-40) bossHitToad(face);
       if(boss.timer<=0){ boss.state='recover'; boss.timer=recT; }
     }
@@ -815,8 +966,9 @@ function startBoss(kind){
   const base=BOSS_KINDS[boss.kind];
   boss.maxhp=boss.hp=Math.max(3, Math.round(base.hp*DIFF[difficulty].hp));
   boss.active=true; boss.state='approach'; boss.timer=0; boss.flash=0; boss.vx=0;
-  boss.y = boss.kind==='fly'? H*0.26 : groundY; boss.x=(toad.x<W/2? W-60 : 60);
-  petAtk=0; bossFrozen=0; toadShield=0; bossFx.length=0;
+  boss.y = (boss.kind==='fly'||boss.kind==='bat')? H*0.26 : groundY; boss.x=(toad.x<W/2? W-60 : 60);
+  petAtk=0; bossFrozen=0; toadShield=0; bossFx.length=0; slowT=0;
+  bossSay(pickLine(BOSS_LINES[bossLineKey()].intro), 160);
 }
 
 /* ---------------- Draw: sky & scenery ---------------- */
@@ -937,7 +1089,7 @@ function drawWaterBug(b){
   ctx.restore();
 }
 function drawPlant(){
-  if(!plant.active) return;
+  if(!plant.active || plant.where!==area || inside) return;
   const x=plant.x, y=plant.y;
   ctx.strokeStyle='rgba(150,210,120,0.7)'; ctx.lineWidth=3; ctx.lineCap='round';
   for(let i=0;i<3;i++){ const off=(i-1)*10; ctx.beginPath();
@@ -951,9 +1103,31 @@ function drawPlant(){
   ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=3;
   ctx.beginPath(); ctx.arc(x,y-30,18, -Math.PI/2, -Math.PI/2 + 6.28*(plant.timer/600)); ctx.stroke();
 }
+function drawSayBubble(txt, cx, cy){
+  ctx.font='bold 13px sans-serif';
+  const tw2=ctx.measureText(txt).width, w=tw2+20, h=24;
+  const x=clamp(cx, w/2+6, W-w/2-6), y=Math.max(126, cy);   // stay below the boss health bar
+  ctx.fillStyle='rgba(255,255,255,0.95)';
+  if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(x-w/2, y-h/2, w, h, 11); ctx.fill(); }
+  else ctx.fillRect(x-w/2, y-h/2, w, h);
+  ctx.beginPath(); ctx.moveTo(x-6, y+h/2-1); ctx.lineTo(x+6, y+h/2-1); ctx.lineTo(x, y+h/2+8); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#173a1a'; ctx.textAlign='center'; ctx.fillText(txt, x, y+4.5);
+}
+/* the selected boss outfit, drawn at the boss's head */
+function drawBossAccessory(hx, hy, face, s){
+  s=s||1;
+  if(bossSkin==='tophat'){ ctx.fillStyle='#2b2b3a'; ctx.fillRect(hx-15*s, hy-3*s, 30*s, 4*s); ctx.fillRect(hx-9*s, hy-21*s, 18*s, 18*s); ctx.fillStyle='#e0554f'; ctx.fillRect(hx-9*s, hy-8*s, 18*s, 4*s); }
+  else if(bossSkin==='crown'){ ctx.fillStyle='#ffcf3a'; ctx.beginPath(); ctx.moveTo(hx-11*s, hy); ctx.lineTo(hx-11*s, hy-9*s); ctx.lineTo(hx-5*s, hy-3*s); ctx.lineTo(hx, hy-12*s); ctx.lineTo(hx+5*s, hy-3*s); ctx.lineTo(hx+11*s, hy-9*s); ctx.lineTo(hx+11*s, hy); ctx.closePath(); ctx.fill(); ctx.fillStyle='#e0554f'; ctx.beginPath(); ctx.arc(hx, hy-5*s, 1.8*s, 0, 7); ctx.fill(); }
+  else if(bossSkin==='shades'){ ctx.fillStyle='#1a1a1a'; ctx.fillRect(hx-11*s, hy+2*s, 22*s, 6*s); }
+  else if(bossSkin==='bow'){ ctx.fillStyle='#ff8fb0'; ctx.beginPath(); ctx.moveTo(hx-1*s, hy-4*s); ctx.lineTo(hx-10*s, hy-10*s); ctx.lineTo(hx-10*s, hy+2*s); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(hx+1*s, hy-4*s); ctx.lineTo(hx+10*s, hy-10*s); ctx.lineTo(hx+10*s, hy+2*s); ctx.closePath(); ctx.fill(); ctx.fillStyle='#e0559a'; ctx.beginPath(); ctx.arc(hx, hy-4*s, 2.5*s, 0, 7); ctx.fill(); }
+}
 function drawBossOverlays(){
+  if(bossSayT>0 && bossSayTxt){
+    const by2 = (boss.kind==='fly'||boss.kind==='bat')? boss.y-56 : groundY-160;
+    drawSayBubble(bossSayTxt, boss.x, by2);
+  }
   if(bossFrozen>0 && boss.state!=='defeated'){
-    const cy = boss.kind==='fly'? boss.y : groundY-70;
+    const cy = (boss.kind==='fly'||boss.kind==='bat')? boss.y : groundY-70;
     ctx.globalAlpha=0.35; ctx.fillStyle='#aadeff'; ctx.beginPath(); ctx.ellipse(boss.x, cy, 55, 72, 0,0,7); ctx.fill(); ctx.globalAlpha=1;
     ctx.font='26px sans-serif'; ctx.textAlign='center'; ctx.fillText('❄️', boss.x, cy-86);
   }
@@ -987,6 +1161,19 @@ function drawBoss(){
     ctx.fillStyle='#c0392b'; ctx.beginPath(); ctx.arc(x-14,y-10,10,0,7); ctx.arc(x+14,y-10,10,0,7); ctx.fill();
     ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x-12,y-12,3,0,7); ctx.arc(x+16,y-12,3,0,7); ctx.fill();
     ctx.strokeStyle='#111'; ctx.lineWidth=2; for(const s of [-1,1]){ ctx.beginPath(); ctx.moveTo(x+s*30,y-2); ctx.lineTo(x+s*44,y-8); ctx.stroke(); }
+    drawBossAccessory(x, y-24, face, 1.3);
+    drawBossOverlays(); return;
+  }
+  if(boss.kind==='bat'){
+    const y=boss.y, w2=Math.sin(t*0.5)*14;
+    ctx.fillStyle=flash?'#cfc0e8':'#3a2a5a';
+    for(const s of [-1,1]){ ctx.beginPath(); ctx.moveTo(x+s*10,y-4); ctx.quadraticCurveTo(x+s*44,y-26-w2, x+s*58,y-4+w2*0.4); ctx.quadraticCurveTo(x+s*42,y+2, x+s*30,y+6); ctx.quadraticCurveTo(x+s*20,y+2, x+s*10,y+6); ctx.closePath(); ctx.fill(); }
+    ctx.fillStyle=flash?'#fff':'#54427a'; ctx.beginPath(); ctx.ellipse(x,y,22,20,0,0,7); ctx.fill();
+    ctx.fillStyle=flash?'#fff':'#54427a'; ctx.beginPath(); ctx.moveTo(x-14,y-14); ctx.lineTo(x-9,y-30); ctx.lineTo(x-3,y-16); ctx.closePath(); ctx.moveTo(x+14,y-14); ctx.lineTo(x+9,y-30); ctx.lineTo(x+3,y-16); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#ffd23a'; ctx.beginPath(); ctx.arc(x-8,y-4,4,0,7); ctx.arc(x+8,y-4,4,0,7); ctx.fill();
+    ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(x-8+face*1.5,y-4,2,0,7); ctx.arc(x+8+face*1.5,y-4,2,0,7); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(x-5,y+8); ctx.lineTo(x-3,y+13); ctx.lineTo(x-1,y+8); ctx.moveTo(x+5,y+8); ctx.lineTo(x+3,y+13); ctx.lineTo(x+1,y+8); ctx.closePath(); ctx.fill();
+    drawBossAccessory(x, y-26, face, 1.2);
     drawBossOverlays(); return;
   }
   if(boss.kind==='snake'){
@@ -1000,6 +1187,7 @@ function drawBoss(){
     ctx.fillStyle=flash?'#fff':'#4caf54'; ctx.beginPath(); ctx.ellipse(hx,hy,20,15,0,0,7); ctx.fill();
     ctx.fillStyle='#ffd23a'; ctx.beginPath(); ctx.arc(hx+face*7,hy-4,4,0,7); ctx.fill(); ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(hx+face*8,hy-4,2,0,7); ctx.fill();
     ctx.strokeStyle='#e0402f'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(hx+face*18,hy+2); ctx.lineTo(hx+face*30,hy-2); ctx.moveTo(hx+face*18,hy+4); ctx.lineTo(hx+face*30,hy+8); ctx.stroke();
+    drawBossAccessory(hx, hy-15, face, 1.1);
     drawBossOverlays(); return;
   }
   if(area==='cave'){
@@ -1018,6 +1206,7 @@ function drawBoss(){
     ctx.fillStyle=dcol; ctx.beginPath(); ctx.arc(hx,hy,11,0,7); ctx.fill();
     ctx.fillStyle='#f0a92e'; ctx.beginPath(); ctx.moveTo(hx+face*6,hy-4); ctx.lineTo(hx+face*30,hy+1); ctx.lineTo(hx+face*6,hy+6); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(hx+face*3,hy-4,2.4,0,7); ctx.fill();
+    drawBossAccessory(hx, hy-11, face, 1);
     drawBossOverlays(); return;
   }
   const bcol = flash ? '#ffffff' : '#a9b8c6';
@@ -1036,6 +1225,7 @@ function drawBoss(){
   ctx.fillStyle='#f0a92e'; ctx.beginPath(); ctx.moveTo(hx+face*5,hy-3); ctx.lineTo(hx+face*32,hy+2); ctx.lineTo(hx+face*5,hy+5); ctx.closePath(); ctx.fill();
   ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(hx+face*2,hy-3,2,0,7); ctx.fill();
   if(area==='space'){ ctx.strokeStyle='rgba(200,230,255,0.85)'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(hx+face*4,hy-2,17,0,7); ctx.stroke(); }
+  drawBossAccessory(hx, hy-9, face, 1);
   drawBossOverlays();
 }
 function drawBossHealth(){
@@ -1044,7 +1234,7 @@ function drawBossHealth(){
   let name = BOSS_KINDS[boss.kind]? BOSS_KINDS[boss.kind].name : 'Heron 🐦';
   if(boss.kind==='heron' && area==='cave') name='Diving Duck 🦆';
   else if(boss.kind==='heron' && area==='space') name='Space Heron 🐦';
-  const dodge = boss.kind==='fly' ? 'jump up & tongue it!' : (area==='cave' ? 'swim up to dodge!' : (area==='space' ? 'float up to dodge!' : 'jump to dodge!'));
+  const dodge = (boss.kind==='fly'||boss.kind==='bat') ? 'jump up & tongue it!' : (area==='cave' ? 'swim up to dodge!' : (area==='space' ? 'float up to dodge!' : 'jump to dodge!'));
   const label = name+' ('+DIFF[difficulty].label+') — '+dodge;
   ctx.fillStyle='#fff'; fitText(label, W/2, y-8, 15);
   ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.fillRect(x-3,y-3,w+6,16);
@@ -1123,7 +1313,8 @@ function drawInside(){
   ctx.fillStyle = dark?'#5a3a22':'#8a5a34'; ctx.fillRect(6,groundY-70,38,70); ctx.fillStyle='#ffcf4d'; ctx.beginPath(); ctx.arc(38,groundY-34,3,0,7); ctx.fill();
   ctx.fillStyle = dark?'#e8e2f0':'#4a3626'; ctx.font='bold 13px sans-serif'; ctx.textAlign='center'; ctx.fillText(roomIndex===0?'🚪 Exit':'◀', 25, groundY-78);
   if(roomIndex<ROOMS.length-1){ ctx.fillStyle = dark?'#5a3a22':'#8a5a34'; ctx.fillRect(W-44,groundY-70,38,70); ctx.fillStyle='#ffcf4d'; ctx.beginPath(); ctx.arc(W-40,groundY-34,3,0,7); ctx.fill(); ctx.fillStyle= dark?'#e8e2f0':'#4a3626'; ctx.fillText('▶', W-25, groundY-78); }
-  for(const b of indoorBugs) drawIndoorBug(b);
+  for(const b of indoorBugs){ drawIndoorBug(b);
+    if((b.alarm||0)>0.35 && !b.fleeing){ ctx.fillStyle='#c0392b'; ctx.font='bold 16px sans-serif'; ctx.textAlign='center'; ctx.fillText('!', b.x, b.y-16); } }
   drawToad();
   drawPops();
   let hint = R.name;
@@ -1139,7 +1330,7 @@ function drawAreaBug(b){
   if(b.type==='jelly'){ ctx.save(); ctx.translate(b.x,b.y); ctx.fillStyle='rgba(255,150,220,0.8)'; ctx.beginPath(); ctx.arc(0,0,9,Math.PI,0); ctx.lineTo(9,4); ctx.lineTo(-9,4); ctx.closePath(); ctx.fill(); ctx.strokeStyle='rgba(255,150,220,0.6)'; ctx.lineWidth=2; for(const tx of [-6,-2,2,6]){ ctx.beginPath(); ctx.moveTo(tx,4); ctx.lineTo(tx+Math.sin(b.wig+tx)*2, 14); ctx.stroke(); } ctx.restore(); return; }
   if(b.type==='starcoin'){ ctx.save(); ctx.translate(b.x,b.y); const pulse=0.6+0.4*Math.sin(b.wig*1.3); ctx.globalAlpha=0.35*pulse; ctx.fillStyle='#fff29a'; ctx.beginPath(); ctx.arc(0,0,14,0,7); ctx.fill(); ctx.globalAlpha=1; ctx.font='22px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('⭐',0,1); ctx.textBaseline='alphabetic'; ctx.restore(); return; }
   if(b.type==='gift'){ ctx.save(); ctx.translate(b.x,b.y); const pulse=0.5+0.5*Math.sin(b.wig*2); ctx.globalAlpha=0.4*pulse; ctx.fillStyle='#a8ffff'; ctx.beginPath(); ctx.arc(0,0,17,0,7); ctx.fill(); ctx.globalAlpha=1; ctx.font='24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🎁',0,1); ctx.textBaseline='alphabetic'; ctx.restore(); return; }
-  if(FRUIT_BOOST[b.type]){ ctx.save(); ctx.translate(b.x,b.y); ctx.globalAlpha=0.3; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,14,0,7); ctx.fill(); ctx.globalAlpha=1; ctx.font='24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(b.type==='fruit_speed'?'🍓':(b.type==='fruit_tongue'?'🍎':'🍊'),0,1); ctx.textBaseline='alphabetic'; ctx.restore(); return; }
+  if(FRUIT_BOOST[b.type]){ ctx.save(); ctx.translate(b.x,b.y); ctx.globalAlpha=0.3; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,14,0,7); ctx.fill(); ctx.globalAlpha=1; ctx.font='24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(FRUIT_EMOJI[b.type]||'🍓',0,1); ctx.textBaseline='alphabetic'; ctx.restore(); return; }
   ctx.save(); ctx.translate(b.x,b.y);
   if(b.type==='butterfly'){ const w=Math.sin(b.wig)*4;
     ctx.fillStyle='#ff8fce'; ctx.beginPath(); ctx.ellipse(-6,0,7,5+w*0.4,-0.3,0,7); ctx.ellipse(6,0,7,5+w*0.4,0.3,0,7); ctx.fill();
@@ -1178,6 +1369,33 @@ function drawArea(){
     ctx.fillStyle='#14313a'; for(const r of [[W*0.2,H*0.4,30],[W*0.75,H*0.3,36],[W*0.5,H*0.66,26]]){ ctx.beginPath(); ctx.arc(r[0],r[1],r[2],0,7); ctx.fill(); }
     ctx.fillStyle='rgba(255,255,255,0.25)'; for(let i=0;i<10;i++){ const bx=(i*83)%W, by=H-((t*1.1+i*57)%H); ctx.beginPath(); ctx.arc(bx,by,2+(i%3),0,7); ctx.fill(); }
     ctx.fillStyle='#0c2a34'; ctx.fillRect(0,groundY,W,H-groundY); ctx.fillStyle='#1f5a6a'; ctx.fillRect(0,groundY,W,6);
+  } else if(area==='city'){
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#7fa8d8'); g.addColorStop(0.7,'#c8d8e8'); g.addColorStop(1,'#e8e0d0'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // skyline
+    ctx.fillStyle='#8a98b0';
+    for(let i=0;i<6;i++){ const bx2=(i*0.17+0.02)*W, bw2=W*0.11, bh2=H*(0.25+((i*37)%3)*0.09); ctx.fillRect(bx2, groundY-bh2, bw2, bh2);
+      ctx.fillStyle='#ffe9a8'; for(let wy=groundY-bh2+14; wy<groundY-24; wy+=26){ for(let wx=bx2+8; wx<bx2+bw2-10; wx+=18){ if(((wx+wy)|0)%3!==0) ctx.fillRect(wx, wy, 8, 10); } }
+      ctx.fillStyle='#8a98b0'; }
+    // storefronts (scaled down on narrow screens so they don't overlap)
+    const SHOP_COLS=['#e0554f','#e07ac0','#4aa8ff'];
+    const sc=Math.min(1, (W*0.27)/108);
+    for(let i=0;i<3;i++){
+      const sx=cityShopX(i);
+      ctx.save(); ctx.translate(sx, groundY); ctx.scale(sc, sc);
+      ctx.fillStyle='#c9b8a0'; ctx.fillRect(-52, -96, 104, 96);
+      for(let k=0;k<6;k++){ ctx.fillStyle= k%2? '#fff':SHOP_COLS[i]; ctx.beginPath(); ctx.moveTo(-52+k*17.3, -96); ctx.lineTo(-52+(k+1)*17.3, -96); ctx.lineTo(-52+(k+1)*17.3, -80); ctx.arc(-52+k*17.3+8.65, -80, 8.65, 0, Math.PI); ctx.closePath(); ctx.fill(); }
+      ctx.fillStyle='#5a3a22'; ctx.fillRect(-15, -52, 30, 52);
+      ctx.fillStyle='#ffcf4d'; ctx.beginPath(); ctx.arc(9, -27, 2.5, 0, 7); ctx.fill();
+      ctx.fillStyle='#bfe6f0'; ctx.fillRect(-46, -70, 24, 26); ctx.fillRect(22, -70, 24, 26);
+      ctx.font='26px sans-serif'; ctx.textAlign='center'; ctx.fillText(CITY_SHOPS[i].sign, 0, -104);
+      ctx.restore();
+    }
+    // door hint: nearest shop only
+    let nearI=0, nearD=1e9;
+    for(let i=0;i<3;i++){ const d=Math.abs(toad.x-cityShopX(i)); if(d<nearD){ nearD=d; nearI=i; } }
+    if(nearD<90){ ctx.fillStyle='#173a1a'; fitText('🚪 '+CITY_SHOPS[nearI].name+' — walk to the door!', cityShopX(nearI), groundY-104*sc-24, 12); }
+    ctx.fillStyle='#6a6a72'; ctx.fillRect(0,groundY,W,H-groundY);
+    ctx.fillStyle='#ffe23a'; for(let x=10;x<W;x+=54){ ctx.fillRect(x, groundY+Math.min(18,(H-groundY)*0.4), 26, 4); }
   } else if(area==='space'){
     const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#0a0a2a'); g.addColorStop(1,'#1a1440'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
     ctx.fillStyle='#fff'; for(let i=0;i<70;i++){ const sx=(i*89)%W, sy=(i*57)%H; const tw=0.3+0.7*Math.abs(Math.sin(t*0.05+i)); ctx.globalAlpha=tw; ctx.fillRect(sx,sy,2,2); } ctx.globalAlpha=1;
@@ -1193,14 +1411,18 @@ function drawArea(){
   }
   if(constSky && (area==='sky'||area==='forest'||area==='mountain')) drawConstSky(H);
   for(const p of areaPlatforms) drawPlatform(p);
+  drawPlant();
   const sp3=secretPos();
   if(sp3 && !secretDone){
     const tw=0.35+0.55*Math.abs(Math.sin(t*0.09));
-    ctx.globalAlpha=(secretFound[area]?0.4:0.9)*tw; ctx.font='22px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.globalAlpha=0.25*tw; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(sp3.x, sp3.y, 30+6*tw, 0, 7); ctx.fill(); ctx.globalAlpha=1;
+    ctx.globalAlpha=(secretFound[area]?0.5:1)*Math.max(tw,0.5); ctx.font='24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('✨', sp3.x, sp3.y); ctx.textBaseline='alphabetic'; ctx.globalAlpha=1;
-    if(secretProg>0){ ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(sp3.x, sp3.y, 22, -Math.PI/2, -Math.PI/2+6.28*(secretProg/80)); ctx.stroke(); }
+    if(Math.hypot(toad.x-sp3.x, (toad.y-toad.h*0.6)-sp3.y) < 150){ ctx.fillStyle='#fff'; fitText(secretProg>0?'stay here…':'✨ come stand here!', sp3.x, sp3.y-38, 13); }
+    if(secretProg>0){ ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(sp3.x, sp3.y, 24, -Math.PI/2, -Math.PI/2+6.28*(secretProg/45)); ctx.stroke(); }
   }
-  for(const b of areaBugs) drawAreaBug(b);
+  for(const b of areaBugs){ drawAreaBug(b);
+    if((b.alarm||0)>0.35 && !b.fleeing && !FRUIT_BOOST[b.type]){ ctx.fillStyle='#c0392b'; ctx.font='bold 16px sans-serif'; ctx.textAlign='center'; ctx.fillText('!', b.x, b.y-16); } }
   drawBoss();
   drawToad();
   drawPops();
@@ -1232,12 +1454,16 @@ function skinColors(){
     case 'lava': return {b:'#4a2a24',bel:'#8a4a3a',d:'#2e1a16',lava:true};
     case 'ice': return {b:'#bfe6f5',bel:'#eef8ff',d:'#8fc0d8',ice:true};
     case 'robot': return {b:'#9aa4ae',bel:'#c8d0d8',d:'#6a747e',robot:true};
+    case 'myth_skin': return {b:'#f0eefc',bel:'#ffffff',d:'#c8c2e8',prism:true};
+    case 'gifttoad': return {b:'#e0554f',bel:'#f5b0ac',d:'#b83b36',gift:true};
+    case 'diamond': return {b:'#cfeef8',bel:'#f0fbff',d:'#8fc8dc',facet:true};
     default: return {b:(dark?'#4f9d54':'#6bbf4f'),bel:'#d7edb0',d:(dark?'#3f7c42':'#54a53f')};
   }
 }
 function drawPetSprite(id,x,y){
   ctx.save(); ctx.translate(x,y);
-  ctx.fillStyle='rgba(0,0,0,.15)'; ctx.beginPath(); ctx.ellipse(0, groundY-y+4, 14,4,0,0,7); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.15)'; ctx.beginPath(); ctx.ellipse(0, groundY-y+4, 18,5,0,0,7); ctx.fill();
+  ctx.scale(1.35,1.35);   // pets were too tiny — Sasha said so!
   if(id==='pet_puppy'){
     ctx.fillStyle='#b07a45'; ctx.beginPath(); ctx.ellipse(0,-6,15,11,0,0,7); ctx.fill();
     ctx.strokeStyle='#9a6636'; ctx.lineWidth=4; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(13,-8); ctx.quadraticCurveTo(22,-14,20,-20); ctx.stroke();
@@ -1307,16 +1533,66 @@ function drawPetSprite(id,x,y){
     ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(-10,-16,1.5,0,7); ctx.fill();
     ctx.fillStyle='#ffc9dd'; ctx.beginPath(); ctx.arc(-13,-13,1.6,0,7); ctx.fill();
     ctx.globalAlpha=0.5+0.5*Math.sin(t*0.2); ctx.font='10px sans-serif'; ctx.textAlign='center'; ctx.fillText('✨', 8, -24); ctx.fillText('✨', -18, -6); ctx.globalAlpha=1;
+  } else if(id==='mp_ghost'){
+    const bob2=Math.sin(t*0.12)*2;
+    ctx.globalAlpha=0.8;
+    ctx.fillStyle='#f2f2ff'; ctx.beginPath(); ctx.arc(0,-14+bob2,11,Math.PI,0);
+    ctx.lineTo(11,-4+bob2);
+    for(const wx of [7,2,-3,-8]){ ctx.quadraticCurveTo(wx+2.5,2+bob2, wx,-4+bob2); }
+    ctx.lineTo(-11,-4+bob2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-9,-22+bob2); ctx.lineTo(-6,-30+bob2); ctx.lineTo(-2,-23+bob2); ctx.closePath();
+    ctx.moveTo(9,-22+bob2); ctx.lineTo(6,-30+bob2); ctx.lineTo(2,-23+bob2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#3a3a5a'; ctx.beginPath(); ctx.arc(-4,-15+bob2,1.8,0,7); ctx.arc(4,-15+bob2,1.8,0,7); ctx.fill();
+    ctx.strokeStyle='#3a3a5a'; ctx.lineWidth=1.4; for(const s of [-1,1]){ ctx.beginPath(); ctx.moveTo(s*8,-12+bob2); ctx.lineTo(s*14,-13+bob2); ctx.stroke(); }
+    ctx.globalAlpha=1;
+  } else if(id==='mp_crystal'){
+    ctx.fillStyle='#d8b88a'; ctx.beginPath(); ctx.ellipse(0,-9,12,8,0,0,7); ctx.fill();
+    ctx.strokeStyle='#c0a070'; ctx.lineWidth=2.6; ctx.lineCap='round'; for(const lx of [-7,-2,4,8]){ ctx.beginPath(); ctx.moveTo(lx,-3); ctx.lineTo(lx,2); ctx.stroke(); }
+    ctx.fillStyle='#d8b88a'; ctx.beginPath(); ctx.ellipse(-11,-17,5,6,-0.4,0,7); ctx.fill();
+    ctx.strokeStyle='#8fe0e8'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-13,-22); ctx.lineTo(-16,-30); ctx.moveTo(-13,-22); ctx.lineTo(-10,-29); ctx.moveTo(-16,-30); ctx.lineTo(-19,-33); ctx.moveTo(-10,-29); ctx.lineTo(-7,-33); ctx.stroke();
+    ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(-13,-18,1.5,0,7); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(10,-12,2.2,0,7); ctx.fill();
+    ctx.globalAlpha=0.5+0.5*Math.sin(t*0.15); ctx.font='9px sans-serif'; ctx.textAlign='center'; ctx.fillText('💎', -13, -36); ctx.globalAlpha=1;
+  } else if(id==='mp_lava'){
+    ctx.fillStyle='#3a2a24'; ctx.beginPath(); ctx.arc(0,-10,12,Math.PI,0); ctx.closePath(); ctx.fill();
+    const pulse=0.5+0.5*Math.sin(t*0.13);
+    ctx.strokeStyle='rgba(255,'+Math.floor(120+90*pulse)+',40,0.9)'; ctx.lineWidth=1.8;
+    ctx.beginPath(); ctx.moveTo(-8,-13); ctx.lineTo(-3,-16); ctx.lineTo(1,-12); ctx.moveTo(3,-18); ctx.lineTo(7,-13); ctx.stroke();
+    ctx.fillStyle='#6a8a4a'; ctx.beginPath(); ctx.ellipse(0,-9,13,4,0,0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(-14,-11,4.5,0,7); ctx.fill();
+    ctx.strokeStyle='#55703c'; ctx.lineWidth=3; ctx.lineCap='round'; for(const lx of [-8,7]){ ctx.beginPath(); ctx.moveTo(lx,-6); ctx.lineTo(lx,-1); ctx.stroke(); }
+    ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(-15,-12,1.4,0,7); ctx.fill();
+  } else if(id==='pet_bunny'){
+    ctx.fillStyle='#c9a06a'; ctx.beginPath(); ctx.ellipse(0,-7,9,7,0,0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(-7,-13,5.5,0,7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-9,-21,2.4,6,-0.15,0,7); ctx.ellipse(-4,-21,2.4,6,0.15,0,7); ctx.fill();
+    ctx.fillStyle='#e8cfa8'; ctx.beginPath(); ctx.arc(5,-5,3.5,0,7); ctx.fill();
+    ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(-9,-13,1.3,0,7); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(8,-9,2.6,0,7); ctx.fill();
+  } else if(id==='pet_diamondfish'){
+    const bob2=Math.sin(t*0.14)*2;
+    ctx.fillStyle='#bfeef8'; ctx.beginPath(); ctx.ellipse(0,-11+bob2,13,8,0,0,7); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(11,-11+bob2); ctx.lineTo(19,-18+bob2); ctx.lineTo(19,-4+bob2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-2,-18+bob2); ctx.lineTo(3,-25+bob2); ctx.lineTo(6,-17+bob2); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(90,180,220,0.8)'; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(-8,-16+bob2); ctx.lineTo(0,-11+bob2); ctx.lineTo(-8,-6+bob2); ctx.moveTo(0,-17+bob2); ctx.lineTo(6,-11+bob2); ctx.lineTo(0,-5+bob2); ctx.stroke();
+    ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(-9,-12+bob2,1.6,0,7); ctx.fill();
+    ctx.globalAlpha=0.5+0.5*Math.sin(t*0.2); ctx.font='9px sans-serif'; ctx.textAlign='center'; ctx.fillText('✨', 9, -22+bob2); ctx.fillText('✨', -13, -20+bob2); ctx.globalAlpha=1;
   } else if(id==='pet_snail'){
     ctx.fillStyle='#c99a6a'; ctx.beginPath(); ctx.ellipse(-4,-2,13,6,0,0,7); ctx.fill();
     ctx.fillStyle='#c99a6a'; ctx.beginPath(); ctx.arc(-16,-6,5,0,7); ctx.fill();
     ctx.strokeStyle='#5a3a22'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(-18,-10); ctx.lineTo(-20,-16); ctx.moveTo(-15,-10); ctx.lineTo(-13,-16); ctx.stroke();
     ctx.fillStyle='#e0a86a'; ctx.beginPath(); ctx.arc(2,-9,10,0,7); ctx.fill(); ctx.strokeStyle='#8a5a34'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(2,-9,7,0,6.2); ctx.stroke(); ctx.beginPath(); ctx.arc(2,-9,3.5,0,6.2); ctx.stroke();
   }
+  if(worn.petacc){
+    const accE=({petbow:'🎀', pethat:'🎩', petcrown:'👑', petscarf:'🧣'})[worn.petacc];
+    if(accE){ ctx.font='13px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(accE, -7, -30); ctx.textBaseline='alphabetic'; }
+  }
   ctx.restore();
 }
 function drawToad(){
-  const bx=toad.x, by=toad.y;
+  const riding = ridingActive();
+  const bx=toad.x, by=toad.y-(riding?15:0);
   const squash = toad.vy<0 ? 0.08 : 0;
   const bw=toad.w*(1-squash), bh=toad.h*(1+squash*1.5);
   const bob = (toad.move!=='none' && !swimming && toad.y>=groundY-0.5) ? Math.sin(t*0.35)*3 : 0;
@@ -1324,9 +1600,42 @@ function drawToad(){
   const sk = skinColors();
   const green=sk.b, dcol=sk.d, belly=sk.bel;
 
-  if(worn.pet){ const px=toad.x - toad.facing*54, py=toad.y-8; petPos.x+=(px-petPos.x)*0.12; petPos.y+=(py-petPos.y)*0.12; drawPetSprite(worn.pet, petPos.x, petPos.y+Math.sin(t*0.15)*3); }
+  if(worn.pet && riding){ drawPetSprite(worn.pet, bx, toad.y+2); }
+  else if(worn.pet){
+    const px=toad.x - toad.facing*54, py=toad.y-8; petPos.x+=(px-petPos.x)*0.12; petPos.y+=(py-petPos.y)*0.12;
+    drawPetSprite(worn.pet, petPos.x, petPos.y+Math.sin(t*0.15)*3);
+    if(petCare===true && petData[worn.pet]){
+      const p=petData[worn.pet]; let mk=null, mv=79;
+      for(const k in p.needs){ if(p.needs[k]>mv){ mv=p.needs[k]; mk=k; } }
+      if(mk){ ctx.font='16px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(petPos.x+14, petPos.y-40, 11,0,7); ctx.fill();
+        ctx.fillText(NEED_INFO[mk].e, petPos.x+14, petPos.y-39); ctx.textBaseline='alphabetic'; }
+    }
+  }
+  if(slowT>0 && Math.floor(t/20)%2===0){ ctx.font='18px sans-serif'; ctx.textAlign='center'; ctx.fillText('🐌', bx+26, by-toad.h-40); }
+  if(exprT>0){
+    exprT--;
+    const rise=(140-exprT)*0.25, alpha=Math.min(1, exprT/30);
+    ctx.globalAlpha=alpha; ctx.font='30px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(exprChar, bx, by-toad.h-52-rise);
+    ctx.globalAlpha=1;
+  }
   if(!swimming){ ctx.fillStyle='rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(bx, groundY+6, bw*0.5, 9, 0,0,7); ctx.fill(); }
   if(worn.coat==='cape'){ ctx.fillStyle='#c0392b'; ctx.beginPath(); ctx.moveTo(bx-bw*0.28, cy-bh*0.34); ctx.quadraticCurveTo(bx-bw*0.95, cy+bh*0.3, bx-bw*0.34, cy+bh*0.62); ctx.quadraticCurveTo(bx, cy+bh*0.42, bx+bw*0.34, cy+bh*0.62); ctx.quadraticCurveTo(bx+bw*0.95, cy+bh*0.3, bx+bw*0.28, cy-bh*0.34); ctx.closePath(); ctx.fill(); ctx.fillStyle='#a5322b'; ctx.fillRect(bx-bw*0.28, cy-bh*0.4, bw*0.56, 6); }
+  if(worn.coat==='myth_cape'){ const wf=Math.sin(t*0.18)*bh*0.1;
+    ctx.fillStyle='#3a7a4a'; ctx.beginPath();
+    ctx.moveTo(bx-bw*0.24, cy-bh*0.3);
+    ctx.quadraticCurveTo(bx-bw*0.95, cy-bh*0.2-wf, bx-bw*0.8, cy+bh*0.5);
+    ctx.lineTo(bx-bw*0.55, cy+bh*0.28); ctx.lineTo(bx-bw*0.38, cy+bh*0.55); ctx.lineTo(bx-bw*0.2, cy+bh*0.3);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bx+bw*0.24, cy-bh*0.3);
+    ctx.quadraticCurveTo(bx+bw*0.95, cy-bh*0.2-wf, bx+bw*0.8, cy+bh*0.5);
+    ctx.lineTo(bx+bw*0.55, cy+bh*0.28); ctx.lineTo(bx+bw*0.38, cy+bh*0.55); ctx.lineTo(bx+bw*0.2, cy+bh*0.3);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#245a30'; ctx.lineWidth=2.5;
+    for(const s of [-1,1]){ ctx.beginPath(); ctx.moveTo(bx+s*bw*0.24, cy-bh*0.24); ctx.lineTo(bx+s*bw*0.72, cy+bh*0.1-wf); ctx.stroke(); }
+    ctx.fillStyle='#e0554f'; for(const s of [-1,1]) for(let k=0;k<3;k++){ ctx.beginPath(); ctx.arc(bx+s*(bw*0.3+k*bw*0.16), cy-bh*(0.32+0.02*k)-wf*0.5, 2.4,0,7); ctx.fill(); } }
   if(worn.coat==='wings'){ const wf=Math.sin(t*0.2)*bh*0.08;
     ctx.fillStyle='rgba(255,210,240,0.75)'; ctx.beginPath(); ctx.ellipse(bx-bw*0.5, cy-bh*0.15, bw*0.34, bh*0.42+wf, -0.5,0,7); ctx.ellipse(bx+bw*0.5, cy-bh*0.15, bw*0.34, bh*0.42+wf, 0.5,0,7); ctx.fill();
     ctx.strokeStyle='rgba(230,150,210,0.8)'; ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(bx-bw*0.5, cy-bh*0.15, bw*0.34, bh*0.42+wf, -0.5,0,7); ctx.stroke(); ctx.beginPath(); ctx.ellipse(bx+bw*0.5, cy-bh*0.15, bw*0.34, bh*0.42+wf, 0.5,0,7); ctx.stroke(); }
@@ -1352,6 +1661,18 @@ function drawToad(){
     ctx.fillStyle='#fff'; ctx.font='12px sans-serif'; ctx.textAlign='center'; ctx.fillText('❄', bx+bw*0.24, cy+bh*0.08); }
   if(sk.robot){ ctx.fillStyle='#6a747e'; for(const p of [[-0.35,-0.15],[0.33,-0.1],[-0.3,0.25],[0.28,0.28],[0,-0.42]]){ ctx.beginPath(); ctx.arc(bx+p[0]*bw, cy+p[1]*bh, 2.2,0,7); ctx.fill(); }
     ctx.strokeStyle='#7a848e'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(bx-bw*0.5, cy); ctx.lineTo(bx+bw*0.5, cy); ctx.stroke(); }
+  if(sk.gift){ ctx.fillStyle='#ffd23a'; ctx.fillRect(bx-6, cy-bh*0.6, 12, bh*1.2); ctx.fillRect(bx-bw*0.55, cy-6, bw*1.1, 12);
+    ctx.fillStyle='#ffea8a'; ctx.fillRect(bx-2, cy-bh*0.6, 4, bh*1.2); ctx.fillRect(bx-bw*0.55, cy-2, bw*1.1, 4); }
+  if(sk.facet){ ctx.strokeStyle='rgba(120,190,220,0.65)'; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.moveTo(bx-bw*0.34, cy-bh*0.28); ctx.lineTo(bx-bw*0.05, cy); ctx.lineTo(bx-bw*0.34, cy+bh*0.28);
+    ctx.moveTo(bx+bw*0.02, cy-bh*0.36); ctx.lineTo(bx+bw*0.28, cy-bh*0.05); ctx.lineTo(bx+bw*0.02, cy+bh*0.3);
+    ctx.moveTo(bx-bw*0.05, cy); ctx.lineTo(bx+bw*0.28, cy-bh*0.05); ctx.stroke();
+    ctx.fillStyle='#fff'; for(let i=0;i<5;i++){ const a=i*2.3; ctx.globalAlpha=0.5+0.5*Math.sin(t*0.13+i); ctx.beginPath(); ctx.arc(bx+Math.cos(a)*16, cy+Math.sin(a*1.5)*13, 1.6,0,7); ctx.fill(); } ctx.globalAlpha=1; }
+  if(sk.prism){ const pcols=['#ff5a5a','#ffa53a','#ffe23a','#5ad46b','#4aa8ff','#9a6bff'];
+    for(let i=0;i<6;i++){ const sh=Math.sin(t*0.06+i)*bw*0.1; ctx.globalAlpha=0.3; ctx.strokeStyle=pcols[i]; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.moveTo(bx-bw*0.5+i*bw*0.16+sh, cy-bh*0.55); ctx.lineTo(bx-bw*0.34+i*bw*0.16+sh, cy+bh*0.55); ctx.stroke(); }
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#fff'; for(let i=0;i<6;i++){ const a=i*2.1; ctx.globalAlpha=0.5+0.5*Math.sin(t*0.11+i); ctx.beginPath(); ctx.arc(bx+Math.cos(a)*14, cy+Math.sin(a*1.4)*12, 1.5,0,7); ctx.fill(); } ctx.globalAlpha=1; }
   ctx.restore();
 
   if(worn.coat==='shirt' || worn.coat==='coatblue'){
@@ -1367,6 +1688,23 @@ function drawToad(){
     ctx.beginPath(); ctx.moveTo(bx-2,ny); ctx.lineTo(bx-17,ny-9); ctx.lineTo(bx-17,ny+9); ctx.closePath(); ctx.fill();
     ctx.beginPath(); ctx.moveTo(bx+2,ny); ctx.lineTo(bx+17,ny-9); ctx.lineTo(bx+17,ny+9); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#b83b36'; ctx.beginPath(); ctx.arc(bx,ny,4,0,7); ctx.fill(); }
+  if(worn.coat==='cozysweater'){
+    ctx.save(); ctx.beginPath(); ctx.ellipse(bx, cy, bw*0.5, bh*0.55, 0,0,7); ctx.clip();
+    const top=cy+bh*0.12; ctx.fillStyle='#f7f4ee'; ctx.fillRect(bx-bw, top, bw*2, bh);
+    ctx.strokeStyle='#e2dcd0'; ctx.lineWidth=2;
+    for(let k=0;k<5;k++){ ctx.beginPath(); ctx.moveTo(bx-bw*0.5, top+8+k*8); for(let xx=-bw*0.5; xx<=bw*0.5; xx+=8){ ctx.lineTo(bx+xx, top+8+k*8+((xx/8)%2?2:-2)); } ctx.stroke(); }
+    ctx.fillStyle='#ece7de'; ctx.fillRect(bx-bw, top, bw*2, 6);
+    ctx.restore();
+    ctx.strokeStyle='#f7f4ee'; ctx.lineWidth=6; ctx.beginPath(); ctx.arc(bx, cy+bh*0.12, bw*0.32, Math.PI*1.05, Math.PI*1.95); ctx.stroke();
+  }
+  if(worn.coat==='hoodie'){
+    ctx.save(); ctx.beginPath(); ctx.ellipse(bx, cy, bw*0.5, bh*0.55, 0,0,7); ctx.clip();
+    const top=cy+bh*0.14; ctx.fillStyle='#7a8290'; ctx.fillRect(bx-bw, top, bw*2, bh);
+    ctx.fillStyle='#6a7280'; ctx.fillRect(bx-16, top+bh*0.22, 32, 14);
+    ctx.strokeStyle='#e8e8e8'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(bx-7, top+4); ctx.lineTo(bx-7, top+18); ctx.moveTo(bx+7, top+4); ctx.lineTo(bx+7, top+18); ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle='#7a8290'; ctx.lineWidth=7; ctx.beginPath(); ctx.arc(bx, cy+bh*0.1, bw*0.36, Math.PI*1.1, Math.PI*1.9); ctx.stroke();
+  }
   if(worn.coat==='scarf'){ const ny=cy-bh*0.06;
     ctx.fillStyle='#e0554f'; ctx.beginPath(); ctx.ellipse(bx, ny, bw*0.3, 7, 0,0,7); ctx.fill();
     ctx.fillRect(bx+bw*0.12, ny, 12, 26); ctx.fillStyle='#c74640'; ctx.fillRect(bx+bw*0.12, ny+18, 12, 8); }
@@ -1406,6 +1744,10 @@ function drawToad(){
     ctx.fillStyle='#f2f2f2'; ctx.beginPath(); ctx.arc(bx, ey-16, 3.5,0,7); ctx.fill(); }
   if(sk.robot && !worn.hat){ ctx.strokeStyle='#6a747e'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(bx, ey-18); ctx.lineTo(bx, ey-32); ctx.stroke();
     ctx.fillStyle='#e0554f'; ctx.beginPath(); ctx.arc(bx, ey-35, 4,0,7); ctx.fill(); }
+  if(sk.gift && !worn.hat){ ctx.fillStyle='#ffd23a';
+    ctx.beginPath(); ctx.moveTo(bx-2, ey-24); ctx.quadraticCurveTo(bx-20, ey-38, bx-14, ey-22); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(bx+2, ey-24); ctx.quadraticCurveTo(bx+20, ey-38, bx+14, ey-22); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#e8b02a'; ctx.beginPath(); ctx.arc(bx, ey-24, 4,0,7); ctx.fill(); }
 
   if(worn.glasses==='shades'){ ctx.fillStyle='#1a1a1a'; ctx.fillRect(bx-ex-15, ey-8, 30, 13); ctx.fillRect(bx+ex-15, ey-8, 30, 13); ctx.fillRect(bx-4, ey-4, 8, 3); }
   if(worn.glasses==='kiwi'){
@@ -1426,6 +1768,16 @@ function drawToad(){
   if(worn.glasses==='monocle'){ const gx=bx+ex; ctx.strokeStyle='#c9a52f'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(gx, ey-2, 12,0,7); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(gx+8, ey+7); ctx.quadraticCurveTo(gx+15, ey+18, gx+9, ey+27); ctx.stroke(); }
   if(worn.glasses==='starg'){ ctx.font='24px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('⭐', bx-ex, ey-2); ctx.fillText('⭐', bx+ex, ey-2); ctx.textBaseline='alphabetic'; }
+  if(worn.glasses==='cozyglasses'){ ctx.strokeStyle='#a5763f'; ctx.lineWidth=3.5;
+    for(const s of [-1,1]){ ctx.beginPath(); ctx.arc(bx+s*ex, ey-2, 11.5,0,7); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(bx-ex+11, ey-3); ctx.quadraticCurveTo(bx, ey-7, bx+ex-11, ey-3); ctx.stroke();
+    ctx.fillStyle='rgba(255,240,210,0.35)'; for(const s of [-1,1]){ ctx.beginPath(); ctx.arc(bx+s*ex, ey-2, 10,0,7); ctx.fill(); } }
+  if(worn.glasses==='gemglasses'){ ctx.fillStyle='#7ae0f0';
+    for(const s of [-1,1]){ const gx=bx+s*ex;
+      ctx.beginPath(); ctx.moveTo(gx, ey-12); ctx.lineTo(gx+10, ey-4); ctx.lineTo(gx, ey+7); ctx.lineTo(gx-10, ey-4); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle='#3ab8d0'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.moveTo(gx-4, ey-6); ctx.lineTo(gx+1, ey-9); ctx.stroke(); }
+    ctx.strokeStyle='#3ab8d0'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(bx-ex+10, ey-3); ctx.lineTo(bx+ex-10, ey-3); ctx.stroke(); }
 
   if(worn.hat==='hat'){ ctx.fillStyle='#2b2b3a'; ctx.fillRect(bx-30, ey-24, 60, 8); ctx.fillRect(bx-20, ey-52, 40, 32); ctx.fillStyle='#e0554f'; ctx.fillRect(bx-20, ey-30, 40, 6); }
   if(worn.hat==='strawhat'){
@@ -1466,6 +1818,25 @@ function drawToad(){
   if(worn.hat==='halo'){ const hy2=ey-38+Math.sin(t*0.1)*2;
     ctx.strokeStyle='rgba(255,240,150,0.5)'; ctx.lineWidth=8; ctx.beginPath(); ctx.ellipse(bx, hy2, 20, 6, 0,0,7); ctx.stroke();
     ctx.strokeStyle='#ffd23a'; ctx.lineWidth=4; ctx.beginPath(); ctx.ellipse(bx, hy2, 20, 6, 0,0,7); ctx.stroke(); }
+  if(worn.hat==='citycap'){ ctx.fillStyle='#3a6ac0'; ctx.beginPath(); ctx.arc(bx, ey-26, 20, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#2a4a90'; ctx.beginPath(); ctx.ellipse(bx+toad.facing*22, ey-25, 14, 5, 0,0,7); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText('T', bx, ey-30);
+    ctx.fillStyle='#3a6ac0'; ctx.beginPath(); ctx.arc(bx, ey-46, 3.5,0,7); ctx.fill(); }
+  if(worn.hat==='headphones'){ ctx.strokeStyle='#2b2b3a'; ctx.lineWidth=5; ctx.beginPath(); ctx.arc(bx, ey-8, 26, Math.PI*1.05, Math.PI*1.95); ctx.stroke();
+    ctx.fillStyle='#e0554f'; for(const s of [-1,1]){ ctx.beginPath(); ctx.ellipse(bx+s*26, ey-6, 7, 10, 0,0,7); ctx.fill(); }
+    ctx.fillStyle='#2b2b3a'; for(const s of [-1,1]){ ctx.beginPath(); ctx.ellipse(bx+s*24, ey-6, 3.5, 6, 0,0,7); ctx.fill(); }
+    const beat=1+0.3*Math.abs(Math.sin(t*0.2)); ctx.font=Math.round(11*beat)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('🎵', bx+30, ey-26); }
+  if(worn.hat==='myth_crown'){ const y0=ey-24, ccols=['#ff5a5a','#ffa53a','#ffe23a','#5ad46b','#4aa8ff'];
+    ctx.fillStyle='rgba(220,235,255,0.9)';
+    ctx.beginPath(); ctx.moveTo(bx-26,y0); ctx.lineTo(bx-26,y0-15); ctx.lineTo(bx-13,y0-4); ctx.lineTo(bx,y0-22); ctx.lineTo(bx+13,y0-4); ctx.lineTo(bx+26,y0-15); ctx.lineTo(bx+26,y0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#b0c8e8'; ctx.lineWidth=2; ctx.stroke();
+    for(let i=0;i<5;i++){ ctx.fillStyle=ccols[i]; ctx.globalAlpha=0.6+0.4*Math.sin(t*0.12+i); ctx.beginPath(); ctx.arc(bx-18+i*9, y0-6, 2.6,0,7); ctx.fill(); } ctx.globalAlpha=1;
+    ctx.globalAlpha=0.5+0.5*Math.sin(t*0.15); ctx.font='12px sans-serif'; ctx.textAlign='center'; ctx.fillText('✨', bx+20, y0-20); ctx.globalAlpha=1; }
+  if(worn.glasses==='myth_visor'){ const g=ctx.createLinearGradient(bx-ex-16, ey-8, bx+ex+16, ey+6);
+    g.addColorStop(0,'#2a1a5e'); g.addColorStop(0.5,'#6a3fb0'); g.addColorStop(1,'#1a3a7e');
+    ctx.fillStyle=g; ctx.fillRect(bx-ex-16, ey-9, (ex*2)+32, 14);
+    ctx.fillStyle='#fff'; for(const p of [[-14,-4],[-2,-6],[8,-2],[16,-5],[2,0]]){ ctx.globalAlpha=0.5+0.5*Math.sin(t*0.1+p[0]); ctx.beginPath(); ctx.arc(bx+p[0], ey+p[1], 1.2,0,7); ctx.fill(); } ctx.globalAlpha=1;
+    ctx.strokeStyle='#8fd0ff'; ctx.lineWidth=1.5; ctx.strokeRect(bx-ex-16, ey-9, (ex*2)+32, 14); }
 
   if(sk.toxic){ ctx.save(); for(let i=0;i<6;i++){ const xx=bx+Math.sin(t*0.04+i*1.5)*(bw*0.5); const yy=cy - ((t*0.7+i*26)%(bh*1.7)); ctx.globalAlpha=0.22; ctx.fillStyle= i%2?'#9bf24a':'#c8f58a'; ctx.beginPath(); ctx.arc(xx,yy,5+(i%3)*2,0,7); ctx.fill(); } ctx.globalAlpha=1; ctx.restore(); }
 
@@ -1535,8 +1906,23 @@ function drawPops(){
    no matter how often the screen refreshes (30fps Low Power Mode, 120Hz ProMotion, ...).
    Without this the toad literally moved at the display's frame rate. */
 const STEP_MS = 1000/60;
+function overlayOpen(){ return document.querySelector('.overlay:not(.hidden)')!==null; }
 function stepGame(){
+  const pausedNow = overlayOpen();   // any open menu pauses the world
+  if(pausedNow) return;
   if(boostT>0) boostT--; if(constSkyT>0){ constSkyT--; if(constSkyT<=0) constSky=false; }
+  if(slowT>0) slowT--;
+  // Crystal Deer: passive coin magic, everywhere, all the time
+  if(worn.pet==='mp_crystal' && started && !twoP){
+    crystalT++;
+    if(crystalT>=600){ crystalT=0; gainCoins(5); pops.push({x:toad.x-30, y:toad.y-90, t:0, val:5}); sfx('coin'); }
+  }
+  // Pet Care: the equipped pet's needs slowly grow while you play
+  if(petCare===true && worn.pet && (started||twoP)){
+    petTickN++;
+    if(petTickN>=60){ petTickN=0; const p=ensurePet(worn.pet);
+      for(const k in p.needs){ p.needs[k]=Math.min(100, p.needs[k]+0.2+Math.random()*0.35); } }
+  }
   if(gardenMode){ updateGarden(); return; }
   if(homeMode || showMode){ if(showMode) showTimer++; return; }
   if(twoP){ update2P(); return; }
@@ -1575,6 +1961,7 @@ function frame(now){
   while(frameAcc>=STEP_MS && steps<4){ stepGame(); frameAcc-=STEP_MS; steps++; }
   if(steps===4) frameAcc=0;
   drawGame();
+  drawStick();
   requestAnimationFrame(frame);
 }
 
@@ -1644,7 +2031,54 @@ const SHOP = [
   { id:'em_gem',     name:'Gem',              emoji:'💎', char:'💎', price:22, slot:'emote' },
   { id:'em_fire',    name:'Fire',             emoji:'🔥', char:'🔥', price:16, slot:'emote' },
   { id:'em_donut',   name:'Donut',            emoji:'🍩', char:'🍩', price:18, slot:'emote' },
+  { id:'gifttoad',   name:'Gift Toad',        emoji:'🎁', price:95,  slot:'skin' },
+  { id:'cozyglasses',name:'Simple Cozy Glasses', emoji:'👓', price:22, slot:'glasses' },
+  { id:'cozysweater',name:'Simple White Cozy Sweater', emoji:'🤍', price:40, slot:'coat' },
+  { id:'pet_bunny',  name:'Small Rabbit',     emoji:'🐇', price:100, slot:'pet' },
+  { id:'petbow',     name:'Pet Bow',          emoji:'🎀', price:30,  slot:'petacc' },
+  { id:'pethat',     name:'Pet Top Hat',      emoji:'🎩', price:35,  slot:'petacc' },
+  { id:'petcrown',   name:'Pet Crown',        emoji:'👑', price:45,  slot:'petacc' },
+  { id:'petscarf',   name:'Pet Scarf',        emoji:'🧣', price:30,  slot:'petacc' },
+  { id:'em_gift',    name:'Gift',             emoji:'🎁', char:'🎁', price:18, slot:'emote' },
+  { id:'em_package', name:'Package',          emoji:'📦', char:'📦', price:16, slot:'emote' },
+  { id:'em_money',   name:'Money Bag',        emoji:'💰', char:'💰', price:25, slot:'emote' },
+  { id:'em_dollar',  name:'Dollar',           emoji:'💵', char:'💵', price:22, slot:'emote' },
+  { id:'em_rich',    name:'Money Face',       emoji:'🤑', char:'🤑', price:25, slot:'emote' },
+  { id:'em_coin',    name:'Coin',             emoji:'🪙', char:'🪙', price:15, slot:'emote' },
+  { id:'em_butterfly',name:'Butterfly',       emoji:'🦋', char:'🦋', price:16, slot:'emote' },
+  { id:'em_moon',    name:'Moon',             emoji:'🌙', char:'🌙', price:15, slot:'emote' },
+  { id:'em_sun',     name:'Sun',              emoji:'☀️', char:'☀️', price:15, slot:'emote' },
+  { id:'em_rocket',  name:'Rocket',           emoji:'🚀', char:'🚀', price:20, slot:'emote' },
+  { id:'em_soccer',  name:'Soccer Ball',      emoji:'⚽', char:'⚽', price:15, slot:'emote' },
+  { id:'em_sparkles',name:'Sparkles',         emoji:'✨', char:'✨', price:18, slot:'emote' },
+  { id:'em_unicorn', name:'Unicorn',          emoji:'🦄', char:'🦄', price:25, slot:'emote' },
+  { id:'em_cat',     name:'Kitty',            emoji:'🐱', char:'🐱', price:16, slot:'emote' },
+  { id:'em_dog',     name:'Puppy Face',       emoji:'🐶', char:'🐶', price:16, slot:'emote' },
+  /* City-exclusive items — only sold in the three City shops, never in the Toad Shop */
+  { id:'citycap',    name:'City Cap',         emoji:'🧢', price:40,  slot:'hat',     city:1 },
+  { id:'headphones', name:'DJ Headphones',    emoji:'🎧', price:55,  slot:'hat',     city:1 },
+  { id:'hoodie',     name:'Street Hoodie',    emoji:'🧥', price:60,  slot:'coat',    city:1 },
+  { id:'em_lollipop',name:'Lollipop',         emoji:'🍭', char:'🍭', price:18, slot:'emote', city:2 },
+  { id:'em_cupcake', name:'Cupcake',          emoji:'🧁', char:'🧁', price:18, slot:'emote', city:2 },
+  { id:'em_boba',    name:'Boba Tea',         emoji:'🧋', char:'🧋', price:20, slot:'emote', city:2 },
+  { id:'em_pretzel', name:'Pretzel',          emoji:'🥨', char:'🥨', price:16, slot:'emote', city:2 },
+  { id:'use_sugar',  name:'Sugar Rush · 10s', emoji:'🍬', price:45,  slot:'use',     city:2 },
+  { id:'diamond',    name:'Diamond Frog',     emoji:'💎', price:220, slot:'skin',    city:3 },
+  { id:'gemglasses', name:'Gem Glasses',      emoji:'💠', price:60,  slot:'glasses', city:3 },
+  { id:'pet_diamondfish', name:'Diamond Fish', emoji:'🐟', price:180, slot:'pet',    city:3 },
 ];
+const CITY_SHOPS=[
+  { name:'🧢 City Styles',  sign:'🧢', tag:1, blurb:'Street fashion you can\'t find anywhere else!' },
+  { name:'🍭 Sweet Treats', sign:'🍭', tag:2, blurb:'Yummy emojis and a super sugary power-up!' },
+  { name:'💎 Gem Gallery',  sign:'💎', tag:3, blurb:'The rarest sparkly treasures in town!' },
+];
+/* Mythic gifts — only from Mystic Pets aging up (every 5 ages), never sold in the shop */
+SHOP.push(
+  { id:'myth_crown', name:'Crystal Rainbow Crown', emoji:'💠', price:0, slot:'hat',     secret:true },
+  { id:'myth_cape',  name:'Dragon Wing Cape',      emoji:'🐲', price:0, slot:'coat',    secret:true },
+  { id:'myth_visor', name:'Galaxy Visor',          emoji:'🌌', price:0, slot:'glasses', secret:true },
+  { id:'myth_skin',  name:'Prism Frog',            emoji:'🔮', price:0, slot:'skin',    secret:true }
+);
 /* ---- Mystic Pets: one visits the shop each hour (real clock) — collect all 6! ---- */
 const MYSTIC_PETS=[
   { id:'mp_frost', name:'Frost Dragon',   emoji:'🐉', power:'freezes time in boss fights!' },
@@ -1653,18 +2087,80 @@ const MYSTIC_PETS=[
   { id:'mp_storm', name:'Thunder Phoenix',emoji:'⚡', power:'calls lightning onto bosses!' },
   { id:'mp_gold',  name:'Golden Unicorn', emoji:'🦄', power:'bosses drop bonus coins!' },
   { id:'mp_heal',  name:'Moon Bunny',     emoji:'🐰', power:'makes magic shields & heals hearts!' },
+  { id:'mp_ghost', name:'Ghost Cat',      emoji:'👻', power:'scares bosses silly with a BOO!' },
+  { id:'mp_crystal',name:'Crystal Deer',  emoji:'🦌', power:'grows +5 coins every few seconds — always!' },
+  { id:'mp_lava',  name:'Lava Turtle',    emoji:'🐢', power:'burns any boss that dares touch you!' },
 ];
 for(const m of MYSTIC_PETS) SHOP.push({ id:m.id, name:m.name, emoji:m.emoji, price:250, slot:'pet', mystic:true });
 function mysticNow(){ return MYSTIC_PETS[Math.floor(Date.now()/3600000)%MYSTIC_PETS.length]; }
 function mysticMinsLeft(){ return 60-Math.floor((Date.now()%3600000)/60000); }
 const owned = {};
-const worn = { skin:null, hat:null, glasses:null, coat:null, emote:null, pet:null };
+const worn = { skin:null, hat:null, glasses:null, coat:null, emote:null, pet:null, petacc:null };
 const petPos = { x:0, y:0 };
 function emoteChar(id){ const it=SHOP.find(s=>s.id===id); return it&&it.char?it.char:''; }
 
-function activatePlant(){ const off=(toad.x<W/2?130:-130); plant.active=true; plant.x=clamp(toad.x+off,70,W-70); plant.y=groundY-16; plant.timer=600; }
+/* ---------------- Pet Care (opt-in): needs, ages, potions & riding ---------------- */
+const NEED_INFO={ food:{e:'🍎',n:'Feed'}, sleep:{e:'💤',n:'Sleep'}, potty:{e:'🚽',n:'Potty'}, love:{e:'🤗',n:'Cuddle'} };
+function ensurePet(id){ if(!petData[id]) petData[id]={age:0, xp:0, potion:false, needs:{food:25, sleep:10, potty:0, love:35}}; return petData[id]; }
+function xpNeed(age){ return 100+age*25; }
+const MYTH_ITEMS=['myth_crown','myth_cape','myth_visor','myth_skin'];
+function grantMythReward(){
+  const next=MYTH_ITEMS.find(id=>!owned[id]);
+  if(!next){ gainCoins(100); showReward('🌟 Mythic bonus: +100 🪙!'); return; }
+  owned[next]=true; const it=SHOP.find(s=>s.id===next);
+  showReward('🌟 MYTHIC GIFT: '+(it?it.name:'a treasure')+'! Check the shop!'); save();
+}
+function petXpGain(id, amt){
+  const p=ensurePet(id); p.xp+=amt; let leveled=false;
+  while(p.xp>=xpNeed(p.age)){ p.xp-=xpNeed(p.age); p.age++; leveled=true;
+    if(isMystic(id) && p.age%5===0) grantMythReward();
+  }
+  if(leveled){ sfx('win'); showReward('🎉 Your pet grew to age '+p.age+'!'); }
+  save();
+}
+function renderPetStation(){
+  const box=document.getElementById('petBody');
+  if(petCare!==true){
+    box.innerHTML='<p class="by">Pet Care is off. Turn it on and your pets get real needs, ages — and one day you can RIDE them!</p><button class="bigbtn" data-petcareon="1">Turn on Pet Care 🐾</button>';
+    return;
+  }
+  const id=worn.pet;
+  if(!id){ box.innerHTML='<p class="by">No pet equipped! Wear a pet in the 🛍️ shop, then come back to take care of it. 🐾</p>'; return; }
+  const it=SHOP.find(s=>s.id===id), p=ensurePet(id);
+  let h='<div style="font-size:52px;">'+(it?it.emoji:'🐾')+'</div>';
+  h+='<div style="font-weight:900;font-size:20px;">'+(it?it.name:id)+' · Age '+p.age+'</div>';
+  h+='<div class="by" style="margin:2px 0 4px;">'+Math.floor(p.xp)+' / '+xpNeed(p.age)+' XP to age '+(p.age+1)+'</div>';
+  h+='<div class="xpbar"><div style="width:'+Math.min(100, p.xp/xpNeed(p.age)*100)+'%"></div></div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+  for(const k in NEED_INFO){
+    const v=Math.floor(p.needs[k]), ready=v>=50;
+    h+='<button class="needbtn" data-care="'+k+'" '+(ready?'':'disabled')+'>'+NEED_INFO[k].e+' '+NEED_INFO[k].n+(ready?' (+50 XP)':'')+
+       '<div class="needbar"><div style="width:'+v+'%"></div></div></button>';
+  }
+  h+='</div>';
+  if(isMystic(id)) h+='<div class="mysticnote" style="margin-top:10px;">🌟 Mystic pets give a MYTHIC gift every 5 ages!</div>';
+  if(p.potion) h+='<div class="by" style="margin-top:10px;">🏇 Ride ready! While this pet is equipped, your toad rides it — extra speed!</div>';
+  else if(p.age>=13) h+='<button class="bigbtn" style="margin-top:10px;font-size:18px;padding:12px 20px;" data-potion="1" '+(coins>=30?'':'disabled')+'>🧪 Buy Pet Potion (30 🪙) — unlock riding!</button>';
+  else h+='<div class="by" style="margin-top:10px;">Reach age 13 to buy the 🧪 Pet Potion and RIDE your pet!</div>';
+  box.innerHTML=h;
+}
+document.getElementById('petBody').addEventListener('click',(e)=>{
+  const el=e.target.closest('button'); if(!el || el.disabled) return;
+  if(el.getAttribute('data-petcareon')){ petCare=true; save(); renderPetStation(); sfx('win'); return; }
+  const k=el.getAttribute('data-care');
+  if(k){ const id=worn.pet; if(!id) return; const p=ensurePet(id); if(p.needs[k]<50) return;
+    p.needs[k]=0; sfx(k==='sleep'?'splash':(k==='love'?'win':'buy')); petXpGain(id,50); renderPetStation(); return; }
+  if(el.getAttribute('data-potion')){ const id=worn.pet; if(!id || coins<30) return; const p=ensurePet(id);
+    coins-=30; updateCoins(); p.potion=true; sfx('win'); showReward('🧪 Potion fed! You can now RIDE your pet! 🏇'); save(); renderPetStation(); return; }
+});
+document.getElementById('petBtn').addEventListener('click',()=>{ renderPetStation(); document.getElementById('petScreen').classList.remove('hidden'); });
+document.getElementById('closePet').addEventListener('click',()=>document.getElementById('petScreen').classList.add('hidden'));
+document.getElementById('petAskYes').addEventListener('click',()=>{ petCare=true; save(); document.getElementById('petAsk').classList.add('hidden'); showReward('🐾 Pet Care is ON! Visit the 🐾 Pet Station!'); });
+document.getElementById('petAskNo').addEventListener('click',()=>{ petCare=false; save(); document.getElementById('petAsk').classList.add('hidden'); });
 
-const SHOP_CATS=[ {slot:'skin',name:'🐸 Frog Skins'},{slot:'hat',name:'🎩 Hats'},{slot:'glasses',name:'👓 Glasses'},{slot:'coat',name:'👕 Outfits'},{slot:'emote',name:'😊 Emojis'},{slot:'pet',name:'🐾 Pets — they help fight bosses!'},{slot:'use',name:'✨ Power-ups'} ];
+function activatePlant(){ const off=(toad.x<W/2?130:-130); plant.active=true; plant.where=inside?'ground':area; plant.x=clamp(toad.x+off,70,W-70); plant.y=groundY-16; plant.timer=600; }
+
+const SHOP_CATS=[ {slot:'skin',name:'🐸 Frog Skins'},{slot:'hat',name:'🎩 Hats'},{slot:'glasses',name:'👓 Glasses'},{slot:'coat',name:'👕 Outfits'},{slot:'emote',name:'😊 Emojis'},{slot:'pet',name:'🐾 Pets — they help fight bosses!'},{slot:'petacc',name:'🎀 Pet Accessories'},{slot:'use',name:'✨ Power-ups'} ];
 function shopItemEl(it){
   const el=document.createElement('div'); let btn, cls='item';
   if(it.slot==='use'){
@@ -1683,7 +2179,23 @@ function shopItemEl(it){
     `<div class="price">${(it.slot!=='use'&&owned[it.id])?'Owned':it.price+' 🪙'}</div>${btn}`;
   return el;
 }
+/* ---- City shops: three storefronts with exclusive stock ---- */
+let cityLock=false, cityLockX=0, shopView='main';
+function rerenderShop(){ if(shopView==='main') renderShop(); else renderCityShop(shopView); }
+function cityShopX(i){ return W*(0.2+i*0.3); }
+function renderCityShop(i){
+  shopView=i;
+  const cs=CITY_SHOPS[i];
+  document.getElementById('shopTitle').textContent=cs.name;
+  document.getElementById('shopCoins').textContent=coins;
+  const grid=document.getElementById('shopGrid'); grid.innerHTML='';
+  const note=document.createElement('div'); note.className='mysticnote'; note.textContent=cs.blurb+' (Only sold here!)'; grid.appendChild(note);
+  for(const it of SHOP.filter(s=>s.city===cs.tag)) grid.appendChild(shopItemEl(it));
+}
+function openCityShop(i){ renderCityShop(i); document.getElementById('shopScreen').classList.remove('hidden'); sfx('buy'); }
 function renderShop(){
+  shopView='main';
+  document.getElementById('shopTitle').textContent='🛍️ Toad Shop';
   document.getElementById('shopCoins').textContent = coins;
   const grid = document.getElementById('shopGrid'); grid.innerHTML='';
   // Mystic Pets — the hourly visitor first, owned ones wearable, the rest a mystery
@@ -1699,7 +2211,7 @@ function renderShop(){
       el.innerHTML='<div class="emoji">❓</div><div class="name">???</div><div class="price">visits another hour</div>'; grid.appendChild(el); }
   }
   for(const cat of SHOP_CATS){
-    const items=SHOP.filter(s=>s.slot===cat.slot && !s.mystic); if(!items.length) continue;
+    const items=SHOP.filter(s=>s.slot===cat.slot && !s.mystic && (!s.secret || owned[s.id]) && (!s.city || owned[s.id])); if(!items.length) continue;
     const h=document.createElement('div'); h.className='shopcat'; h.textContent=cat.name; grid.appendChild(h);
     for(const it of items) grid.appendChild(shopItemEl(it));
   }
@@ -1716,14 +2228,16 @@ document.getElementById('shopGrid').addEventListener('click',(e)=>{
         else if(it.id==='use_speed') startBoost('speed','🧃 Speedy! (10s)');
         else if(it.id==='use_tongue') startBoost('tongue','👅 Mega tongue! (10s)');
         else if(it.id==='use_coins') startBoost('coins','🍀 Double coins! (10s)');
+        else if(it.id==='use_sugar') startBoost('sugar','🍬 SUGAR RUSH! Speedy + long tongue! (10s)');
         document.getElementById('shopScreen').classList.add('hidden'); return; }
       owned[buy]=true; worn[it.slot]=buy; updateCoins();
-    } renderShop(); }
-  if(wear){ const it=SHOP.find(s=>s.id===wear); if(it){ worn[it.slot] = (worn[it.slot]===wear? null : wear); renderShop(); save(); } }
+      if(it.slot==='pet' && petCare===null){ document.getElementById('petAsk').classList.remove('hidden'); }
+    } rerenderShop(); }
+  if(wear){ const it=SHOP.find(s=>s.id===wear); if(it){ worn[it.slot] = (worn[it.slot]===wear? null : wear); rerenderShop(); save(); } }
 });
 function updateCoins(){ document.getElementById('coinCount').textContent = coins; save(); }
-function save(){ try{ localStorage.setItem('toadsim_save', JSON.stringify({coins,owned,worn,musicOn,sfxOn,home:homeData,garden,conSeeds,difficulty,secretFound,vbest:volley.best})); }catch(e){} }
-function load(){ try{ const s=JSON.parse(localStorage.getItem('toadsim_save')||'null'); if(!s) return; if(typeof s.coins==='number') coins=s.coins; if(s.owned) Object.assign(owned,s.owned); if(s.worn) Object.assign(worn,s.worn); if(typeof s.musicOn==='boolean') musicOn=s.musicOn; if(typeof s.sfxOn==='boolean') sfxOn=s.sfxOn; if(Array.isArray(s.home)&&s.home.length){ homeData.length=0; for(const r of s.home) homeData.push({wall:r.wall||0, items:Array.isArray(r.items)?r.items:[]}); } if(Array.isArray(s.garden)&&s.garden.length){ garden.length=0; for(const p of s.garden) garden.push({seed:p.seed||null, t:p.t||0}); } if(typeof s.conSeeds==='number') conSeeds=s.conSeeds; if(s.difficulty && DIFF[s.difficulty]) difficulty=s.difficulty; if(s.secretFound) Object.assign(secretFound,s.secretFound); if(typeof s.vbest==='number') volley.best=s.vbest; }catch(e){} }
+function save(){ try{ localStorage.setItem('toadsim_save', JSON.stringify({coins,owned,worn,musicOn,sfxOn,home:homeData,garden,conSeeds,difficulty,secretFound,vbest:volley.best,moveMult,ctrlMode,musicTrack,petCare,petData,bossSkin})); }catch(e){} }
+function load(){ try{ const s=JSON.parse(localStorage.getItem('toadsim_save')||'null'); if(!s) return; if(typeof s.coins==='number') coins=s.coins; if(s.owned) Object.assign(owned,s.owned); if(s.worn) Object.assign(worn,s.worn); if(typeof s.musicOn==='boolean') musicOn=s.musicOn; if(typeof s.sfxOn==='boolean') sfxOn=s.sfxOn; if(Array.isArray(s.home)&&s.home.length){ homeData.length=0; for(const r of s.home) homeData.push({wall:r.wall||0, items:Array.isArray(r.items)?r.items:[]}); } if(Array.isArray(s.garden)&&s.garden.length){ garden.length=0; for(const p of s.garden) garden.push({seed:p.seed||null, t:p.t||0}); } if(typeof s.conSeeds==='number') conSeeds=s.conSeeds; if(s.difficulty && DIFF[s.difficulty]) difficulty=s.difficulty; if(s.secretFound) Object.assign(secretFound,s.secretFound); if(typeof s.vbest==='number') volley.best=s.vbest; if(typeof s.moveMult==='number' && [0.8,1,1.25,1.5].includes(s.moveMult)) moveMult=s.moveMult; if(s.ctrlMode==='stick'||s.ctrlMode==='zones') ctrlMode=s.ctrlMode; if(s.musicTrack && MUSIC_TRACKS[s.musicTrack]) musicTrack=s.musicTrack; if(typeof s.petCare==='boolean') petCare=s.petCare; if(s.petData) Object.assign(petData,s.petData); if(typeof s.bossSkin==='string' && BOSS_SKINS.some(x=>x[0]===s.bossSkin)) bossSkin=s.bossSkin; }catch(e){} }
 
 /* ---------------- Buttons ---------------- */
 document.getElementById('dayBtn').addEventListener('click',()=>{
@@ -1742,19 +2256,72 @@ function buildDiffRows(){
     }
   }
 }
-/* ---- Boss picker ---- */
+/* ---- Boss picker + boss outfits ---- */
+function buildBossSkinRow(){
+  const row=document.getElementById('bossSkinRow'); row.innerHTML='';
+  for(const [id,em] of BOSS_SKINS){
+    const b=document.createElement('button'); b.className='segbtn'+(bossSkin===id?' on':''); b.textContent=em;
+    b.addEventListener('click',()=>{ bossSkin=id; save(); buildBossSkinRow(); sfx('coin'); });
+    row.appendChild(b);
+  }
+}
 document.getElementById('bossBtn').addEventListener('click',()=>{
   if(!(started && !inside && !twoP && !showMode && !homeMode && !gardenMode) || boss.active) return;
   document.getElementById('bossHeron').textContent = area==='cave' ? '🦆 Diving Duck' : '🐦 Heron';
-  buildDiffRows();
+  buildDiffRows(); buildBossSkinRow();
   document.getElementById('bossPick').classList.remove('hidden');
 });
 document.getElementById('bossPickClose').addEventListener('click',()=>document.getElementById('bossPick').classList.add('hidden'));
-for(const [bid,kind] of [['bossHeron','heron'],['bossFly','fly'],['bossSnake','snake']]){
+for(const [bid,kind] of [['bossHeron','heron'],['bossFly','fly'],['bossSnake','snake'],['bossBat','bat']]){
   document.getElementById(bid).addEventListener('click',()=>{ document.getElementById('bossPick').classList.add('hidden'); startBoss(kind); });
 }
+/* ---- Settings: song, movement speed, control mode, pet care ---- */
+function buildSettingsRows(){
+  const mrow=document.getElementById('musicRow'); mrow.innerHTML='';
+  for(const k in MUSIC_TRACKS){
+    const b=document.createElement('button'); b.className='segbtn'+(musicTrack===k?' on':''); b.textContent=MUSIC_TRACKS[k].name;
+    b.addEventListener('click',()=>{ initAudio(); setMusicTrack(k); buildSettingsRows(); });
+    mrow.appendChild(b);
+  }
+  const srow=document.getElementById('speedRow'); srow.innerHTML='';
+  for(const [m,em] of [[0.8,'🐢'],[1,'🙂'],[1.25,'🐇'],[1.5,'⚡']]){
+    const b=document.createElement('button'); b.className='segbtn'+(moveMult===m?' on':''); b.textContent=em+' '+m+'×';
+    b.addEventListener('click',()=>{ moveMult=m; save(); buildSettingsRows(); sfx('jump'); });
+    srow.appendChild(b);
+  }
+  const crow=document.getElementById('stickRow'); crow.innerHTML='';
+  for(const [mode,label] of [['zones','👆 Tap zones'],['stick','🕹️ Thumbstick']]){
+    const b=document.createElement('button'); b.className='segbtn'+(ctrlMode===mode?' on':''); b.textContent=label;
+    b.addEventListener('click',()=>{ ctrlMode=mode; stick=null; pointerDirs.clear(); save(); buildSettingsRows(); sfx('coin'); if(mode==='stick') guideTimer=0; });
+    crow.appendChild(b);
+  }
+  const pc=document.getElementById('petCareToggle');
+  pc.textContent='🐾 Pet Care: '+(petCare===true?'On':'Off');
+  pc.classList.toggle('on', petCare===true);
+}
+document.getElementById('petCareToggle').addEventListener('click',()=>{ petCare = petCare===true? false : true; save(); buildSettingsRows(); sfx('coin'); });
 /* ---- Toad News (title screen update log) ---- */
 const NEWS=[
+  {v:'Update 8', d:'Aug 29', items:[
+    '🏙️ NEW WORLD: THE CITY! Ride the elevator downtown — with THREE shops full of items the Toad Shop never sells: 🧢 City Styles, 🍭 Sweet Treats & 💎 Gem Gallery (home of the Diamond Frog and the Diamond Fish pet!)',
+    '🌟 3 new Mystic Pets join the hourly rotation: Ghost Cat 👻 (scares bosses!), Crystal Deer 🦌 (grows coins all the time!) & Lava Turtle 🐢 (burns bosses that touch you!)',
+    '🐾 Pets are BIGGER now, and you can dress them up: Pet Bow, Pet Top Hat, Pet Crown & Pet Scarf',
+    '😊 New Expressions button — tap an emoji and it pops above your toad\'s head!',
+    '🎁 New shop stuff: Gift Toad skin, Cozy Glasses, White Cozy Sweater, Small Rabbit pet & LOTS of new emojis (💰💵🤑🎁📦🦋🚀 and more)',
+    '💬 10 new things to say in Toad Chat',
+    '🍀 Fixed: double-coin power-ups now work EVERYWHERE (house rooms and space gifts were cheating you!)']},
+  {v:'Update 7', d:'Aug 29', items:[
+    '🐾 PET CARE MODE (optional)! Pets get hungry, sleepy, need the potty and want cuddles — care for them in the new 🐾 Pet Station, earn 50 XP per care, and watch them AGE UP!',
+    '🏇 At age 13, buy a Pet Potion (30 🪙) — then you RIDE your equipped pet for extra speed!',
+    '🌟 Mystic Pets give a MYTHIC gift every 5 ages — clothes so rare the shop never sells them!',
+    '💬 Bosses TALK now! Plus a brand-new boss: the Bat 🦇 — and you can dress bosses in outfits (🎩👑🕶️🎀)',
+    '🐌 Boss hits now slow you down for a bit — a Speedy Juice 🧃 cures it!',
+    '🕵️ New 2-player game: Find the Fly — one player hides as a fly in the swarm, the other hunts!',
+    '🎮 New Settings: pick your song 🎼, movement speed 🐢➡️⚡, or switch to a thumbstick 🕹️',
+    '🐛 Bugs are braver AND sneakier: house & world bugs can flee now — sneak up slowly! (🫐 Calm-berry stops fleeing, 🧲 Magnet-fruit pulls bugs in)',
+    '🌱 New seeds: Golden 🌟, Berry 🫐 & Pet Treat 🦴 · secret sparkles are easier to trigger',
+    '🪴 Fixed: the Fly Plant now stays in its world when you teleport away and back',
+    '🔄 Reset Game now keeps your Mystic Pets!']},
   {v:'Update 6.1', d:'Aug 28', items:[
     '🐢➡️🐸 Fixed the slow toad! The game now runs at the same speed on every iPad — even in Low Power Mode.']},
   {v:'Update 6', d:'Aug 28', items:[
@@ -1784,24 +2351,49 @@ document.getElementById('elevClose').addEventListener('click',()=>document.getEl
 document.getElementById('elevSky').addEventListener('click',()=>goArea('sky'));
 document.getElementById('elevGround').addEventListener('click',()=>goArea('ground'));
 document.getElementById('elevUnder').addEventListener('click',()=>goArea('under'));
+document.getElementById('elevCity').addEventListener('click',()=>goArea('city'));
 document.getElementById('elevForest').addEventListener('click',()=>goArea('forest'));
 document.getElementById('elevMountain').addEventListener('click',()=>goArea('mountain'));
 document.getElementById('elevSpace').addEventListener('click',()=>{ if(coins>=150){ coins-=150; updateCoins(); goArea('space'); } });
 document.getElementById('shopBtn').addEventListener('click',()=>{ renderShop(); document.getElementById('shopScreen').classList.remove('hidden'); });
 document.getElementById('closeShop').addEventListener('click',()=>{ document.getElementById('shopScreen').classList.add('hidden'); });
-document.getElementById('setBtn').addEventListener('click',()=>{ document.getElementById('settingsScreen').classList.remove('hidden'); });
+document.getElementById('setBtn').addEventListener('click',()=>{ buildSettingsRows(); document.getElementById('settingsScreen').classList.remove('hidden'); });
 document.getElementById('closeSettings').addEventListener('click',()=>{ document.getElementById('settingsScreen').classList.add('hidden'); });
 document.getElementById('musicToggle').addEventListener('click',()=>{ musicOn=!musicOn; const b=document.getElementById('musicToggle'); b.textContent='🎵 Music: '+(musicOn?'On':'Off'); b.classList.toggle('on',musicOn); if(musicOn) startMusic(); else stopMusic(); save(); });
 document.getElementById('sfxToggle').addEventListener('click',()=>{ sfxOn=!sfxOn; const b=document.getElementById('sfxToggle'); b.textContent='🔊 Sound effects: '+(sfxOn?'On':'Off'); b.classList.toggle('on',sfxOn); if(sfxOn) sfx('coin'); save(); });
 document.getElementById('resetBtn').addEventListener('click',()=>{
-  if(window.confirm('Reset the whole game? This erases your coins and outfits.')){
-    coins=0; for(const k in owned) delete owned[k]; worn.skin=worn.hat=worn.glasses=worn.coat=worn.emote=worn.pet=null;
+  if(window.confirm('Reset the whole game? This erases your coins and outfits. (Your Mystic Pets are SAFE and stay collected!)')){
+    // Mystic Pets are hourly collectibles that take days to gather — they survive a reset
+    const keepOwned={}, keepPets={};
+    for(const k in owned){ if(isMystic(k)) keepOwned[k]=true; }
+    for(const k in petData){ if(isMystic(k)) keepPets[k]=petData[k]; }
+    coins=0; for(const k in owned) delete owned[k]; Object.assign(owned, keepOwned);
+    for(const k in petData) delete petData[k]; Object.assign(petData, keepPets);
+    worn.skin=worn.hat=worn.glasses=worn.coat=worn.emote=worn.pet=worn.petacc=null;
     for(const k in secretFound) delete secretFound[k]; volley.best=0; difficulty='normal';
+    moveMult=1; ctrlMode='zones'; bossSkin='none'; slowT=0;
     try{ localStorage.removeItem('toadsim_save'); }catch(e){}
-    updateCoins(); renderShop(); document.getElementById('settingsScreen').classList.add('hidden');
+    updateCoins(); renderShop(); buildSettingsRows(); document.getElementById('settingsScreen').classList.add('hidden');
   }
 });
-document.getElementById('playBtn').addEventListener('click',()=>{ document.getElementById('startScreen').classList.add('hidden'); started=true; guideTimer=180; initAudio(); startMusic(); });
+document.getElementById('playBtn').addEventListener('click',()=>{ document.getElementById('startScreen').classList.add('hidden'); started=true; guideTimer=(ctrlMode==='stick'?0:180); initAudio(); startMusic();
+  if(petCare===null && SHOP.some(s=>s.slot==='pet' && owned[s.id])) document.getElementById('petAsk').classList.remove('hidden');
+});
+
+/* ---------------- Expressions: tap an emoji, it pops above the toad's head ---------------- */
+const EXPRESSIONS=['😊','😂','😮','😢','❤️','😎','🎉','😴','😡','🤩'];
+(function(){
+  const bar=document.getElementById('exprBar');
+  for(const e of EXPRESSIONS){
+    const b=document.createElement('button'); b.className='exprchip'; b.textContent=e;
+    b.addEventListener('click',()=>{ exprChar=e; exprT=140; sfx('coin'); });
+    bar.appendChild(b);
+  }
+})();
+document.getElementById('exprBtn').addEventListener('click',()=>{
+  if(!started || twoP || showMode) return;
+  document.getElementById('exprBar').classList.toggle('hidden');
+});
 
 /* ---------------- Toad Chat (safe, single-device, pre-made phrases only) ---------------- */
 const CHAT_ADJ=['Happy','Sunny','Jumpy','Bouncy','Sparkly','Brave','Silly','Cozy','Zippy','Merry'];
@@ -1810,7 +2402,8 @@ function randToadName(){ return CHAT_ADJ[Math.floor(Math.random()*CHAT_ADJ.lengt
 const myName = randToadName();
 const myCode = String(Math.floor(1000+Math.random()*9000));
 const friendName = randToadName()+'#'+String(Math.floor(1000+Math.random()*9000));
-const SAY=['Hi friend! 👋','Nice frog! 🐸','Good game! 🎮','Want to play? 🎉','Great job! ⭐','Cool outfit! 🎩','Ribbit ribbit!','Let\'s catch flies! 🪰','Yes 👍','No 👎','Thanks! 🙏','Wow! 😮','Haha 😄','Bye! 👋'];
+const SAY=['Hi friend! 👋','Nice frog! 🐸','Good game! 🎮','Want to play? 🎉','Great job! ⭐','Cool outfit! 🎩','Ribbit ribbit!','Let\'s catch flies! 🪰','Yes 👍','No 👎','Thanks! 🙏','Wow! 😮','Haha 😄','Bye! 👋',
+  'Let\'s fight a boss! ⚔️','I got a new pet! 🐾','Meet my Mystic Pet! 🌟','Want a gift? 🎁','Race you! 🏁','Happy birthday! 🎂','Good night 🌙','Look at my outfit! 👗','I\'m rich! 💰','Let\'s go to the City! 🏙️'];
 const REPLYMAP={
   'Hi friend! 👋':'Hi friend! 😄',
   'Nice frog! 🐸':'Thanks! Nice frog too! 💚',
@@ -1825,7 +2418,17 @@ const REPLYMAP={
   'Thanks! 🙏':'You\'re welcome! 💚',
   'Wow! 😮':'I know, right?! ✨',
   'Haha 😄':'Hehe 😄',
-  'Bye! 👋':'Bye bye! 👋'
+  'Bye! 👋':'Bye bye! 👋',
+  'Let\'s fight a boss! ⚔️':'I\'ll bring my Mystic Pet! 🌟',
+  'I got a new pet! 🐾':'So cute!! Can I pet it? 🥰',
+  'Meet my Mystic Pet! 🌟':'WOW, which hour did you get it?! 😮',
+  'Want a gift? 🎁':'YES PLEASE!! 🎁✨',
+  'Race you! 🏁':'Ready, set, GO! 💨',
+  'Happy birthday! 🎂':'Yay, cake!! 🎂🎉',
+  'Good night 🌙':'Sweet dreams! 💤',
+  'Look at my outfit! 👗':'Soooo fancy! ✨',
+  'I\'m rich! 💰':'Buy me a Diamond Fish! 🐟💎',
+  'Let\'s go to the City! 🏙️':'Meet you at the Sweet Shop! 🍭'
 };
 const REPLYFALLBACK=['Ribbit! 🐸','Cool! ⭐','Nice! 👍','Yay! 🎉'];
 function replyFor(txt){ return REPLYMAP[txt] || REPLYFALLBACK[Math.floor(Math.random()*REPLYFALLBACK.length)]; }
@@ -1849,8 +2452,8 @@ let coopFrozen=0;
 const fruits=[]; let fruitSpawnT=0;
 const lily={ pads:[] };
 const volley={ x:0, y:0, vx:0, vy:0, hits:0, rot:0, best:0 };
-function startCoopBoss(i){ const b=COOP_BOSSES[i]; coop.kind=b.kind; coop.hp=coop.maxhp=Math.max(6, Math.round(b.hp*DIFF[difficulty].hp)); coop.state='approach'; coop.timer=0; coop.flash=0; coopFrozen=0; coopPetT=0; coop.x=W*0.5; coop.y = b.kind==='fly'? H*0.24 : groundY; }
-function nextCoopBoss(){ coop.idx++; if(coop.idx>=COOP_BOSSES.length){ endCoop(true); } else { coop.hearts=Math.min(DIFF[difficulty].hearts, coop.hearts+1); startCoopBoss(coop.idx); } }
+function startCoopBoss(i){ const b=COOP_BOSSES[i]; coop.kind=b.kind; coop.hp=coop.maxhp=Math.max(6, Math.round(b.hp*DIFF[difficulty].hp)); coop.state='approach'; coop.timer=0; coop.flash=0; coopFrozen=0; coopPetT=0; coop.x=W*0.5; coop.y = b.kind==='fly'? H*0.24 : groundY; coopSay(pickLine(BOSS_LINES[b.kind].intro), 150); }
+function nextCoopBoss(){ coopSay(pickLine(BOSS_LINES[coop.kind].lose), 130); coop.idx++; if(coop.idx>=COOP_BOSSES.length){ endCoop(true); } else { coop.hearts=Math.min(DIFF[difficulty].hearts, coop.hearts+1); startCoopBoss(coop.idx); } }
 function endCoop(win){ twoP=false; document.getElementById('controls2p').classList.add('hidden');
   document.getElementById('winTitle').textContent = win? '🎉 You beat all the bosses!' : '😢 The boss won!';
   document.getElementById('winScore').textContent = win? 'Amazing teamwork! 🤝' : 'Team up and try again!';
@@ -1863,7 +2466,9 @@ function jump2(P){ if(P.grounded || P.y>=groundY-0.5){ P.vy=JUMP; sfx('jump'); }
 function eat2(P){
   const hx=P.x+P.facing*10, hy=P.y-toad.h-26;
   if(raceGame==='boss'){
-    if(Math.hypot(coop.x-hx, coop.y-hy) < R_TONGUE+40){ coop.hp--; coop.flash=10; sfx('bosshit'); P.tt=1; P.ttx=coop.x; P.tty=coop.y; if(coop.hp<=0) nextCoopBoss(); }
+    if(Math.hypot(coop.x-hx, coop.y-hy) < R_TONGUE+40){ coop.hp--; coop.flash=10; sfx('bosshit'); P.tt=1; P.ttx=coop.x; P.tty=coop.y;
+      if(coop.hp>0 && Math.random()<0.3 && coopSayT<=0) coopSay(pickLine(BOSS_LINES[coop.kind].hit), 80);
+      if(coop.hp<=0) nextCoopBoss(); }
     else { P.tt=1; P.ttx=hx+P.facing*20; P.tty=hy-R_TONGUE*0.7; }
     return;
   }
@@ -1883,6 +2488,19 @@ function eat2(P){
     if(best){ P.coins=Math.max(0,P.coins+best.val); sfx(best.val>0?'coin':'mad'); pops.push({x:best.x,y:best.y,t:0,val:best.val,mad:best.val<0}); fruits.splice(bi,1); }
     return;
   }
+  if(raceGame==='hide'){
+    if(P!==P1) return;
+    const f=hideG.f;
+    let best=null, bd=R_TONGUE, bi=-1;
+    for(let i=0;i<hideG.flies.length;i++){ const b=hideG.flies[i]; const d=Math.hypot(b.x-hx, b.y-hy); if(d<bd){ bd=d; best=b; bi=i; } }
+    const dP2=Math.hypot(f.x-hx, f.y-hy);
+    P.tt=1;
+    if(dP2<bd && dP2<R_TONGUE){ P.ttx=f.x; P.tty=f.y; sfx('eat'); endHide(true); return; }
+    if(best){ P.ttx=best.x; P.tty=best.y; hideG.flies.splice(bi,1); hideG.shots--; sfx('mad'); pops.push({x:P.ttx, y:P.tty, t:0, txt:'❌'});
+      if(hideG.shots<=0){ endHide(false); } return; }
+    P.ttx=hx+P.facing*20; P.tty=hy-R_TONGUE*0.7;
+    return;
+  }
   if(raceGame==='grab' || raceGame==='lily'){ P.tt=1; P.ttx=hx+P.facing*20; P.tty=hy-R_TONGUE*0.7; return; }
   let best=null,bd=R_TONGUE,val=1;
   for(const f of flies){ if(f.fleeing) continue; const d=Math.hypot(f.x-hx,f.y-hy); if(d<bd){bd=d;best=f;val=f.val;} }
@@ -1899,9 +2517,11 @@ function start2P(game){
   else if(raceGame==='fruit'){ fruits.length=0; fruitSpawnT=0; raceTimer=60*60; }
   else if(raceGame==='lily'){ setupLily(); resetLilyP(P1,1); resetLilyP(P2,2); }
   else if(raceGame==='volley'){ volley.x=W*0.5; volley.y=H*0.25; volley.vx=(Math.random()<0.5?-1:1)*1.5; volley.vy=0; volley.hits=0; volley.rot=0; }
+  else if(raceGame==='hide'){ hideG.flies=[]; for(let i=0;i<11;i++) hideG.flies.push(spawnHideFly()); Object.assign(hideG.f, spawnHideFly()); hideG.shots=4; hideG.timer=50*60; hideG.reveal=160; P1.x=W*0.2; }
   else { coop.idx=0; coop.hearts=DIFF[difficulty].hearts; startCoopBoss(0); }
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('winScreen').classList.add('hidden');
+  document.getElementById('exprBar').classList.add('hidden');
   document.querySelector('.hud').style.display='none';
   document.getElementById('controls2p').classList.remove('hidden');
   initAudio(); startMusic();
@@ -1951,6 +2571,43 @@ function updateLily(){
     }
   }
 }
+/* ---- Find the Fly: P1 hunts, P2 hides as ONE of many identical flies ---- */
+const hideG={ flies:[], f:{x:0,y:0,vx:0,vy:0,wig:0}, shots:0, timer:0, reveal:0 };
+function spawnHideFly(){ return { x:60+Math.random()*(W-120), y:H*0.15+Math.random()*(groundY-H*0.15-90), vx:(Math.random()*2-1), vy:(Math.random()*2-1)*0.7, wig:Math.random()*6.28 }; }
+function wanderFly(b){
+  b.vx+=(Math.random()*2-1)*0.15; b.vy+=(Math.random()*2-1)*0.12; b.vx=clamp(b.vx,-1.4,1.4); b.vy=clamp(b.vy,-1.1,1.1);
+  b.x+=b.vx; b.y+=b.vy;
+  if(b.x<40){b.x=40;b.vx*=-1;} if(b.x>W-40){b.x=W-40;b.vx*=-1;}
+  if(b.y<H*0.14){b.y=H*0.14;b.vy*=-1;} if(b.y>groundY-40){b.y=groundY-40;b.vy*=-1;}
+  b.wig+=0.6;
+}
+function updateHide(){
+  const P=P1;
+  if(P.dir==='left'){P.x-=SPEED;P.facing=-1;} if(P.dir==='right'){P.x+=SPEED;P.facing=1;}
+  P.x=clamp(P.x,toad.w*0.5,W-toad.w*0.5);
+  P.vy+=GRAV; P.y+=P.vy; if(P.y>groundY){P.y=groundY;P.vy=0;} P.grounded=P.y>=groundY-0.5;
+  if(P.tt>0)P.tt-=0.08;
+  for(const b of hideG.flies) wanderFly(b);
+  const f=hideG.f;
+  if(P2.dir==='left') f.vx-=0.25; if(P2.dir==='right') f.vx+=0.25;
+  wanderFly(f);
+  if(hideG.reveal>0) hideG.reveal--;
+  hideG.timer--; if(hideG.timer<=0) endHide(false);
+}
+function endHide(toadWon){
+  twoP=false; document.getElementById('controls2p').classList.add('hidden');
+  document.getElementById('winTitle').textContent = toadWon? '🐸 Player 1 found the fly!' : '🪰 Player 2 escaped! The fly wins!';
+  document.getElementById('winScore').textContent = toadWon? 'Great detective work! 🕵️' : 'What a sneaky fly! 😎';
+  document.getElementById('winScreen').classList.remove('hidden'); sfx('win');
+}
+function drawHideFlies(){
+  for(const b of hideG.flies) drawBug({x:b.x, y:b.y, wing:b.wig, alarm:0, type:'fly'});
+  const f=hideG.f; drawBug({x:f.x, y:f.y, wing:f.wig, alarm:0, type:'fly'});
+  if(hideG.reveal>0){
+    ctx.strokeStyle='#ffe23a'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(f.x, f.y, 16, 0, 7); ctx.stroke();
+    ctx.fillStyle='#ffe23a'; fitText('P2 — this fly is YOU! Remember it! (P1, no peeking 🙈)', W/2, H*0.3, 16);
+  }
+}
 /* ---- Fruit Catch ---- */
 function updateFruit(){
   raceTimer--; if(raceTimer<=0){ endRace(); return; }
@@ -1984,8 +2641,8 @@ function endVolley(){
 }
 function update2P(){
   t++; dark=(tod==='night');
-  if(raceGame==='lily'){
-    updateLily();
+  if(raceGame==='lily' || raceGame==='hide'){
+    if(raceGame==='lily') updateLily(); else updateHide();
     for(let i=pops.length-1;i>=0;i--){ pops[i].t+=0.02; pops[i].y-=1.1; if(pops[i].t>=1) pops.splice(i,1); }
     for(const c of clouds){ c.x+=c.sp; if(c.x>W+120*c.s) c.x=-120*c.s; }
     return;
@@ -2076,8 +2733,9 @@ function draw2P(){
   else if(raceGame==='fruit'){ drawFruits(); }
   else if(raceGame==='lily'){ drawLily(); }
   else if(raceGame==='volley'){ drawVolleyBall(); }
+  else if(raceGame==='hide'){ drawHideFlies(); }
   else { for(const f of flies) drawBug(f); }
-  drawToadSimple(P1,'P1'); drawToadSimple(P2,'P2');
+  drawToadSimple(P1,'P1'); if(raceGame!=='hide') drawToadSimple(P2,'P2');
   if(raceGame==='boss' && worn.pet){ petPos.x+=((P1.x-46)-petPos.x)*0.1; petPos.y+=((P1.y-6)-petPos.y)*0.1; drawPetSprite(worn.pet, petPos.x, petPos.y+Math.sin(t*0.15)*3); }
   drawPops();
   if(raceGame==='boss'){ drawCoopHUD(); return; }
@@ -2089,6 +2747,7 @@ function draw2P(){
     : raceGame==='fruit' ? ('⏱ '+Math.ceil(raceTimer/60)+' · catch the fruit! 🧅=bad')
     : raceGame==='lily' ? '🪷 Hop across! First to 3 🚩'
     : raceGame==='volley' ? ('🏐 '+volley.hits+' hits — don\'t drop it!')
+    : raceGame==='hide' ? ('🕵️ '+hideG.shots+' guesses · ⏱ '+Math.ceil(hideG.timer/60)+' · which fly is P2?')
     : '★ First to 10!';
   fitText(mid, W/2, topY, 22);
 }
@@ -2110,10 +2769,13 @@ function coopPetAssist(){
   else if(pid==='mp_storm'){ if(coopPetT>=240){ coopPetT=0; return coopDamage(1,'⚡'); } }
   else if(pid==='mp_gold'){ if(coopPetT>=240){ coopPetT=0; gainCoins(2); return coopDamage(1,'🦄'); } }
   else if(pid==='mp_heal'){ if(coopPetT>=400){ coopPetT=0; if(coop.hearts<DIFF[difficulty].hearts){ coop.hearts++; pops.push({x:W*0.5, y:H*0.3, t:0, txt:'❤️✨', big:true}); sfx('buy'); } } }
+  else if(pid==='mp_ghost'){ if(coopPetT>=330){ coopPetT=0; coopSay('EEEK!! A g-g-ghost!!', 100); return coopDamage(1,'👻'); } }
+  else if(pid==='mp_lava'){ if(coopPetT>=400){ coopPetT=0; return coopDamage(1,'🔥'); } }
   return false;
 }
 function updateCoopBoss(){
   coop.flash=Math.max(0,coop.flash-1);
+  if(coopSayT>0) coopSayT--;
   if(coopPetAssist()) return;
   if(coopFrozen>0){ coopFrozen--; return; }
   const players=[P1,P2];
@@ -2159,11 +2821,14 @@ function drawCoopBoss(){
     ctx.fillStyle='#ffd23a'; ctx.beginPath(); ctx.arc(hx+face*7,hy-4,4,0,7); ctx.fill(); ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(hx+face*8,hy-4,2,0,7); ctx.fill();
     ctx.strokeStyle='#e0402f'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(hx+face*18,hy+2); ctx.lineTo(hx+face*30,hy-2); ctx.moveTo(hx+face*18,hy+4); ctx.lineTo(hx+face*30,hy+8); ctx.stroke();
   }
+  const chy = coop.kind==='fly'? coop.y-30 : groundY-165;
+  drawBossAccessory(coop.x, chy+(coop.kind==='fly'?6:0), 1, 1.5);
   if(coopFrozen>0){
     const cy = coop.kind==='fly'? coop.y : groundY-100;
     ctx.globalAlpha=0.35; ctx.fillStyle='#aadeff'; ctx.beginPath(); ctx.ellipse(coop.x, cy, 70, 95, 0,0,7); ctx.fill(); ctx.globalAlpha=1;
     ctx.font='28px sans-serif'; ctx.textAlign='center'; ctx.fillText('❄️', coop.x, cy-108);
   }
+  if(coopSayT>0 && coopSayTxt) drawSayBubble(coopSayTxt, coop.x, (coop.kind==='fly'? coop.y-64 : groundY-215));
 }
 function drawCoopHUD(){
   ctx.fillStyle='#fff'; fitText(COOP_BOSSES[coop.idx].name+' ('+DIFF[difficulty].label+')  —  tongue it 👅 · JUMP to dodge!', W/2, 66, 15);
@@ -2178,6 +2843,11 @@ function drawCoopHUD(){
 }
 function set2P(pnum,action,down){
   const P = pnum==='1'?P1:P2;
+  if(raceGame==='hide' && pnum==='2'){
+    if(action==='left'||action==='right'){ if(down) P.dir=action; else if(P.dir===action) P.dir=null; }
+    else if(down){ if(action==='jump') hideG.f.vy-=2.4; else if(action==='eat') hideG.f.vy+=2.4; }
+    return;
+  }
   if(action==='left'||action==='right'){ if(down) P.dir=action; else if(P.dir===action) P.dir=null; }
   else if(down){ if(action==='jump') jump2(P); else if(action==='eat') eat2(P); }
 }
@@ -2203,6 +2873,7 @@ document.getElementById('gameBoss').addEventListener('click',()=>{ document.getE
 document.getElementById('gameFruit').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('fruit'); });
 document.getElementById('gameLily').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('lily'); });
 document.getElementById('gameVolley').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('volley'); });
+document.getElementById('gameHide').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('hide'); });
 document.getElementById('gamePickBack').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); document.getElementById('startScreen').classList.remove('hidden'); });
 document.getElementById('againBtn').addEventListener('click',()=>start2P(raceGame));
 document.getElementById('backBtn').addEventListener('click',()=>{
@@ -2214,7 +2885,7 @@ document.getElementById('backBtn').addEventListener('click',()=>{
 /* ---------------- Outfit Show (2 players, dress up free, random-fair judge) ---------------- */
 const p1Outfit={skin:null,hat:null,glasses:null,coat:null,emote:null};
 const p2Outfit={skin:null,hat:null,glasses:null,coat:null,emote:null};
-const SHOW_OPTIONS = SHOP.filter(s=>['skin','hat','glasses','coat','emote'].includes(s.slot));
+const SHOW_OPTIONS = SHOP.filter(s=>['skin','hat','glasses','coat','emote'].includes(s.slot) && !s.secret);
 function curOutfit(){ return showPhase==='p1dress'? p1Outfit : p2Outfit; }
 function buildDressItems(){
   const box=document.getElementById('dressItems'); box.innerHTML=''; const o=curOutfit();
@@ -2301,6 +2972,7 @@ function enterHome(){
   initHome(); homeMode=true; homeRoom=0; homeDrag=null; homeSel=null; homeFx.length=0; area='ground'; inside=false; boss.active=false; plant.active=false;
   toad.x=W*0.16; toad.y=groundY; toad.vy=0; toad.facing=1; toad.move='none'; pointerDirs.clear();
   document.querySelector('.hud').style.display='none';
+  document.getElementById('exprBar').classList.add('hidden');
   document.getElementById('homeTop').classList.remove('hidden'); document.getElementById('homePanel').classList.remove('hidden');
   updateHomeLabel(); buildHomeItems(); initAudio(); startMusic();
 }
@@ -2366,13 +3038,19 @@ function enterGarden(){ initGarden(); gardenMode=true; toad.x=W*0.5; toad.y=H*0.
   document.querySelector('.hud').style.display='none'; document.getElementById('gardenPanel').classList.remove('hidden'); buildGardenSeeds(); initAudio(); startMusic(); }
 function exitGarden(){ gardenMode=false; document.getElementById('gardenPanel').classList.add('hidden'); document.querySelector('.hud').style.display=''; goArea('forest'); }
 function buildGardenSeeds(){ const box=document.getElementById('gardenSeeds'); box.innerHTML='';
-  for(const key of ['coin','fruit']){ const s=SEEDS[key]; const b=document.createElement('button'); b.className='fchip'; b.innerHTML=s.emoji+'<span class="cost">'+s.cost+'</span>'; b.title=s.name; b.addEventListener('click',()=>plantSeed(key)); box.appendChild(b); }
+  for(const key of ['coin','fruit','golden','berry','treat']){ const s=SEEDS[key]; const b=document.createElement('button'); b.className='fchip'; b.innerHTML=s.emoji+'<span class="cost">'+s.cost+'</span>'; b.title=s.name; b.addEventListener('click',()=>plantSeed(key)); box.appendChild(b); }
   if(conSeeds>0){ const b=document.createElement('button'); b.className='fchip'; b.style.background='#e6ddf5'; b.innerHTML='✨<span class="cost">x'+conSeeds+'</span>'; b.title='Constellation Seed'; b.addEventListener('click',()=>plantSeed('con')); box.appendChild(b); } }
 function plantSeed(type){ const empty=garden.findIndex(p=>!p.seed); if(empty<0){ showReward('All plots are full!'); return; }
   if(type==='con'){ if(conSeeds<=0) return; conSeeds--; } else { const cost=SEEDS[type].cost; if(coins<cost) return; coins-=cost; updateCoins(); }
   garden[empty].seed=type; garden[empty].t=0; sfx('buy'); save(); buildGardenSeeds(); }
 function harvestPlot(i){ const p=garden[i], type=p.seed; if(!type || p.t<SEEDS[type].grow) return; p.seed=null; p.t=0;
   if(type==='coin'){ gainCoins(50); showReward('🌻 Harvested +50 🪙!'); }
+  else if(type==='golden'){ gainCoins(150); showReward('🌟 GOLDEN harvest! +150 🪙!'); }
+  else if(type==='berry'){ const bs=['speed','tongue','coins','magnet','calm'][Math.floor(Math.random()*5)];
+    const map={speed:'🍓 Speedy! (10s)',tongue:'🍎 Long tongue! (10s)',coins:'🍊 Double coins! (10s)',magnet:'🧲 Bug magnet! (10s)',calm:'🫐 Bugs stay calm! (10s)'}; startBoost(bs,map[bs]); }
+  else if(type==='treat'){
+    if(worn.pet && petCare===true){ petXpGain(worn.pet,100); showReward('🦴 Yum! Your pet gained +100 XP!'); }
+    else { gainCoins(25); showReward('🦴 No pet to feed — sold the treat for +25 🪙!'); } }
   else if(type==='fruit'){ const bs=['speed','tongue','coins'][Math.floor(Math.random()*3)]; const map={speed:'🍓 Speedy! (10s)',tongue:'🍎 Long tongue! (10s)',coins:'🍊 Double coins! (10s)'}; startBoost(bs,map[bs]); }
   else { if(!owned.con_skin && Math.random()<0.45){ owned.con_skin=true; showReward('🪐 You grew the Constellation Frog skin!'); } else { startConstSky(); } }
   buildGardenSeeds(); save(); }
@@ -2392,7 +3070,7 @@ function drawGarden(){ const gf=H*0.62; ctx.clearRect(0,0,W,H);
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for(let i=0;i<garden.length;i++){ const px=gardenPlotX(i), py=gf-4; ctx.fillStyle='#6a4a2a'; ctx.beginPath(); ctx.ellipse(px,py+8,34,12,0,0,7); ctx.fill();
     const p=garden[i];
-    if(p.seed){ const s=SEEDS[p.seed], prog=p.t/s.grow; let e; if(prog>=1) e=(p.seed==='coin'?'🌻':(p.seed==='fruit'?'🍓':'🌌')); else if(prog>0.5) e='🌿'; else e='🌱'; ctx.font=(prog>=1?'34px ':'26px ')+'sans-serif'; ctx.fillText(e, px, py-16-prog*16);
+    if(p.seed){ const s=SEEDS[p.seed], prog=p.t/s.grow; let e; if(prog>=1) e=({coin:'🌻',fruit:'🍓',golden:'🌟',berry:'🫐',treat:'🦴',con:'🌌'})[p.seed]||'🌻'; else if(prog>0.5) e='🌿'; else e='🌱'; ctx.font=(prog>=1?'34px ':'26px ')+'sans-serif'; ctx.fillText(e, px, py-16-prog*16);
       if(prog>=1){ ctx.font='16px sans-serif'; ctx.fillText('✅', px+24, py-34); } }
     else { ctx.font='20px sans-serif'; ctx.fillStyle='#4a3520'; ctx.fillText('➕', px, py+2); }
   }
@@ -2410,6 +3088,7 @@ resize(); toad.x=W*0.5; toad.y=groundY; initEntities();
 load(); initHome(); initGarden();
 document.getElementById('musicToggle').textContent='🎵 Music: '+(musicOn?'On':'Off'); document.getElementById('musicToggle').classList.toggle('on',musicOn);
 document.getElementById('sfxToggle').textContent='🔊 Sound effects: '+(sfxOn?'On':'Off'); document.getElementById('sfxToggle').classList.toggle('on',sfxOn);
+buildSettingsRows();
 updateCoins();
 requestAnimationFrame(frame);
 </script>
