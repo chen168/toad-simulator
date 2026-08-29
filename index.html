@@ -1531,19 +1531,24 @@ function drawPops(){
       const v=p.val||1; ctx.fillText((v<0?'':'+')+v+' 🪙', p.x, p.y); } }
   ctx.globalAlpha=1;
 }
-let frameN=0;
-function frame(){
-  frameN++;
-  if(frameN%30===0){ const dpr=Math.min(window.devicePixelRatio||1,2);
-    if(cvs.width!==Math.floor(window.innerWidth*dpr) || cvs.height!==Math.floor(window.innerHeight*dpr)) resize(); }
+/* Fixed-timestep loop: the game logic always runs 60 steps/second on a real clock,
+   no matter how often the screen refreshes (30fps Low Power Mode, 120Hz ProMotion, ...).
+   Without this the toad literally moved at the display's frame rate. */
+const STEP_MS = 1000/60;
+function stepGame(){
   if(boostT>0) boostT--; if(constSkyT>0){ constSkyT--; if(constSkyT<=0) constSky=false; }
-  if(gardenMode){ updateGarden(); drawGarden(); requestAnimationFrame(frame); return; }
-  if(homeMode){ drawHome(); requestAnimationFrame(frame); return; }
-  if(showMode){ drawShow(); requestAnimationFrame(frame); return; }
-  if(twoP){ update2P(); if(twoP) draw2P(); requestAnimationFrame(frame); return; }
+  if(gardenMode){ updateGarden(); return; }
+  if(homeMode || showMode){ if(showMode) showTimer++; return; }
+  if(twoP){ update2P(); return; }
   if(started) update();
-  if(inside){ drawInside(); requestAnimationFrame(frame); return; }
-  if(area!=='ground'){ drawArea(); requestAnimationFrame(frame); return; }
+}
+function drawGame(){
+  if(gardenMode){ drawGarden(); return; }
+  if(homeMode){ drawHome(); return; }
+  if(showMode){ drawShow(); return; }
+  if(twoP){ draw2P(); return; }
+  if(inside){ drawInside(); return; }
+  if(area!=='ground'){ drawArea(); return; }
   ctx.clearRect(0,0,W,H);
   drawSky(); drawGround(); drawHouse(); drawVillager(); drawPondBack();
   for(const b of waterBugs){ if(!b.hidden) drawWaterBug(b); }
@@ -1555,6 +1560,21 @@ function frame(){
   if(diveTimer>0){ ctx.fillStyle='#fff'; fitText('💧 keep diving to find a secret!', (pond.x1+pond.x2)/2, pond.surfaceY-10, 15); }
   drawPops(); drawGuides(); drawBossHealth();
   if(bigMsgT>0){ bigMsgT--; ctx.globalAlpha=Math.min(1,bigMsgT/25); ctx.fillStyle='#ffe23a'; fitText(bigMsg, W/2, H*0.4, 26); ctx.globalAlpha=1; }
+}
+let frameN=0, lastFrameT=0, frameAcc=0;
+function frame(now){
+  frameN++;
+  if(frameN%30===0){ const dpr=Math.min(window.devicePixelRatio||1,2);
+    if(cvs.width!==Math.floor(window.innerWidth*dpr) || cvs.height!==Math.floor(window.innerHeight*dpr)) resize(); }
+  if(now===undefined) now=performance.now();
+  if(!lastFrameT) lastFrameT=now;
+  let dt=now-lastFrameT; lastFrameT=now;
+  if(dt<0) dt=0; if(dt>250) dt=250;   // tab was hidden / long hiccup: don't fast-forward
+  frameAcc+=dt;
+  let steps=0;
+  while(frameAcc>=STEP_MS && steps<4){ stepGame(); frameAcc-=STEP_MS; steps++; }
+  if(steps===4) frameAcc=0;
+  drawGame();
   requestAnimationFrame(frame);
 }
 
@@ -1735,6 +1755,8 @@ for(const [bid,kind] of [['bossHeron','heron'],['bossFly','fly'],['bossSnake','s
 }
 /* ---- Toad News (title screen update log) ---- */
 const NEWS=[
+  {v:'Update 6.1', d:'Aug 28', items:[
+    '🐢➡️🐸 Fixed the slow toad! The game now runs at the same speed on every iPad — even in Low Power Mode.']},
   {v:'Update 6', d:'Aug 28', items:[
     '🌟 MYSTIC PETS! A different magic pet visits the shop every hour — collect all 6! They cast special powers in boss fights: time freeze ❄️, fireballs 🔥, rainbow beams 🌈, lightning ⚡, gold magic 🦄 and shields 🐰',
     '⚔️ Choose your boss: Heron, Giant Fly or Snake — with Easy / Normal / Hard difficulty',
@@ -2233,7 +2255,6 @@ function drawFrogWithOutfit(x, y, outfit){
   Object.assign(worn, sw); toad.x=sx; toad.y=sy; groundY=sgy; toad.facing=sf; toad.move=sm; toad.vy=svy; swimming=ssw; tongue.active=stg;
 }
 function drawShow(){
-  showTimer++;
   ctx.clearRect(0,0,W,H);
   const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#3a2a5a'); g.addColorStop(1,'#6a4a8a'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#d94f86'; ctx.fillRect(0,groundY,W,H-groundY);
