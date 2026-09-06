@@ -52,7 +52,10 @@
   .shopgrid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:6px 0 16px; overflow-y:auto; padding:2px 4px; align-content:start; }
   .shopcat{ grid-column:1 / -1; text-align:left; font-weight:900; font-size:16px; color:var(--leaf); margin:8px 2px 0; padding-top:8px; border-top:2px solid #e2ecdb; }
   .shopcat:first-child{ border-top:none; padding-top:0; margin-top:0; }
-  .item{ background:#f2f8ee; border:3px solid transparent; border-radius:18px; padding:12px 8px; text-align:center; }
+  .item{ background:#f2f8ee; border:3px solid transparent; border-radius:18px; padding:12px 8px; text-align:center;
+         display:flex; flex-direction:column; }
+  .item button{ margin-top:auto !important; }
+  .item .price{ margin-bottom:7px; }
   .item.owned{ border-color:#bfe0b0; }
   .item.worn{ border-color:var(--leaf); background:#e6f6de; }
   .item .emoji{ font-size:34px; line-height:1; }
