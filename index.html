@@ -409,6 +409,8 @@ function startMusic(){ if(!AC||!musicOn||musicTimer) return; const tr=MUSIC_TRAC
   musicTimer=setInterval(()=>{ if(!musicOn||!AC){ return; } const f=tr.notes[mi%tr.notes.length]; tone(f,tr.step/1000*0.88,tr.wave,tr.vol); if(mi%2===0) tone(f/2,tr.step/1000*1.4,'sine',0.04); mi++; }, tr.step); }
 function setMusicTrack(k){ if(!MUSIC_TRACKS[k]) return; musicTrack=k; mi=0; stopMusic(); if(musicOn) startMusic(); save(); }
 function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null; } }
+/* native dialogs (confirm/alert) interrupt WebAudio on iOS and it stays silent — always nudge it back awake */
+function resumeAudio(){ if(AC && AC.state!=='running'){ try{ AC.resume(); }catch(e){} } }
 
 const pond = { x1:0, x2:0, surfaceY:0, bottom:0 };
 const house = { x:0 };
@@ -2375,7 +2377,8 @@ let frameN=0, lastFrameT=0, frameAcc=0;
 function frame(now){
   frameN++;
   if(frameN%30===0){ const dpr=Math.min(window.devicePixelRatio||1,2);
-    if(cvs.width!==Math.floor(window.innerWidth*dpr) || cvs.height!==Math.floor(window.innerHeight*dpr)) resize(); }
+    if(cvs.width!==Math.floor(window.innerWidth*dpr) || cvs.height!==Math.floor(window.innerHeight*dpr)) resize();
+    if(musicOn) resumeAudio(); }
   if(now===undefined) now=performance.now();
   if(!lastFrameT) lastFrameT=now;
   let dt=now-lastFrameT; lastFrameT=now;
@@ -3110,7 +3113,9 @@ function renderTrade(){
   }
 }
 function doTrade(it){
-  if(!window.confirm('Trade away your '+it.name+' '+it.emoji+'? It will be GONE — but the friend gives you a surprise!')) return;
+  const ok=window.confirm('Trade away your '+it.name+' '+it.emoji+'? It will be GONE — but the friend gives you a surprise!');
+  resumeAudio();   // the confirm dialog mutes iOS audio — wake it back up either way
+  if(!ok) return;
   delete owned[it.id];
   if(worn[it.slot]===it.id) worn[it.slot]=null;
   const pool=tradePool();
