@@ -87,6 +87,16 @@
            font-size:22px; font-weight:900; font-family:var(--ui-font); color:var(--ink); box-shadow:0 3px 10px rgba(0,0,0,.2);
            display:flex; align-items:center; justify-content:center; touch-action:none; }
   .padbtn:active{ transform:scale(.92); background:#fff; }
+  .bpad{ position:absolute; bottom:calc(env(safe-area-inset-bottom) + 14px); display:grid;
+         grid-template-columns:repeat(3,52px); grid-template-rows:repeat(3,52px); gap:6px; }
+  .bpad.left{ left:14px; } .bpad.right{ right:14px; }
+  .bpad .padbtn{ width:52px; height:52px; }
+  .tonguebtn{ background:linear-gradient(#ff8fb0,#d95a86) !important; }
+  #spinBtn{ pointer-events:auto; position:absolute; left:50%; transform:translateX(-50%);
+            bottom:calc(env(safe-area-inset-bottom) + 22px); border:none; border-radius:999px;
+            padding:16px 42px; font-size:24px; font-weight:900; font-family:var(--ui-font); color:#fff;
+            background:linear-gradient(#ffcf4d,#e07a2a); box-shadow:0 8px 20px rgba(224,122,42,.5); }
+  #spinBtn:active{ transform:translateX(-50%) scale(.94); }
   #dressPanel{ position:fixed; left:0; right:0; bottom:0; z-index:8; background:rgba(255,255,255,0.96);
                border-top-left-radius:22px; border-top-right-radius:22px; box-shadow:0 -4px 20px rgba(0,0,0,.2);
                padding:12px 14px calc(env(safe-area-inset-bottom) + 12px); }
@@ -292,6 +302,25 @@
   </div>
 </div>
 
+<!-- Tongue Battle grid pads — a 4-way move control with the tongue in the middle, from Sasha's drawing -->
+<div class="controls2p hidden" id="battlePads">
+  <div class="bpad left">
+    <div></div><button class="padbtn" data-p="1" data-a="up">▲</button><div></div>
+    <button class="padbtn" data-p="1" data-a="left">◀</button><button class="padbtn tonguebtn" data-p="1" data-a="eat">👅</button><button class="padbtn" data-p="1" data-a="right">▶</button>
+    <div></div><button class="padbtn" data-p="1" data-a="down">▼</button><div></div>
+  </div>
+  <div class="bpad right">
+    <div></div><button class="padbtn" data-p="2" data-a="up">▲</button><div></div>
+    <button class="padbtn" data-p="2" data-a="left">◀</button><button class="padbtn tonguebtn" data-p="2" data-a="eat">👅</button><button class="padbtn" data-p="2" data-a="right">▶</button>
+    <div></div><button class="padbtn" data-p="2" data-a="down">▼</button><div></div>
+  </div>
+</div>
+
+<!-- Wheel of Luck -->
+<div class="controls2p hidden" id="wheelUI">
+  <button id="spinBtn">🎡 SPIN!</button>
+</div>
+
 <div class="overlay hidden" id="winScreen">
   <div class="card">
     <h1 id="winTitle" style="font-size:34px;">🏆 Player 1 wins!</h1>
@@ -369,6 +398,7 @@
     <button class="bigbtn" id="gameVolley" style="background:linear-gradient(#ffcf4d,#e07a2a);box-shadow:0 8px 20px rgba(224,122,42,.5);margin-top:10px;">🏐 Tongue Volley (team up!)</button>
     <button class="bigbtn" id="gameHide" style="background:linear-gradient(#8a8a92,#3a3a44);box-shadow:0 8px 20px rgba(58,58,68,.5);margin-top:10px;">🕵️ Find the Fly</button>
     <button class="bigbtn" id="gameBattle" style="background:linear-gradient(#b06bff,#6a3fb0);box-shadow:0 8px 20px rgba(106,63,176,.5);margin-top:10px;">🎨 Tongue Battle</button>
+    <button class="bigbtn" id="gameWheel" style="background:linear-gradient(#ffb84d,#c9781e);box-shadow:0 8px 20px rgba(201,120,30,.5);margin-top:10px;">🎡 Wheel of Luck</button>
     <button class="closebtn" id="gamePickBack" style="margin-top:12px;">Back</button>
   </div>
 </div>
@@ -1602,6 +1632,28 @@ function drawAreaBug(b){
   }
   ctx.restore();
 }
+/* time-of-day for EVERY world: warm afternoons, orange evenings, starry nights (space is always space) */
+function drawTimeTint(){
+  if(area==='space' || tod==='day') return;
+  const sky = !(area==='under'||area==='cave');   // underground worlds just get dimmer — no sky to see
+  if(tod==='afternoon'){
+    ctx.fillStyle='rgba(255,170,60,0.12)'; ctx.fillRect(0,0,W,H);
+  } else if(tod==='evening'){
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'rgba(60,40,130,0.34)'); g.addColorStop(0.55,'rgba(230,110,50,0.26)'); g.addColorStop(1,'rgba(255,180,90,0.16)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    if(sky){ ctx.fillStyle='#ff8a3d'; ctx.globalAlpha=0.85; ctx.beginPath(); ctx.arc(W*0.5, groundY-16, 40, Math.PI, 0); ctx.fill(); ctx.globalAlpha=1; }
+  } else if(tod==='night'){
+    ctx.fillStyle= sky? 'rgba(14,12,58,0.5)' : 'rgba(8,8,30,0.42)'; ctx.fillRect(0,0,W,H);
+    if(sky){
+      for(const s of stars){ if(s.y>groundY-30) continue; const tw=0.5+0.5*Math.sin(t*0.05+s.ph); ctx.globalAlpha=0.3+0.6*tw; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill(); }
+      ctx.globalAlpha=1;
+      const mx=W*0.84, my=H*0.14;
+      ctx.fillStyle='#f2f0d8'; ctx.beginPath(); ctx.arc(mx, my, 26, 0, 7); ctx.fill();
+      ctx.fillStyle='rgba(20,18,70,0.9)'; ctx.beginPath(); ctx.arc(mx+10, my-5, 22, 0, 7); ctx.fill();
+    }
+  }
+}
 function drawArea(){
   ctx.clearRect(0,0,W,H);
   if(area==='sky'){
@@ -1743,6 +1795,7 @@ function drawArea(){
     ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.moveTo(W*0.3-24,H*0.16+36); ctx.lineTo(W*0.3,H*0.16); ctx.lineTo(W*0.3+24,H*0.16+36); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(W*0.72-26,H*0.10+40); ctx.lineTo(W*0.72,H*0.10); ctx.lineTo(W*0.72+26,H*0.10+40); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#7a6a5a'; ctx.fillRect(0,groundY,W,H-groundY);
   }
+  drawTimeTint();                 // every world has afternoon, evening & night now!
   if(constSky) drawConstSky(H);   // every world gets its own constellation picture now
   for(const p of areaPlatforms) drawPlatform(p);
   drawPlant();
@@ -2996,6 +3049,12 @@ function buildSettingsRows(){
 document.getElementById('petCareToggle').addEventListener('click',()=>{ petCare = petCare===true? false : true; save(); buildSettingsRows(); sfx('coin'); });
 /* ---- Toad News (title screen update log) ---- */
 const NEWS=[
+  {v:'Update 12', d:'Sep 6', items:[
+    '🎨 TONGUE BATTLE is a whole new GRID GAME — designed from Sasha\'s own drawing! Big chunky toad faces live in squares, you hop square-to-square with a brand-new 4-way arrow pad (👅 tongue button in the middle), and every square you land on becomes yours!',
+    '🫂 Imaginary friends now tongue OTHER imaginary friends and recruit them — every friend starts its own team and builds an ARMY of its own! Watch Bloop and Zippy fight over the board while you play',
+    '💫 On HARD, getting tongued makes your whole screen go dizzy for a second — hold on tight!',
+    '🎡 NEW GAME: WHEEL OF LUCK! 10 spaces, 9 ✅ and 1 ❌. Take turns spinning — hit ❌ and lose a heart 💔. After every round one more ❌ sneaks onto the wheel… last toad with hearts wins!',
+    '🌅 EVERY world has afternoon, evening and night now — sunsets in the forest, stars over the beach, a moon above the castle 🌙']},
   {v:'Update 11', d:'Sep 6', items:[
     '🏰 NEW WORLD: THE CASTLE! Explore 5 floors — Great Hall, Royal Library, Armory, Wizard Tower & Throne Room — open treasure chests for coins and SECRET outfits (Knight Helmet, Jester Hat, Royal Robe!), plus a hidden ruby and a Royal Corgi recipe 👑🐶',
     '🎨 Tongue Battle got SUPER upgrades: boosters anyone can grab (⚡ speed, 👅 mega tongue, 🎨 paint bomb), glowing board effects, named friends (Bloop, Zippy, Momo, Pip, Wobble, Sunny), a 👑 on the tongue champion, and a full Tongue Leaderboard at the end!',
@@ -3331,27 +3390,7 @@ function eat2(P){
     if(best){ P.coins=Math.max(0,P.coins+best.val); sfx(best.val>0?'coin':'mad'); pops.push({x:best.x,y:best.y,t:0,val:best.val,mad:best.val<0}); fruits.splice(bi,1); }
     return;
   }
-  if(raceGame==='battle'){
-    P.tt=1;
-    const me = P===P1? 1 : 2, foe = P===P1? P2 : P1;
-    const range = battleRange(R_TONGUE, P);
-    // tonguing the other PLAYER always wins — even if a friend is closer
-    if(Math.hypot(foe.x-hx, (foe.y-40)-hy) < range){
-      P.ttx=foe.x; P.tty=foe.y-40;
-      battleScore(me);
-      endBattle(me, 'Player '+me+' tongued Player '+(me===1?2:1)+' — instant win! 👅');
-      return;
-    }
-    let best=null, bd=range;
-    for(const a of battle.ais){ if(a.team===me) continue; const d=Math.hypot(a.x-hx, (a.y-40)-hy); if(d<bd){ bd=d; best=a; } }
-    if(best){
-      P.ttx=best.x; P.tty=best.y-40;
-      best.team=me; battleScore(me); sfx('win');
-      pops.push({x:best.x, y:best.y-84, t:0, txt: me===1?'💚':'💙', big:true});
-      battle.fx.push({x:best.x, y:best.y-40, t:0});
-    } else { P.ttx=hx+P.facing*20; P.tty=hy-range*0.7; battleClaim(P.ttx, P.tty, me, 44); sfx('coin'); }
-    return;
-  }
+  if(raceGame==='battle'){ battleTongue(P===P1?1:2); return; }
   if(raceGame==='hide'){
     if(P!==P1) return;
     const f=hideG.f;
@@ -3382,13 +3421,17 @@ function start2P(game){
   else if(raceGame==='lily'){ setupLily(); resetLilyP(P1,1); resetLilyP(P2,2); }
   else if(raceGame==='volley'){ volley.x=W*0.5; volley.y=H*0.25; volley.vx=(Math.random()<0.5?-1:1)*1.5; volley.vy=0; volley.hits=0; volley.rot=0; }
   else if(raceGame==='hide'){ hideG.flies=[]; for(let i=0;i<11;i++) hideG.flies.push(spawnHideFly()); Object.assign(hideG.f, spawnHideFly()); hideG.shots=4; hideG.timer=50*60; hideG.reveal=160; P1.x=W*0.2; }
-  else if(raceGame==='battle'){ setupBattle(); P1.x=W*0.12; P2.x=W*0.88; }
+  else if(raceGame==='battle'){ setupBattle(); }
+  else if(raceGame==='wheel'){ setupWheel(); }
   else { coop.idx=0; coop.hearts=DIFF[difficulty].hearts; startCoopBoss(0); }
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('winScreen').classList.add('hidden');
   document.getElementById('exprBar').classList.add('hidden');
   document.querySelector('.hud').style.display='none';
-  document.getElementById('controls2p').classList.remove('hidden');
+  const isB=raceGame==='battle', isWh=raceGame==='wheel';
+  document.getElementById('controls2p').classList.toggle('hidden', isB||isWh);
+  document.getElementById('battlePads').classList.toggle('hidden', !isB);
+  document.getElementById('wheelUI').classList.toggle('hidden', !isWh);
   initAudio(); startMusic();
 }
 function endRace(){
@@ -3473,72 +3516,111 @@ function drawHideFlies(){
     ctx.fillStyle='#ffe23a'; fitText('P2 — this fly is YOU! Remember it! (P1, no peeking 🙈)', W/2, H*0.3, 16);
   }
 }
-/* ---- Tongue Battle: claim the board, convert imaginary friends, tongue the other player to WIN ---- */
-const battle={ cell:26, cols:0, rows:0, top:0, own:null, ais:[], timer:0, score:{}, items:[], spawnT:0, fx:[] };
+/* ---- Tongue Battle GRID EDITION — designed from Sasha's drawing: big toad faces hop between squares ---- */
+const battle={ cols:8, rows:4, top:0, cw:0, ch:0, own:null, ais:[], timer:0, score:{}, items:[], spawnT:0, fx:[] };
 const AI_COLS=['#e0a34a','#b06bff','#e07ac0','#5ad4a8','#8a8a92','#c9a06a'];
 const BATTLE_NAMES={1:'P1',2:'P2',3:'Bloop',4:'Zippy',5:'Momo',6:'Pip',7:'Wobble',8:'Sunny'};
 const BATTLE_BOOSTS=[ {id:'speed', e:'⚡'}, {id:'tongue', e:'👅'}, {id:'paint', e:'🎨'} ];
+const battleHeld={1:null,2:null};
 function battleScore(id){ battle.score[id]=(battle.score[id]||0)+1; }
 function battleTopTonguer(){
   let best=0, bid=0;
   for(const k in battle.score){ if(battle.score[k]>best){ best=battle.score[k]; bid=+k; } }
   return best>0? bid : 0;
 }
-function battleBlast(x,y,ownerId,teamPop){
-  battleClaim(x,y,ownerId,55);
-  battle.fx.push({x,y,t:0,big:true});
-  if(teamPop) pops.push({x,y:y-20,t:0,txt:'🎨',big:true});
-  sfx('win');
-}
-function battleTeamCol(ownerId){
-  if(ownerId===1) return 'rgba(126,217,87,0.5)';
-  if(ownerId===2) return 'rgba(90,169,224,0.5)';
-  const ai=battle.ais[ownerId-3]; if(!ai) return 'rgba(0,0,0,0)';
-  if(ai.team===1) return 'rgba(126,217,87,0.5)';
-  if(ai.team===2) return 'rgba(90,169,224,0.5)';
-  return hexA(AI_COLS[ownerId-3], 0.45);
-}
 function hexA(hex,a){ const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16); return 'rgba('+r+','+g+','+b+','+a+')'; }
-function battleIdx(x,y){
-  const c=Math.floor(x/battle.cell), r=Math.floor((y-battle.top)/battle.cell);
-  if(c<0||c>=battle.cols||r<0||r>=battle.rows) return -1;
-  return r*battle.cols+c;
+function battleTeamOfEnt(id){ if(id===1) return 1; if(id===2) return 2; const ai=battle.ais[id-3]; return ai? ai.team : 0; }
+function battleTeamCol(ownerId){
+  const tm=battleTeamOfEnt(ownerId);
+  if(tm===1) return 'rgba(126,217,87,0.55)';
+  if(tm===2) return 'rgba(90,169,224,0.55)';
+  if(tm>=3) return hexA(AI_COLS[tm-3]||'#aaaaaa', 0.5);
+  return 'rgba(200,200,200,0.35)';
 }
-function battleClaim(x,y,ownerId,radius){
-  radius=radius||0;
-  const rC=Math.ceil(radius/battle.cell);
-  const c0=Math.floor(x/battle.cell), r0=Math.floor((y-battle.top)/battle.cell);
-  for(let r=r0-rC;r<=r0+rC;r++){ for(let c=c0-rC;c<=c0+rC;c++){
-    if(c<0||c>=battle.cols||r<0||r>=battle.rows) continue;
-    battle.own[r*battle.cols+c]=ownerId;
-  } }
+function cellPx(cx){ return cx*battle.cw + battle.cw/2; }
+function cellPy(cy){ return battle.top + cy*battle.ch + battle.ch/2; }
+function claimCell(cx,cy,owner){ if(cx<0||cx>=battle.cols||cy<0||cy>=battle.rows) return; battle.own[cy*battle.cols+cx]=owner; }
+function claimPlus(cx,cy,owner,big){
+  claimCell(cx,cy,owner);
+  for(const d of [[1,0],[-1,0],[0,1],[0,-1]]) claimCell(cx+d[0], cy+d[1], owner);
+  if(big){ for(const d of [[1,1],[1,-1],[-1,1],[-1,-1],[2,0],[-2,0],[0,2],[0,-2]]) claimCell(cx+d[0], cy+d[1], owner); }
 }
+function battleEnts(){ const arr=[[1,P1],[2,P2]]; for(let i=0;i<battle.ais.length;i++) arr.push([i+3, battle.ais[i]]); return arr; }
 function setupBattle(){
-  if(W<50 || H<50) resize();   // never build the board from a zero-size window
-  battle.cell=26; battle.top=H*0.12;
-  battle.cols=Math.ceil(W/battle.cell); battle.rows=Math.ceil((groundY-battle.top)/battle.cell)+1;
+  if(W<50 || H<50) resize();
+  battle.top=H*0.14;
+  battle.cols=Math.max(6, Math.min(10, Math.floor(W/86)));
+  battle.rows=Math.max(3, Math.min(5, Math.floor((groundY-battle.top)/86)));
+  battle.cw=W/battle.cols; battle.ch=(groundY-battle.top)/battle.rows;
   battle.own=new Uint8Array(battle.cols*battle.rows);
   battle.ais=[];
+  const taken={};
+  taken['0_0']=true; taken[(battle.cols-1)+'_'+(battle.rows-1)]=true;
   for(let i=0;i<6;i++){
-    battle.ais.push({ x:W*(0.15+i*0.14), y:groundY, vy:0, dir:(i%2?'left':'right'), facing:1, team:0, tmr:30+Math.random()*60, tongueCd:0, tt:0, ttx:0, tty:0, bT:0, bType:null, stun:0 });
+    let gx,gy,k;
+    do{ gx=Math.floor(Math.random()*battle.cols); gy=Math.floor(Math.random()*battle.rows); k=gx+'_'+gy; }while(taken[k]);
+    taken[k]=true;
+    // every imaginary friend starts as its OWN faction — they build armies of their own!
+    battle.ais.push({ gx, gy, px:cellPx(gx), py:cellPy(gy), team:i+3, moveCd:30+Math.random()*40, tongueCd:60, mouth:0, stun:0, bT:0, bType:null });
+    claimCell(gx, gy, i+3);
   }
+  P1.gx=0; P1.gy=0; P2.gx=battle.cols-1; P2.gy=battle.rows-1;
+  for(const [id,P] of [[1,P1],[2,P2]]){ P.px=cellPx(P.gx); P.py=cellPy(P.gy); P.moveCd=0; P.stun=0; P.bT=0; P.bType=null; P.mouth=0; claimCell(P.gx,P.gy,id); }
   battle.timer=60*60; battle.score={}; battle.items=[]; battle.spawnT=240; battle.fx=[];
-  for(const P of [P1,P2]){ P.bT=0; P.bType=null; P.stun=0; }
+  battleHeld[1]=null; battleHeld[2]=null;
 }
-function battleBoostGrab(ent, id, item){
-  if(item.type==='paint'){ battleBlast(item.x, item.y, id, true); }
-  else { ent.bType=item.type; ent.bT=480; pops.push({x:item.x, y:item.y-24, t:0, txt:(item.type==='speed'?'⚡':'👅'), big:true}); sfx('buy'); }
+function battleReach(ent){ return (ent.bType==='tongue' && ent.bT>0)? 2 : 1; }
+function battleMoveCd(ent){ return (ent.bType==='speed' && ent.bT>0)? 7 : 13; }
+function battlePickupAt(ent, id){
+  for(let k=battle.items.length-1;k>=0;k--){
+    const it=battle.items[k];
+    if(it.cx===ent.gx && it.cy===ent.gy){
+      if(it.type==='paint'){ claimPlus(ent.gx, ent.gy, id, true); battle.fx.push({x:cellPx(ent.gx), y:cellPy(ent.gy), t:0, big:true}); pops.push({x:cellPx(ent.gx), y:cellPy(ent.gy)-30, t:0, txt:'🎨', big:true}); sfx('win'); }
+      else { ent.bType=it.type; ent.bT=480; pops.push({x:cellPx(ent.gx), y:cellPy(ent.gy)-30, t:0, txt:it.e, big:true}); sfx('buy'); }
+      battle.items.splice(k,1);
+    }
+  }
 }
-function battleSpd(ent){ return SPEED*(ent.bType==='speed'&&ent.bT>0?1.6:1); }
-function battleRange(base, ent){ return base*(ent.bType==='tongue'&&ent.bT>0?1.6:1); }
-function battleEntityPos(id){
-  if(id===1) return P1; if(id===2) return P2; return battle.ais[id-3];
+function battleTryMove(ent, id, dir){
+  if(ent.stun>0 || ent.moveCd>0) return false;
+  const dd={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[dir]; if(!dd) return false;
+  const nx=ent.gx+dd[0], ny=ent.gy+dd[1];
+  if(nx<0||nx>=battle.cols||ny<0||ny>=battle.rows) return false;
+  ent.gx=nx; ent.gy=ny; ent.moveCd=battleMoveCd(ent);
+  claimCell(nx, ny, id);
+  battlePickupAt(ent, id);
+  return true;
 }
-function battleTeamOf(id){ if(id===1) return 1; if(id===2) return 2; const ai=battle.ais[id-3]; return ai? ai.team : 0; }
+function battleTongue(pnum){
+  if(!twoP || raceGame!=='battle') return;
+  const P = pnum===1? P1 : P2, me=pnum, foe = pnum===1? P2 : P1;
+  if(P.stun>0) return;
+  P.mouth=12;
+  const reach=battleReach(P);
+  const md=(a,b)=>Math.abs(a.gx-b.gx)+Math.abs(a.gy-b.gy);
+  // tonguing the other PLAYER in reach = instant win
+  if(md(P,foe)<=reach){
+    battleScore(me); sfx('eat');
+    endBattle(me, 'Player '+me+' tongued Player '+(me===1?2:1)+' — instant win! 👅');
+    return;
+  }
+  // else convert the nearest enemy friend in reach
+  let best=null, bd=99;
+  for(const a of battle.ais){ if(a.team===me) continue; const d=md(P,a); if(d<=reach && d<bd){ bd=d; best=a; } }
+  if(best){
+    best.team=me; best.mouth=14; battleScore(me); sfx('win');
+    pops.push({x:best.px, y:best.py-battle.ch*0.5, t:0, txt: me===1?'💚':'💙', big:true});
+    battle.fx.push({x:best.px, y:best.py, t:0});
+  } else {
+    claimPlus(P.gx, P.gy, me, false); sfx('coin');
+    battle.fx.push({x:P.px, y:P.py, t:0});
+  }
+}
 function endBattle(winner, why){
-  twoP=false; document.getElementById('controls2p').classList.add('hidden');
+  twoP=false;
+  document.getElementById('controls2p').classList.add('hidden');
+  document.getElementById('battlePads').classList.add('hidden');
   document.getElementById('winTitle').textContent = winner===0? '🤝 It\'s a tie!' : ('🏆 Player '+winner+' wins!');
-  // the Tongue Leaderboard: who tongued the most toads this game?
   const board=[];
   for(let id=1;id<=8;id++){ board.push([id, battle.score[id]||0]); }
   board.sort((a,b)=>b[1]-a[1]);
@@ -3550,136 +3632,259 @@ function endBattle(winner, why){
 }
 function battleCounts(){
   let c1=0,c2=0;
-  for(let i=0;i<battle.own.length;i++){ const tm=battleTeamOf(battle.own[i]); if(tm===1)c1++; else if(tm===2)c2++; }
+  for(let i=0;i<battle.own.length;i++){ const tm=battleTeamOfEnt(battle.own[i]); if(tm===1)c1++; else if(tm===2)c2++; }
   return [c1,c2];
 }
 function updateBattle(){
   battle.timer--;
   if(battle.timer<=0){ const [c1,c2]=battleCounts(); endBattle(c1===c2?0:(c1>c2?1:2), 'Territory: 🟩 '+c1+' vs 🟦 '+c2); return; }
-  // boosters rain onto the arena — ANY toad can grab them
+  // boosters land in empty squares — ANY toad can hop on and grab them
   battle.spawnT--;
   if(battle.spawnT<=0 && battle.items.length<3){
     battle.spawnT=300+Math.random()*240;
     const bt=BATTLE_BOOSTS[Math.floor(Math.random()*BATTLE_BOOSTS.length)];
-    battle.items.push({ x:60+Math.random()*(W-120), y:groundY-24, type:bt.id, e:bt.e, life:60*12 });
+    battle.items.push({ cx:Math.floor(Math.random()*battle.cols), cy:Math.floor(Math.random()*battle.rows), type:bt.id, e:bt.e, life:60*12 });
   }
-  for(let k=battle.items.length-1;k>=0;k--){
-    const it=battle.items[k]; it.life--;
-    let grabbed=false;
-    for(const P of [P1,P2]){ if(Math.abs(P.x-it.x)<38 && Math.abs((P.y-30)-it.y)<60){ battleBoostGrab(P, P===P1?1:2, it); grabbed=true; break; } }
-    if(!grabbed){ for(let i=0;i<battle.ais.length;i++){ const a=battle.ais[i]; if(Math.abs(a.x-it.x)<34 && Math.abs((a.y-30)-it.y)<60){ battleBoostGrab(a, a.team===1?1:(a.team===2?2:i+3), it); grabbed=true; break; } } }
-    if(grabbed || it.life<=0) battle.items.splice(k,1);
-  }
+  for(let k=battle.items.length-1;k>=0;k--){ if(--battle.items[k].life<=0) battle.items.splice(k,1); }
   for(let i=battle.fx.length-1;i>=0;i--){ battle.fx[i].t+=0.04; if(battle.fx[i].t>=1) battle.fx.splice(i,1); }
   const hard = difficulty==='hard';
+  const md=(a,b)=>Math.abs(a.gx-b.gx)+Math.abs(a.gy-b.gy);
   for(let i=0;i<battle.ais.length;i++){
-    const a=battle.ais[i];
-    a.tmr--; if(a.tongueCd>0)a.tongueCd--; if(a.tt>0)a.tt-=0.08; if(a.bT>0)a.bT--;
-    if(a.team===0){
-      if(a.tmr<=0){ a.tmr=40+Math.random()*80; a.dir=['left','right',null][Math.floor(Math.random()*3)]; if(Math.random()<0.25 && a.y>=groundY-0.5) a.vy=JUMP*0.8; }
-      // HARD MODE: even neutral imaginary friends will tongue the players!
-      if(hard && a.tongueCd<=0){
-        for(const P of [P1,P2]){
-          if(P.stun<=0 && Math.abs(P.x-a.x)<battleRange(110,a)){
-            a.tongueCd=150; a.tt=1; a.ttx=P.x; a.tty=P.y-40;
-            P.stun=45; P.x=clamp(P.x+(P.x>a.x?60:-60), toad.w*0.5, W-toad.w*0.5);
-            battleClaim(P.x, P.y-30, i+3, 34); battleScore(i+3);
-            pops.push({x:P.x, y:P.y-84, t:0, txt:'💫'}); sfx('mad');
-            break;
-          }
+    const a=battle.ais[i], myTeam=a.team;
+    if(a.moveCd>0)a.moveCd--; if(a.tongueCd>0)a.tongueCd--; if(a.mouth>0)a.mouth--; if(a.bT>0)a.bT--; if(a.stun>0)a.stun--;
+    a.px+=(cellPx(a.gx)-a.px)*0.25; a.py+=(cellPy(a.gy)-a.py)*0.25;
+    if(a.stun>0) continue;
+    // find the nearest toad NOT on my team (other factions, player armies... anyone)
+    let best=null, bd=99, bestIsPlayer=false;
+    for(const [oid,o] of battleEnts()){
+      if(o===a) continue;
+      const ot = oid<=2? oid : o.team;
+      if(ot===myTeam) continue;
+      const isP = (o===P1||o===P2);
+      if(isP && !hard) continue;   // friends only bite back on HARD — otherwise they battle each other
+      const d=md(a,o); if(d<bd){ bd=d; best=o; bestIsPlayer=isP; }
+    }
+    // tongue whatever is in reach
+    if(best && bd<=battleReach(a) && a.tongueCd<=0){
+      a.tongueCd=100; a.mouth=12;
+      if(bestIsPlayer){
+        if(hard && best.stun<=0){
+          best.stun=70;   // the whole screen goes dizzy — Sasha's idea!
+          claimPlus(best.gx, best.gy, i+3, false); battleScore(i+3);
+          pops.push({x:best.px, y:best.py-battle.ch*0.5, t:0, txt:'💫'}); sfx('mad');
         }
+      } else {
+        // imaginary friends recruit OTHER imaginary friends into their own army
+        best.team=myTeam; best.mouth=14; battleScore(i+3); sfx('buy');
+        pops.push({x:best.px, y:best.py-battle.ch*0.5, t:0, txt:'🫂'});
+        battle.fx.push({x:best.px, y:best.py, t:0});
       }
-    } else {
-      let best=null, bd=1e9;
-      for(let j=0;j<battle.ais.length;j++){ const o=battle.ais[j]; if(o===a || o.team===a.team) continue; const d=Math.abs(o.x-a.x); if(d<bd){bd=d;best=o;} }
-      const foe = a.team===1? P2 : P1;
-      if(Math.abs(foe.x-a.x)<bd){ bd=Math.abs(foe.x-a.x); best=foe; }
-      if(best){ a.dir = best.x>a.x+10? 'right' : best.x<a.x-10? 'left' : null;
-        if(bd<battleRange(130,a) && a.tongueCd<=0){ a.tongueCd=90; a.tt=1; a.ttx=best.x; a.tty=best.y-40;
-          if(best!==P1 && best!==P2){
-            best.team=a.team; battleScore(i+3); sfx('buy');
-            pops.push({x:best.x, y:best.y-80, t:0, txt: a.team===1?'💚':'💙', big:true});
-            battle.fx.push({x:best.x, y:best.y-40, t:0});
-          }
-          else if(hard && best.stun<=0){
-            best.stun=45; best.x=clamp(best.x+(best.x>a.x?60:-60), toad.w*0.5, W-toad.w*0.5);
-            battleClaim(best.x, best.y-30, a.team===1?1:2, 40); battleScore(i+3);
-            pops.push({x:best.x, y:best.y-84, t:0, txt:'💫'}); sfx('mad');
-          }
-          else { battleClaim(best.x, best.y-30, a.team===1?1:2, 40); battleScore(i+3); sfx('coin'); }
-        } }
-      if(Math.random()<0.02 && a.y>=groundY-0.5) a.vy=JUMP*0.8;
     }
-    const asp=battleSpd(a)*0.8;
-    if(a.stun>0){ a.stun--; }
-    else { if(a.dir==='left'){ a.x-=asp; a.facing=-1; } if(a.dir==='right'){ a.x+=asp; a.facing=1; } }
-    a.x=clamp(a.x, 30, W-30);
-    a.vy+=GRAV; a.y+=a.vy; if(a.y>groundY){ a.y=groundY; a.vy=0; }
-    battleClaim(a.x, a.y-30, i+3, 8);
+    // hop toward the target (or wander)
+    if(a.moveCd<=0){
+      let dir=null;
+      if(best && (hard || !bestIsPlayer || myTeam===1 || myTeam===2)){
+        const dx=best.gx-a.gx, dy=best.gy-a.gy;
+        if(Math.abs(dx)>=Math.abs(dy)) dir = dx>0?'right':(dx<0?'left':null);
+        else dir = dy>0?'down':'up';
+        if(Math.random()<0.25) dir=['up','down','left','right'][Math.floor(Math.random()*4)];
+      } else dir=['up','down','left','right'][Math.floor(Math.random()*4)];
+      if(dir) battleTryMove(a, i+3, dir);
+      a.moveCd=battleMoveCd(a)+8+Math.random()*14;
+    }
   }
-  // players claim last each frame, so where they stand is truly THEIRS
-  for(const P of [P1,P2]){
-    if(P.bT>0)P.bT--;
-    if(P.stun>0){ P.stun--; }
-    else {
-      const psp=battleSpd(P);
-      if(P.dir==='left'){P.x-=psp;P.facing=-1;} if(P.dir==='right'){P.x+=psp;P.facing=1;}
-    }
-    P.x=clamp(P.x,toad.w*0.5,W-toad.w*0.5);
-    P.vy+=GRAV; P.y+=P.vy; if(P.y>groundY){P.y=groundY;P.vy=0;}
-    P.grounded=P.y>=groundY-0.5;
-    if(P.tt>0)P.tt-=0.08;
-    battleClaim(P.x, P.y-30, P===P1?1:2, 14);
+  // players hop last — their squares stick
+  for(const [id,P] of [[1,P1],[2,P2]]){
+    if(P.moveCd>0)P.moveCd--; if(P.mouth>0)P.mouth--; if(P.bT>0)P.bT--; if(P.stun>0)P.stun--;
+    P.px+=(cellPx(P.gx)-P.px)*0.3; P.py+=(cellPy(P.gy)-P.py)*0.3;
+    if(battleHeld[id] && P.moveCd<=0 && P.stun<=0) battleTryMove(P, id, battleHeld[id]);
+    claimCell(P.gx, P.gy, id);
   }
 }
-function drawBattle(){
-  // subtle arena grid
-  ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1;
-  for(let c=0;c<=battle.cols;c++){ ctx.beginPath(); ctx.moveTo(c*battle.cell, battle.top); ctx.lineTo(c*battle.cell, groundY); ctx.stroke(); }
-  // the pixel board, gently breathing
-  const pulse=0.9+0.1*Math.sin(t*0.06);
-  for(let r=0;r<battle.rows;r++){ for(let c=0;c<battle.cols;c++){
-    const o=battle.own[r*battle.cols+c]; if(!o) continue;
-    ctx.globalAlpha=pulse;
-    ctx.fillStyle=battleTeamCol(o);
-    ctx.fillRect(c*battle.cell+1, battle.top+r*battle.cell+1, battle.cell-2, battle.cell-2);
-  } }
-  ctx.globalAlpha=1;
-  // claim/convert shockwave rings
-  for(const f of battle.fx){
-    ctx.globalAlpha=(1-f.t)*0.7; ctx.strokeStyle='#fff'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.arc(f.x, f.y, (f.big?20:10)+f.t*(f.big?70:40), 0, 7); ctx.stroke(); ctx.globalAlpha=1;
+/* a toad face, drawn just like Sasha's sketch: round head, two eye bumps, big open mouth */
+function drawBattleFace(x, y, size, col, dark, label, mouth, stunned){
+  const r=size*0.5;
+  ctx.save(); ctx.translate(x, y);
+  // head
+  ctx.fillStyle=col; ctx.beginPath();
+  ctx.moveTo(-r*0.9, -r*0.1);
+  ctx.quadraticCurveTo(-r*1.05, r*0.8, 0, r*0.92);
+  ctx.quadraticCurveTo(r*1.05, r*0.8, r*0.9, -r*0.1);
+  ctx.quadraticCurveTo(r*0.8, -r*0.75, 0, -r*0.7);
+  ctx.quadraticCurveTo(-r*0.8, -r*0.75, -r*0.9, -r*0.1);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle=dark; ctx.lineWidth=Math.max(2, size*0.045); ctx.stroke();
+  // eye bumps on top
+  for(const s of [-1,1]){
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(s*r*0.38, -r*0.62, r*0.3, 0, 7); ctx.fill();
+    ctx.strokeStyle=dark; ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s*r*0.38, -r*0.64, r*0.17, 0, 7); ctx.fill();
+    ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(s*r*0.36, -r*0.62, r*0.08, 0, 7); ctx.fill();
   }
-  // boosters with a glow ring
+  // big open mouth (opens wider when tonguing)
+  const mo = 0.32 + (mouth>0? 0.2 : 0) + Math.sin(t*0.07+x)*0.02;
+  ctx.fillStyle='#5a2430'; ctx.beginPath(); ctx.ellipse(0, r*0.3, r*0.5, r*mo, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle=dark; ctx.lineWidth=Math.max(1.5, size*0.03); ctx.stroke();
+  if(mouth>0){ ctx.fillStyle='#e8617a'; ctx.beginPath(); ctx.ellipse(0, r*0.42, r*0.24, r*0.16, 0, 0, 7); ctx.fill(); }
+  // stun stars orbit the head
+  if(stunned){
+    ctx.font=Math.round(size*0.22)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(let k=0;k<3;k++){ const oa=t*0.15+k*2.09; ctx.fillText('⭐', Math.cos(oa)*r*0.85, -r*0.75+Math.sin(oa)*r*0.28); }
+    ctx.textBaseline='alphabetic';
+  }
+  ctx.restore();
+  if(label){ ctx.fillStyle=dark; ctx.font='bold '+Math.max(11, Math.round(size*0.16))+'px sans-serif'; ctx.textAlign='center'; ctx.fillText(label, x, y-size*0.72); }
+}
+function drawBattleAll(){
+  ctx.clearRect(0,0,W,H);
+  // Sasha's dizzy-screen idea: while a player is stunned, the whole world wobbles
+  const dizzy=Math.max(P1.stun||0, P2.stun||0);
+  ctx.save();
+  if(dizzy>0){
+    const s=Math.min(1, dizzy/70);
+    ctx.translate(W/2, H/2);
+    ctx.rotate(Math.sin(t*0.35)*0.022*s);
+    ctx.translate(-W/2+Math.sin(t*0.5)*4*s, -H/2+Math.cos(t*0.4)*3*s);
+  }
+  drawSky(); drawGround();
+  // the big chunky board, like the drawing
+  for(let r2=0;r2<battle.rows;r2++){ for(let c=0;c<battle.cols;c++){
+    const o=battle.own[r2*battle.cols+c];
+    ctx.fillStyle = o? battleTeamCol(o) : 'rgba(255,255,255,0.16)';
+    ctx.fillRect(c*battle.cw+3, battle.top+r2*battle.ch+3, battle.cw-6, battle.ch-6);
+  } }
+  // bold pencil-style grid lines
+  ctx.strokeStyle='rgba(40,30,20,0.55)'; ctx.lineWidth=4;
+  for(let c=0;c<=battle.cols;c++){ ctx.beginPath(); ctx.moveTo(c*battle.cw, battle.top); ctx.lineTo(c*battle.cw, battle.top+battle.rows*battle.ch); ctx.stroke(); }
+  for(let r2=0;r2<=battle.rows;r2++){ ctx.beginPath(); ctx.moveTo(0, battle.top+r2*battle.ch); ctx.lineTo(W, battle.top+r2*battle.ch); ctx.stroke(); }
+  // boosters
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for(const it of battle.items){
-    const bob=Math.sin(t*0.12)*4, blink=it.life<120 && Math.floor(t/10)%2===0;
-    if(blink) continue;
-    ctx.globalAlpha=0.35+0.2*Math.sin(t*0.15); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(it.x, it.y-10+bob, 20, 0, 7); ctx.fill(); ctx.globalAlpha=1;
-    ctx.font='26px sans-serif'; ctx.fillText(it.e, it.x, it.y-10+bob);
+    if(it.life<120 && Math.floor(t/10)%2===0) continue;
+    const ix=cellPx(it.cx), iy=cellPy(it.cy);
+    ctx.globalAlpha=0.35+0.2*Math.sin(t*0.15); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ix, iy, Math.min(battle.cw,battle.ch)*0.32, 0, 7); ctx.fill(); ctx.globalAlpha=1;
+    ctx.font=Math.round(Math.min(battle.cw,battle.ch)*0.42)+'px sans-serif'; ctx.fillText(it.e, ix, iy+Math.sin(t*0.12)*3);
   }
   ctx.textBaseline='alphabetic';
-  for(let i=0;i<battle.ais.length;i++){
-    const a=battle.ais[i];
-    const col = a.team===1? {body:'#6bbf4f',dark:'#54a53f',belly:'#d7edb0'} : a.team===2? {body:'#5a9bd4',dark:'#3f77ad',belly:'#cfe6f5'} : {body:AI_COLS[i],dark:'#6a6a72',belly:'#f0ead8'};
-    drawToadSimple({x:a.x,y:a.y,facing:a.facing,dir:a.dir,tt:a.tt,ttx:a.ttx,tty:a.tty,hurt:0,body:col.body,dark:col.dark,belly:col.belly}, BATTLE_NAMES[i+3]+(a.team? (a.team===1?' 💚':' 💙') : ''));
+  // shockwaves
+  for(const f of battle.fx){
+    ctx.globalAlpha=(1-f.t)*0.7; ctx.strokeStyle='#fff'; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.arc(f.x, f.y, (f.big?24:12)+f.t*(f.big?80:46), 0, 7); ctx.stroke(); ctx.globalAlpha=1;
   }
-}
-function drawBattleTop(){
-  // crown floats over the current tongue champion
+  // the toads — big faces like the sketch
+  const fsize=Math.min(battle.cw, battle.ch)*0.78;
   const top=battleTopTonguer();
-  if(top){
-    const e = top===1? P1 : top===2? P2 : battle.ais[top-3];
-    ctx.font='24px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('👑', e.x, e.y-toad.h-58+Math.sin(t*0.1)*3);
+  for(let i=0;i<battle.ais.length;i++){
+    const a=battle.ais[i], tm=a.team;
+    const col = tm===1? '#6bbf4f' : tm===2? '#5a9bd4' : AI_COLS[tm-3]||'#aaa';
+    const dark2 = tm===1? '#3f7c33' : tm===2? '#33608c' : '#5a5a62';
+    drawBattleFace(a.px, a.py, fsize, col, dark2, BATTLE_NAMES[i+3], a.mouth, a.stun>0);
+    if(top===i+3){ ctx.font=Math.round(fsize*0.34)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('👑', a.px, a.py-fsize*0.82+Math.sin(t*0.1)*2); }
   }
-  // stunned players see stars
-  ctx.font='20px sans-serif';
-  for(const P of [P1,P2]){ if(P.stun>0) ctx.fillText('💫', P.x, P.y-toad.h-38); }
-  // active booster badges under the score line
-  ctx.font='bold 13px sans-serif';
-  if(P1.bT>0){ ctx.textAlign='left'; ctx.fillStyle=P1.dark; ctx.fillText((P1.bType==='speed'?'⚡':'👅')+' '+Math.ceil(P1.bT/60)+'s', 16, 52); }
-  if(P2.bT>0){ ctx.textAlign='right'; ctx.fillStyle=P2.dark; ctx.fillText((P2.bType==='speed'?'⚡':'👅')+' '+Math.ceil(P2.bT/60)+'s', W-16, 52); }
+  for(const [id,P] of [[1,P1],[2,P2]]){
+    const col=id===1?'#6bbf4f':'#5a9bd4', dark2=id===1?'#2e6a24':'#274e78';
+    drawBattleFace(P.px, P.py, fsize*1.06, col, dark2, 'P'+id, P.mouth, P.stun>0);
+    if(top===id){ ctx.font=Math.round(fsize*0.36)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('👑', P.px, P.py-fsize*0.86+Math.sin(t*0.1)*2); }
+    if(P.bT>0){ ctx.font='13px sans-serif'; ctx.fillText((P.bType==='speed'?'⚡':'👅'), P.px+fsize*0.5, P.py+fsize*0.5); }
+  }
+  drawPops();
+  // HUD
+  const [c1,c2]=battleCounts(), total=battle.cols*battle.rows;
+  const bw2=Math.min(300, W-140), bx0=(W-bw2)/2, by0=H*0.055;
+  ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.fillRect(bx0-2, by0-2, bw2+4, 14);
+  ctx.fillStyle='#7ed957'; ctx.fillRect(bx0, by0, bw2*(c1/total), 10);
+  ctx.fillStyle='#5aa9e0'; ctx.fillRect(bx0+bw2-bw2*(c2/total), by0, bw2*(c2/total), 10);
+  ctx.fillStyle='#fff';
+  fitText('⏱ '+Math.ceil(battle.timer/60)+(top?' · 👑 '+BATTLE_NAMES[top]+' ×'+battle.score[top]:'')+(difficulty==='hard'?' · 😈 friends bite back!':''), W/2, by0+30, 14);
+  fitText('hop on squares to paint them · 👅 friends join you · 👅 the other player = WIN', W/2, H-12, 12);
+  ctx.restore();
+}
+/* ---- Wheel of Luck — Sasha's rules: 10 spaces, 9 ✅ and 1 ❌; after every round one more ✅ turns ❌; 3 hearts each ---- */
+const wheelG={ bad:[], hearts:[3,3], turn:1, phase:'wait', angle:0, vel:0, round:1, resultT:0, hitIdx:-1 };
+function setupWheel(){
+  wheelG.bad=Array(10).fill(false);
+  wheelG.bad[Math.floor(Math.random()*10)]=true;
+  wheelG.hearts=[3,3]; wheelG.turn=1; wheelG.phase='wait';
+  wheelG.angle=Math.random()*Math.PI*2; wheelG.vel=0; wheelG.round=1; wheelG.resultT=0; wheelG.hitIdx=-1;
+}
+function wheelSpin(){
+  if(!twoP || raceGame!=='wheel' || wheelG.phase!=='wait') return;
+  wheelG.phase='spin'; wheelG.vel=0.38+Math.random()*0.3; wheelG.hitIdx=-1; sfx('jump');
+}
+function endWheel(winner){
+  twoP=false;
+  document.getElementById('wheelUI').classList.add('hidden');
+  document.getElementById('winTitle').textContent='🏆 Player '+winner+' wins!';
+  document.getElementById('winScore').textContent='🎡 Player '+(winner===1?2:1)+' ran out of hearts after '+wheelG.round+(wheelG.round===1?' round!':' rounds!');
+  document.getElementById('winScreen').classList.remove('hidden'); sfx('win');
+}
+function updateWheel(){
+  if(wheelG.phase==='spin'){
+    wheelG.angle+=wheelG.vel; wheelG.vel*=0.985;
+    if(wheelG.vel>0.02 && Math.floor(t/6)!==Math.floor((t-1)/6)) sfx('coin');
+    if(wheelG.vel<0.004){
+      wheelG.vel=0;
+      const seg=Math.PI*2/10;
+      const a=(((-Math.PI/2)-wheelG.angle)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+      wheelG.hitIdx=Math.floor(a/seg);
+      wheelG.phase='result'; wheelG.resultT=110;
+      if(wheelG.bad[wheelG.hitIdx]){ wheelG.hearts[wheelG.turn-1]--; sfx('mad'); pops.push({x:W/2, y:H*0.3, t:0, txt:'💔', big:true}); }
+      else { sfx('coin'); pops.push({x:W/2, y:H*0.3, t:0, txt:'✅', big:true}); }
+    }
+  } else if(wheelG.phase==='result'){
+    wheelG.resultT--;
+    if(wheelG.resultT<=0){
+      if(wheelG.hearts[wheelG.turn-1]<=0){ endWheel(wheelG.turn===1?2:1); return; }
+      if(wheelG.turn===1) wheelG.turn=2;
+      else {
+        // round over — one more ✅ sneakily becomes ❌
+        const safe=[]; for(let i=0;i<10;i++) if(!wheelG.bad[i]) safe.push(i);
+        if(safe.length>0) wheelG.bad[safe[Math.floor(Math.random()*safe.length)]]=true;
+        wheelG.round++; wheelG.turn=1;
+        pops.push({x:W/2, y:H*0.2, t:0, txt:'😈 one more ❌!', big:true}); sfx('bosshit');
+      }
+      wheelG.phase='wait'; wheelG.hitIdx=-1;
+    }
+  }
+  const btn=document.getElementById('spinBtn');
+  btn.style.opacity = wheelG.phase==='wait'? '1' : '0.35';
+  btn.textContent = wheelG.phase==='wait'? ('🎡 P'+wheelG.turn+' — SPIN!') : (wheelG.phase==='spin'? '🌀 spinning…' : '…');
+}
+function drawWheelAll(){
+  ctx.clearRect(0,0,W,H); drawSky(); drawGround();
+  const cx=W/2, cy=Math.min(groundY-60, H*0.5), R=Math.max(90, Math.min(W*0.32, (groundY-H*0.16)*0.5));
+  // stand
+  ctx.fillStyle='#7a5a3a'; ctx.fillRect(cx-9, cy, 18, groundY-cy);
+  const seg=Math.PI*2/10;
+  ctx.font=Math.round(R*0.2)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(let i=0;i<10;i++){
+    const a0=wheelG.angle+i*seg, a1=a0+seg;
+    let col = wheelG.bad[i]? '#e0554f' : (i%2? '#9fe08a':'#7ed957');
+    if(wheelG.phase==='result' && i===wheelG.hitIdx && Math.floor(t/8)%2===0) col='#ffe23a';
+    ctx.fillStyle=col;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();
+    const am=a0+seg/2;
+    ctx.fillText(wheelG.bad[i]?'❌':'✅', cx+Math.cos(am)*R*0.68, cy+Math.sin(am)*R*0.68);
+  }
+  ctx.textBaseline='alphabetic';
+  // hub + pointer
+  ctx.fillStyle='#ffcf3a'; ctx.beginPath(); ctx.arc(cx,cy,R*0.14,0,7); ctx.fill();
+  ctx.strokeStyle='#b0862a'; ctx.lineWidth=3; ctx.stroke();
+  ctx.fillStyle='#e0554f'; ctx.beginPath(); ctx.moveTo(cx-15, cy-R-18); ctx.lineTo(cx+15, cy-R-18); ctx.lineTo(cx, cy-R+10); ctx.closePath(); ctx.fill();
+  // hearts HUD
+  const topY = 30 + (window.innerHeight>500?10:0);
+  let h1='', h2='';
+  for(let i=0;i<3;i++){ h1+= i<wheelG.hearts[0]?'❤️':'🖤'; h2+= i<wheelG.hearts[1]?'❤️':'🖤'; }
+  ctx.textAlign='left'; ctx.font='bold 22px sans-serif'; ctx.fillStyle=P1.dark||'#2e6a24'; ctx.fillText('P1 '+h1, 16, topY);
+  ctx.textAlign='right'; ctx.fillStyle=P2.dark||'#274e78'; ctx.fillText(h2+' P2', W-16, topY);
+  ctx.fillStyle='#173a1a';
+  const msg = wheelG.phase==='wait' ? ('Round '+wheelG.round+' — Player '+wheelG.turn+', press SPIN!')
+    : wheelG.phase==='spin' ? 'Round and round it goes…'
+    : (wheelG.bad[wheelG.hitIdx]? '❌ Ouch! Player '+wheelG.turn+' loses a heart!' : '✅ Phew! Player '+wheelG.turn+' is safe!');
+  fitText(msg, W/2, topY+34, 18);
+  fitText('after every round, one more ❌ sneaks onto the wheel… 😈', W/2, H-12, 12);
+  drawPops();
 }
 /* ---- Fruit Catch ---- */
 function updateFruit(){
@@ -3714,8 +3919,8 @@ function endVolley(){
 }
 function update2P(){
   t++; dark=(tod==='night');
-  if(raceGame==='lily' || raceGame==='hide' || raceGame==='battle'){
-    if(raceGame==='lily') updateLily(); else if(raceGame==='hide') updateHide(); else updateBattle();
+  if(raceGame==='lily' || raceGame==='hide' || raceGame==='battle' || raceGame==='wheel'){
+    if(raceGame==='lily') updateLily(); else if(raceGame==='hide') updateHide(); else if(raceGame==='wheel') updateWheel(); else updateBattle();
     for(let i=pops.length-1;i>=0;i--){ pops[i].t+=0.02; pops[i].y-=1.1; if(pops[i].t>=1) pops.splice(i,1); }
     for(const c of clouds){ c.x+=c.sp; if(c.x>W+120*c.s) c.x=-120*c.s; }
     return;
@@ -3800,6 +4005,8 @@ function drawLily(){
   ctx.font='30px sans-serif'; ctx.textAlign='center'; ctx.fillText('🚩', (G.x1+G.x2)/2, G.y-16);
 }
 function draw2P(){
+  if(raceGame==='battle'){ drawBattleAll(); return; }
+  if(raceGame==='wheel'){ drawWheelAll(); return; }
   ctx.clearRect(0,0,W,H); drawSky(); drawGround();
   if(raceGame==='grab') drawPrize();
   if(raceGame==='boss'){ drawCoopBoss(); }
@@ -3807,10 +4014,8 @@ function draw2P(){
   else if(raceGame==='lily'){ drawLily(); }
   else if(raceGame==='volley'){ drawVolleyBall(); }
   else if(raceGame==='hide'){ drawHideFlies(); }
-  else if(raceGame==='battle'){ drawBattle(); }
   else { for(const f of flies) drawBug(f); }
   drawToadSimple(P1,'P1'); if(raceGame!=='hide') drawToadSimple(P2,'P2');
-  if(raceGame==='battle') drawBattleTop();
   if(raceGame==='boss' && worn.pet){ petPos.x+=((P1.x-46)-petPos.x)*0.1; petPos.y+=((P1.y-6)-petPos.y)*0.1; drawPetSprite(worn.pet, petPos.x, petPos.y+Math.sin(t*0.15)*3); }
   drawPops();
   if(raceGame==='boss'){ drawCoopHUD(); return; }
@@ -3823,8 +4028,6 @@ function draw2P(){
     : raceGame==='lily' ? '🪷 Hop across! First to 3 🚩'
     : raceGame==='volley' ? ('🏐 '+volley.hits+' hits — don\'t drop it!')
     : raceGame==='hide' ? ('🕵️ '+hideG.shots+' guesses · ⏱ '+Math.ceil(hideG.timer/60)+' · which fly is P2?')
-    : raceGame==='battle' ? (function(){ const [c1,c2]=battleCounts(); const top=battleTopTonguer();
-        return '⏱ '+Math.ceil(battle.timer/60)+' · 🟩'+c1+' vs 🟦'+c2+(top?' · 👑 '+BATTLE_NAMES[top]+' ×'+battle.score[top]:'')+(difficulty==='hard'?' · 😈 friends bite back!':''); })()
     : '★ First to 10!';
   fitText(mid, W/2, topY, 22);
 }
@@ -3930,6 +4133,13 @@ function drawCoopHUD(){
 }
 function set2P(pnum,action,down){
   const P = pnum==='1'?P1:P2;
+  if(raceGame==='battle'){
+    const id = pnum==='1'? 1 : 2;
+    if(action==='eat'){ if(down) battleTongue(id); return; }
+    if(down){ battleHeld[id]=action; battleTryMove(P, id, action); }
+    else if(battleHeld[id]===action) battleHeld[id]=null;
+    return;
+  }
   if(raceGame==='hide' && pnum==='2'){
     if(action==='left'||action==='right'){ if(down) P.dir=action; else if(P.dir===action) P.dir=null; }
     else if(down){ if(action==='eat') hideG.f.vy+=2.4; }   // no flying UP — hiding low keeps it fair!
@@ -3938,7 +4148,8 @@ function set2P(pnum,action,down){
   if(action==='left'||action==='right'){ if(down) P.dir=action; else if(P.dir===action) P.dir=null; }
   else if(down){ if(action==='jump') jump2(P); else if(action==='eat') eat2(P); }
 }
-document.querySelectorAll('#controls2p .padbtn').forEach(b=>{
+document.getElementById('spinBtn').addEventListener('click',()=>{ wheelSpin(); });
+document.querySelectorAll('#controls2p .padbtn, #battlePads .padbtn').forEach(b=>{
   const p=b.getAttribute('data-p'), a=b.getAttribute('data-a');
   b.addEventListener('pointerdown',e=>{ e.preventDefault(); set2P(p,a,true); });
   b.addEventListener('pointerup',e=>{ e.preventDefault(); set2P(p,a,false); });
@@ -3946,10 +4157,25 @@ document.querySelectorAll('#controls2p .padbtn').forEach(b=>{
   b.addEventListener('pointercancel',()=>set2P(p,a,false));
 });
 window.addEventListener('keydown',e=>{ if(!twoP) return; const k=e.key.toLowerCase();
+  if(raceGame==='battle'){
+    const d1={a:'left',d:'right',w:'up',s:'down'}[k];
+    const d2={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}[e.key];
+    if(d1) set2P('1',d1,true);
+    else if(k===' '||k==='spacebar'||e.code==='Space'){ battleTongue(1); e.preventDefault(); }
+    else if(d2){ set2P('2',d2,true); e.preventDefault(); }
+    else if(e.key==='Enter'){ battleTongue(2); }
+    return;
+  }
   if(k==='a'){P1.dir='left';} else if(k==='d'){P1.dir='right';} else if(k==='w'){jump2(P1);} else if(k==='s'){eat2(P1);}
   else if(e.key==='ArrowLeft'){P2.dir='left';} else if(e.key==='ArrowRight'){P2.dir='right';} else if(e.key==='ArrowUp'){jump2(P2);e.preventDefault();} else if(e.key==='ArrowDown'){eat2(P2);e.preventDefault();}
 });
 window.addEventListener('keyup',e=>{ if(!twoP) return; const k=e.key.toLowerCase();
+  if(raceGame==='battle'){
+    const d1={a:'left',d:'right',w:'up',s:'down'}[k];
+    const d2={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}[e.key];
+    if(d1) set2P('1',d1,false); if(d2) set2P('2',d2,false);
+    return;
+  }
   if(k==='a'&&P1.dir==='left')P1.dir=null; if(k==='d'&&P1.dir==='right')P1.dir=null;
   if(e.key==='ArrowLeft'&&P2.dir==='left')P2.dir=null; if(e.key==='ArrowRight'&&P2.dir==='right')P2.dir=null;
 });
@@ -3962,6 +4188,7 @@ document.getElementById('gameLily').addEventListener('click',()=>{ document.getE
 document.getElementById('gameVolley').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('volley'); });
 document.getElementById('gameHide').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('hide'); });
 document.getElementById('gameBattle').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('battle'); });
+document.getElementById('gameWheel').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('wheel'); });
 document.getElementById('gamePickBack').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); document.getElementById('startScreen').classList.remove('hidden'); });
 document.getElementById('againBtn').addEventListener('click',()=>start2P(raceGame));
 document.getElementById('backBtn').addEventListener('click',()=>{
