@@ -689,8 +689,10 @@ const FISH=[
   {id:'thunderf',e:'⚡', n:'Thunder Tuna',  r:4},{id:'ghostf',  e:'👻', n:'Ghost Guppy',  r:4},
   {id:'royalf',  e:'👑', n:'Royal Angelfish', r:4},
   {id:'galaxyf', e:'🌌', n:'Galaxy Ray',    r:5},{id:'timefish',e:'⏳', n:'Timeless Trout', r:5},
-  // the LEGENDARY — mythic rod only, 1 in 100!
+  // the LEGENDARIES — mythic rod only, 1 in 100!
   {id:'seadragon', e:'🐉', n:'Golden Sea Dragon', r:6},
+  {id:'kraken',    e:'🐙', n:'Kraken King',       r:6},
+  {id:'celestwhale', e:'🐋', n:'Celestial Whale', r:6},
 ];
 const FISH_VALUE=[0,3,8,15,30,75,500];
 const ROD_WEIGHTS=[ [60,25,10,4,1], [42,28,17,9,4], [28,27,22,14,9], [16,22,25,21,16] ];
@@ -707,8 +709,8 @@ let biteT=0, fishMoveT=0, fishAng=0, fishZoneStart=0, fishZoneSize=0, fishTap=fa
 function bestRodIdx(){ return owned.rod4?3 : owned.rod3?2 : owned.rod2?1 : 0; }
 function uniqueFishCount(){ return Object.keys(fishCaught).length; }
 function rollFish(){
-  // the Golden Sea Dragon: mythic rod ONLY, a pure 1-in-100 chance — incredibly rare!
-  if(bestRodIdx()===3 && Math.random()<0.01) return FISH.find(f=>f.r===6);
+  // legendaries: mythic rod ONLY, a pure 1-in-100 chance — then it picks WHICH legendary at random!
+  if(bestRodIdx()===3 && Math.random()<0.01){ const pool=FISH.filter(f=>f.r===6); return pool[Math.floor(Math.random()*pool.length)]; }
   const w=ROD_WEIGHTS[bestRodIdx()], total=w.reduce((a,b)=>a+b,0);
   let roll=Math.random()*total, rar=1;
   for(let i=0;i<5;i++){ roll-=w[i]; if(roll<=0){ rar=i+1; break; } }
@@ -741,6 +743,15 @@ const TONGUE_SKINS={
   tg_gold:{c:'#ffcf3a', glow:'rgba(255,207,58,0.65)'},
   tg_fire:{grad:['#ff3a3a','#ff8a2a','#ffe23a'], glow:'rgba(255,120,40,0.7)'},
   tg_ice:{c:'#9fe0ff', glow:'rgba(160,225,255,0.8)'},
+  tg_blue:{c:'#3f8fd4'}, tg_green:{c:'#5ab554'}, tg_purple:{c:'#8a5ac8'},
+  tg_zebra:{grad:['#26262c','#f2f2f4','#26262c','#f2f2f4','#26262c']},
+  tg_neon:{c:'#2af0ff', glow:'rgba(42,240,255,0.9)'},
+  tg_candy:{grad:['#ff5a5a','#ffffff','#ff5a5a','#ffffff','#ff5a5a']},
+  tg_gemstone:{grad:['#5ad4c8','#a88af0'], glow:'rgba(140,200,240,0.7)'},
+  tg_glow:{c:'#f8ffd8', glow:'rgba(240,255,200,0.95)'},
+  tg_galaxy:{grad:['#1a1a48','#5c33a0','#3f77d4','#1a1a48'], glow:'rgba(120,120,255,0.7)'},
+  tg_sparkle:{grad:['#ffe9f5','#e8f4ff','#fff9d8'], glow:'rgba(255,255,255,0.9)', fluffy:true},
+  tg_ultimate:{grad:['#ff5a5a','#ffa53a','#ffe23a','#5ad46b','#4aa8ff','#9a6bff'], glow:'rgba(255,255,255,0.9)', laser:true, fluffy:true},
 };
 function drawTongueLine(x0,y0,x1,y1,skinId){
   const s=TONGUE_SKINS[skinId]||null;
@@ -794,8 +805,10 @@ const ORES=[
   {id:'blackpearl',e:'🖤', n:'Black Pearl', r:4},{id:'dragonglass',e:'🐲', n:'Dragonglass', r:4},
   {id:'starmetal',e:'⭐', n:'Star Metal',   r:5},{id:'voidgem', e:'🌑', n:'Void Gem',     r:5},
   {id:'sunheart',e:'☀️', n:'Sun Heart',     r:5},{id:'frostgem',e:'❄️', n:'Everfrost Gem',r:5},
-  // the LEGENDARY — mythic pickaxe only, 1 in 100!
+  // the LEGENDARIES — mythic pickaxe only, 1 in 100!
   {id:'prismheart', e:'🌈', n:'Prism Heart', r:6},
+  {id:'dragonheart', e:'🐉', n:'Dragon Heart', r:6},
+  {id:'starcore',    e:'💫', n:'Fallen Star Core', r:6},
 ];
 const ORE_VALUE=[0,3,8,15,30,75,500];
 const PICKS=[
@@ -808,7 +821,7 @@ const oresMined={};
 let mining=false, mineT=0, mineWait=0;
 function bestPickIdx(){ return owned.pick4?3 : owned.pick3?2 : owned.pick2?1 : 0; }
 function rollOre(){
-  if(bestPickIdx()===3 && Math.random()<0.01) return ORES.find(o=>o.r===6);
+  if(bestPickIdx()===3 && Math.random()<0.01){ const pool=ORES.filter(o=>o.r===6); return pool[Math.floor(Math.random()*pool.length)]; }
   const w=ROD_WEIGHTS[bestPickIdx()], total=w.reduce((a,b)=>a+b,0);
   let roll=Math.random()*total, rar=1;
   for(let i=0;i<5;i++){ roll-=w[i]; if(roll<=0){ rar=i+1; break; } }
@@ -2350,6 +2363,8 @@ function skinColors(){
     case 'fish_dragonskin': return {b:'#3fae9a',bel:'#ffe9a0',d:'#22705f',sparkle:true,spots:'#e9c94a'};
     case 'invisible': return {b:'rgba(140,145,155,0.10)',bel:'rgba(175,180,190,0.08)',d:'rgba(120,125,135,0.30)',invis:true};
     case 'ore_prismskin': return {b:'#b8e8f5',bel:'#ffe9f5',d:'#7aa8c8',sparkle:true,spots:'#d8a8f0'};
+    case 'fish_krakenskin': return {b:'#6a4a9a',bel:'#c8a8e8',d:'#432b68',spots:'#8a5ac8'};
+    case 'ore_dragonhskin': return {b:'#c0392b',bel:'#ffcf8a',d:'#7c2418',sparkle:true,spots:'#e9944a'};
     case 'galaxy': return {b:'#2e2b63',bel:'#3f3c86',d:'#1d1a45',stars:true};
     case 'sparkly': return {b:'#f58fce',bel:'#ffd7f0',d:'#d364ab',sparkle:true};
     case 'boreal': return {b:'#a07a4a',bel:'#dcc79c',d:'#6f5330',spots:'#7c5c34'};
@@ -2373,7 +2388,7 @@ function skinColors(){
     default: return {b:(dark?'#4f9d54':'#6bbf4f'),bel:'#d7edb0',d:(dark?'#3f7c42':'#54a53f')};
   }
 }
-const BABY_COLS={ baby_mint:['#7ed9a0','#4aa570','#d8f5e0'], baby_sky:['#8fc8ff','#4a88c8','#ddeeff'], baby_sunny:['#ffd95a','#d9a52a','#fff2c0'] };
+const BABY_COLS={ baby_mint:['#7ed9a0','#4aa570','#d8f5e0'], baby_sky:['#8fc8ff','#4a88c8','#ddeeff'], baby_sunny:['#ffd95a','#d9a52a','#fff2c0'], baby_night:['#7a6ac8','#4a3a8c','#d0c8f0'] };
 function drawBabyToad(id,x,y){
   const c=BABY_COLS[id]||BABY_COLS.baby_mint;
   const bp=petData[id], bage=(bp && typeof bp.age==='number')? bp.age : 0;
@@ -2690,6 +2705,25 @@ function drawToad(){
     ctx.globalAlpha=1;
   }
   if(!swimming){ ctx.fillStyle='rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(bx, groundY+6, bw*0.5, 9, 0,0,7); ctx.fill(); }
+  if(worn.coat==='fish_galaxycape'){
+    ctx.fillStyle='#1a1a48'; ctx.beginPath(); ctx.moveTo(bx-bw*0.28, cy-bh*0.34); ctx.quadraticCurveTo(bx-bw*0.92, cy+bh*0.3, bx-bw*0.32, cy+bh*0.62); ctx.quadraticCurveTo(bx, cy+bh*0.44, bx+bw*0.32, cy+bh*0.62); ctx.quadraticCurveTo(bx+bw*0.92, cy+bh*0.3, bx+bw*0.28, cy-bh*0.34); ctx.closePath(); ctx.fill();
+    for(let k=0;k<8;k++){ const sx4=bx+Math.sin(k*2.3)*bw*0.34, sy4=cy+((k*37)%Math.floor(bh*0.8)); const tw2=0.4+0.6*Math.abs(Math.sin(t*0.08+k));
+      ctx.globalAlpha=tw2; ctx.fillStyle=k%3===0?'#9a6bff':'#fff'; ctx.beginPath(); ctx.arc(sx4, sy4, k%3===0?2.5:1.5, 0, 7); ctx.fill(); }
+    ctx.globalAlpha=1; ctx.fillStyle='#5c33a0'; ctx.fillRect(bx-bw*0.28, cy-bh*0.4, bw*0.56, 5);
+  }
+  if(worn.coat==='ore_starcape'){
+    ctx.fillStyle='#c8ccd8'; ctx.beginPath(); ctx.moveTo(bx-bw*0.28, cy-bh*0.34); ctx.quadraticCurveTo(bx-bw*0.9, cy+bh*0.3, bx-bw*0.32, cy+bh*0.62); ctx.quadraticCurveTo(bx, cy+bh*0.44, bx+bw*0.32, cy+bh*0.62); ctx.quadraticCurveTo(bx+bw*0.9, cy+bh*0.3, bx+bw*0.28, cy-bh*0.34); ctx.closePath(); ctx.fill();
+    ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.globalAlpha=0.6+0.4*Math.sin(t*0.1);
+    ctx.fillText('💫', bx-bw*0.2, cy+bh*0.2); ctx.fillText('⭐', bx+bw*0.18, cy+bh*0.42); ctx.globalAlpha=1;
+    ctx.fillStyle='#8a92a8'; ctx.fillRect(bx-bw*0.28, cy-bh*0.4, bw*0.56, 5);
+  }
+  if(worn.coat==='mil_rainbowwings'){ const wf5=Math.sin(t*0.2)*bh*0.08, rcw=['#ff5a5a','#ffa53a','#ffe23a','#5ad46b','#4aa8ff','#9a6bff'];
+    for(const s of [-1,1]){ for(let k=0;k<3;k++){
+      ctx.fillStyle=rcw[(k*2+(s>0?1:0))%6]; ctx.globalAlpha=0.85;
+      ctx.beginPath(); ctx.moveTo(bx+s*bw*0.3, cy-bh*0.18+k*bh*0.14);
+      ctx.quadraticCurveTo(bx+s*bw*(0.95-k*0.1), cy-bh*(0.6-k*0.16)-wf5, bx+s*bw*(1.05-k*0.12), cy-bh*0.02+k*bh*0.14);
+      ctx.quadraticCurveTo(bx+s*bw*0.7, cy+bh*0.1+k*bh*0.1, bx+s*bw*0.3, cy+k*bh*0.12); ctx.closePath(); ctx.fill(); } }
+    ctx.globalAlpha=1; }
   if(worn.coat==='mil_cape'){
     ctx.fillStyle='#ffcf3a'; ctx.beginPath(); ctx.moveTo(bx-bw*0.28, cy-bh*0.34); ctx.quadraticCurveTo(bx-bw*0.95, cy+bh*0.3, bx-bw*0.34, cy+bh*0.62); ctx.quadraticCurveTo(bx, cy+bh*0.42, bx+bw*0.34, cy+bh*0.62); ctx.quadraticCurveTo(bx+bw*0.95, cy+bh*0.3, bx+bw*0.28, cy-bh*0.34); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#e0a32a'; ctx.fillRect(bx-bw*0.28, cy-bh*0.4, bw*0.56, 6);
@@ -2912,6 +2946,24 @@ function drawToad(){
       ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.moveTo(gx-4, ey-6); ctx.lineTo(gx+1, ey-9); ctx.stroke(); }
     ctx.strokeStyle='#3ab8d0'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(bx-ex+10, ey-3); ctx.lineTo(bx+ex-10, ey-3); ctx.stroke(); }
 
+  if(worn.hat==='fish_ghosthood'){
+    ctx.fillStyle='rgba(240,244,255,0.85)'; ctx.beginPath(); ctx.arc(bx, ey-12, 26, Math.PI, 0);
+    ctx.quadraticCurveTo(bx+30, ey+2, bx+22, ey+10+Math.sin(t*0.1)*3);
+    ctx.lineTo(bx+10, ey+2); ctx.lineTo(bx, ey+8+Math.sin(t*0.12)*3); ctx.lineTo(bx-10, ey+2);
+    ctx.lineTo(bx-22, ey+10+Math.cos(t*0.1)*3); ctx.quadraticCurveTo(bx-30, ey+2, bx-26, ey-12);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#3a3a52'; ctx.beginPath(); ctx.arc(bx-8, ey-16, 3, 0, 7); ctx.arc(bx+8, ey-16, 3, 0, 7); ctx.fill(); }
+  if(worn.hat==='ore_obsidianhelm'){
+    ctx.fillStyle='#232330'; ctx.beginPath(); ctx.arc(bx, ey-18, 24, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#4a4a5e'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#6a3ac0'; ctx.beginPath(); ctx.moveTo(bx, ey-46); ctx.lineTo(bx+5, ey-38); ctx.lineTo(bx, ey-32); ctx.lineTo(bx-5, ey-38); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha=0.4+0.2*Math.sin(t*0.12); ctx.strokeStyle='#9a6bff'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(bx-20, ey-24); ctx.lineTo(bx+20, ey-24); ctx.stroke(); ctx.globalAlpha=1; }
+  if(worn.hat==='mil_legendhat'){
+    ctx.fillStyle='#c9a020'; ctx.fillRect(bx-30, ey-24, 60, 8);
+    ctx.fillStyle='#ffcf3a'; ctx.fillRect(bx-20, ey-54, 40, 34);
+    ctx.fillStyle='#c0392b'; ctx.fillRect(bx-20, ey-30, 40, 6);
+    ctx.globalAlpha=0.6+0.4*Math.sin(t*0.15); ctx.font='12px sans-serif'; ctx.textAlign='center'; ctx.fillText('⭐', bx, ey-40); ctx.globalAlpha=1; }
   if(worn.hat==='mil_crown'){ const y0=ey-26;
     ctx.fillStyle='#7ed957'; ctx.beginPath(); ctx.moveTo(bx-22,y0); ctx.lineTo(bx-22,y0-10); ctx.lineTo(bx-11,y0-4); ctx.lineTo(bx,y0-16); ctx.lineTo(bx+11,y0-4); ctx.lineTo(bx+22,y0-10); ctx.lineTo(bx+22,y0); ctx.closePath(); ctx.fill();
     ctx.strokeStyle='#3f8230'; ctx.lineWidth=2; ctx.stroke();
@@ -3368,6 +3420,14 @@ SHOP.push(
   // tongue skins — two in the shop, the rest are Toad Milestone rewards!
   { id:'tg_black',   name:'Black Tongue',     emoji:'⬛', price:40, slot:'tongue' },
   { id:'tg_white',   name:'White Tongue',     emoji:'⬜', price:40, slot:'tongue' },
+  { id:'tg_blue',    name:'Ocean Blue Tongue',emoji:'🌊', price:40, slot:'tongue' },
+  { id:'tg_green',   name:'Leafy Tongue',     emoji:'🍃', price:40, slot:'tongue' },
+  { id:'tg_purple',  name:'Berry Tongue',     emoji:'🫐', price:45, slot:'tongue' },
+  { id:'tg_zebra',   name:'Zebra Tongue',     emoji:'🦓', price:60, slot:'tongue' },
+  { id:'tg_neon',    name:'Neon Tongue',      emoji:'🟦', price:120, slot:'tongue', city:1 },
+  { id:'tg_candy',   name:'Candy Cane Tongue',emoji:'🍭', price:100, slot:'tongue', city:2 },
+  { id:'tg_gemstone',name:'Gemstone Tongue',  emoji:'💠', price:150, slot:'tongue', city:3 },
+  { id:'tg_glow',    name:'Glow Tongue',      emoji:'🌟', price:130, slot:'tongue', city:4 },
   { id:'tg_bunny',   name:'Bunny Tongue',     emoji:'🐰', price:0, slot:'tongue', secret:true },
   { id:'tg_pastel',  name:'Pastel Tongue',    emoji:'🌸', price:0, slot:'tongue', secret:true },
   { id:'tg_rainbow', name:'Rainbow Tongue',   emoji:'🌈', price:0, slot:'tongue', secret:true },
@@ -3386,6 +3446,20 @@ SHOP.push(
   { id:'baby_mint',  name:'Mint Baby Toad',   emoji:'🍃', price:0, slot:'baby', secret:true },
   { id:'baby_sky',   name:'Sky Baby Toad',    emoji:'☁️', price:0, slot:'baby', secret:true },
   { id:'baby_sunny', name:'Sunny Baby Toad',  emoji:'🌞', price:0, slot:'baby', secret:true },
+  { id:'baby_night', name:'Night Baby Toad',  emoji:'🌙', price:0, slot:'baby', secret:true },
+  // higher milestone rewards (levels 21-30)
+  { id:'tg_galaxy',  name:'Galaxy Tongue',    emoji:'🌌', price:0, slot:'tongue', secret:true },
+  { id:'tg_sparkle', name:'Sparkle Tongue',   emoji:'✨', price:0, slot:'tongue', secret:true },
+  { id:'tg_ultimate',name:'ULTIMATE Tongue',  emoji:'🏆', price:0, slot:'tongue', secret:true },
+  { id:'mil_legendhat',   name:'Legend Top Hat',  emoji:'🎩', price:0, slot:'hat',  secret:true },
+  { id:'mil_rainbowwings',name:'Rainbow Wings',   emoji:'🌈', price:0, slot:'coat', secret:true },
+  // new fish & ore crafted outfits
+  { id:'fish_ghosthood',  name:'Ghost Hood',       emoji:'👻', price:0, slot:'hat',  secret:true },
+  { id:'fish_galaxycape', name:'Galaxy Cape',      emoji:'🌌', price:0, slot:'coat', secret:true },
+  { id:'fish_krakenskin', name:'Kraken Skin',      emoji:'🐙', price:0, slot:'skin', secret:true },
+  { id:'ore_obsidianhelm',name:'Obsidian Helm',    emoji:'🖤', price:0, slot:'hat',  secret:true },
+  { id:'ore_starcape',    name:'Star Metal Cape',  emoji:'💫', price:0, slot:'coat', secret:true },
+  { id:'ore_dragonhskin', name:'Dragon Heart Skin',emoji:'🐉', price:0, slot:'skin', secret:true },
   // ore-crafted outfits
   { id:'ore_minerhat',   name:'Miner Helmet',     emoji:'⛑️', price:0, slot:'hat',     secret:true },
   { id:'ore_gemgoggles', name:'Gem Goggles',      emoji:'🥽', price:0, slot:'glasses', secret:true },
@@ -3488,6 +3562,9 @@ const MILESTONES={
   10:{coins:150, item:'mil_crown'}, 11:{item:'tg_laser'}, 12:{item:'mil_halo'},
   13:{item:'pet_goldtoad'}, 14:{item:'tg_rainbowlaser'}, 15:{baby:'baby_sunny'},
   16:{item:'tg_ice'}, 17:{item:'tg_gold'}, 18:{coins:300}, 19:{item:'mil_wings'}, 20:{item:'tg_fire', coins:500},
+  21:{coins:200}, 22:{item:'tg_galaxy'}, 23:{baby:'baby_night'}, 24:{coins:250},
+  25:{item:'mil_legendhat'}, 26:{item:'tg_sparkle'}, 27:{coins:300}, 28:{item:'mil_rainbowwings'},
+  29:{coins:400}, 30:{item:'tg_ultimate', coins:1000},
 };
 function ensureBaby(id){ return ensurePet(id); }   // babies have full needs, XP & vibes — just like pets
 function addXp(n){
@@ -3794,6 +3871,13 @@ function buildSettingsRows(){
 document.getElementById('petCareToggle').addEventListener('click',()=>{ petCare = petCare===true? false : true; save(); buildSettingsRows(); sfx('coin'); });
 /* ---- Toad News (title screen update log) ---- */
 const NEWS=[
+  {v:'Update 16.5', d:'Sep 7', items:[
+    '🌟 MORE LEGENDARIES! The 🐙 Kraken King & 🐋 Celestial Whale swim the deep, and the 🐉 Dragon Heart & 💫 Fallen Star Core hide in the cave — all mythic-gear only, 1-in-100!',
+    '🧵 6 new crafting recipes: Ghost Hood 👻, Galaxy Cape 🌌, Kraken Skin 🐙, Obsidian Helm 🖤, Star Metal Cape 💫 & Dragon Heart Skin 🐉',
+    '🏅 Milestones now go to LEVEL 30 — with the Galaxy, Sparkle & ULTIMATE tongues, a Legend Top Hat, Rainbow Wings, and a 🌙 Night Baby Toad!',
+    '👅 Tongue skin shopping spree! 4 new in the Toad Shop (Ocean, Leafy, Berry, Zebra) and one EXCLUSIVE in every city shop: Neon 🟦, Candy Cane 🍭, Gemstone 💠 & Glow 🌟',
+    '🎨 Tongue Battle: TWO new modes — 👑 KING OF THE HILL (chase the glowing crown zone!) and 💨 SPEED PAINT (30 seconds of pure turbo!) — plus new 🛡️ shield & ❄️ freeze-burst boosters!',
+    '🎡 Wheel of Luck: 😱 THE UNLUCKIEST (super rare — ALL hearts gone!), 🌿 SUPER LUCKY (heals every heart!) and 🎰 JACKPOT (real coins!)']},
   {v:'Update 16', d:'Sep 7', items:[
     '🎣⛏️ 60 FISH and 60 ORES! Twenty new fish (Ghost Guppy 👻, Galaxy Ray 🌌, Noodle Fish 🍜, even an Old Sock 🧦…) and forty new ores (Fool\'s Gold, Dragonglass 🐲, Void Gem 🌑, Sun Heart ☀️…) — happy collecting!',
     '👶 Baby toads have NEEDS and XP now, just like pets! Feed, cuddle and care for your baby in the 🐾 Pet Station — every age it grows a little bigger (and learns to celebrate 🎉), but it stays your baby forever']},
@@ -3916,6 +4000,9 @@ const FISH_RECIPES=[
   { out:'fish_pearlgoggles',needs:{clam:3, seasnail:2} },
   { out:'fish_scalecape',   needs:{goldkoi:1, tetra:3, stripey:2} },
   { out:'fish_dragonskin',  needs:{seadragon:1, whale:1, phoenixf:1} },
+  { out:'fish_ghosthood',   needs:{ghostf:2, moonfish:2} },
+  { out:'fish_galaxycape',  needs:{galaxyf:1, timefish:1, thunderf:2} },
+  { out:'fish_krakenskin',  needs:{kraken:1, squid:2, octo:2} },
 ];
 function fishName(id){ const f=FISH.find(x=>x.id===id); return f? f.e+' '+f.n : id; }
 function canFishCraft(r){ for(const k in r.needs){ if((fishCaught[k]||0) < r.needs[k]) return false; } return true; }
@@ -3969,6 +4056,9 @@ const ORE_RECIPES=[
   { out:'ore_gemgoggles', needs:{quartz:2, amethyst:2} },
   { out:'ore_crystalcape',needs:{sapphire:1, silver:2, jade:2} },
   { out:'ore_prismskin',  needs:{prismheart:1, diamond:1, ruby:1} },
+  { out:'ore_obsidianhelm', needs:{obsidian:2, garnet:2} },
+  { out:'ore_starcape',   needs:{starmetal:1, mica:3} },
+  { out:'ore_dragonhskin',needs:{dragonheart:1, dragonglass:2} },
 ];
 function oreName(id){ const o=ORES.find(x=>x.id===id); return o? o.e+' '+o.n : id; }
 function canOreCraft(r){ for(const k in r.needs){ if((oresMined[k]||0) < r.needs[k]) return false; } return true; }
@@ -4015,7 +4105,7 @@ function renderMilestones(){
   document.getElementById('milesSub').textContent='Level '+toadLevel+' Toad · '+xp+' / '+mlNeed(toadLevel)+' XP to level '+(toadLevel+1);
   document.getElementById('milesBar').style.width=Math.min(100, Math.round(100*xp/mlNeed(toadLevel)))+'%';
   const list=document.getElementById('milesList'); list.innerHTML='';
-  for(let l=2;l<=20;l++){
+  for(let l=2;l<=30;l++){
     const r=MILESTONES[l]; if(!r) continue;
     const got=toadLevel>=l;
     const bits=[];
@@ -4585,7 +4675,11 @@ function drawHideFlies(){
 const battle={ cols:8, rows:4, top:0, cw:0, ch:0, own:null, ais:[], timer:0, score:{}, items:[], spawnT:0, fx:[] };
 const AI_COLS=['#e0a34a','#b06bff','#e07ac0','#5ad4a8','#8a8a92','#c9a06a'];
 const BATTLE_NAMES={1:'P1',2:'P2',3:'Bloop',4:'Zippy',5:'Momo',6:'Pip',7:'Wobble',8:'Sunny'};
-const BATTLE_BOOSTS=[ {id:'speed', e:'⚡'}, {id:'tongue', e:'👅'}, {id:'paint', e:'🎨'} ];
+const BATTLE_BOOSTS=[ {id:'speed', e:'⚡'}, {id:'tongue', e:'👅'}, {id:'paint', e:'🎨'}, {id:'shield', e:'🛡️'}, {id:'snow', e:'❄️'} ];
+function battleStun(ent, frames){
+  if(ent.shieldB){ ent.shieldB=false; pops.push({x:ent.px, y:ent.py-20, t:0, txt:'🛡️!'}); sfx('buy'); return; }
+  ent.stun=Math.max(ent.stun||0, frames);
+}
 const battleHeld={1:null,2:null};
 /* each player styles their own battle toad in the ⚙️ panel: color, expression, accessory */
 const BC_COLORS=[ ['#6bbf4f','#2e6a24'], ['#5a9bd4','#274e78'], ['#e05a5a','#8c2f2f'], ['#ffb84d','#8c5f1e'], ['#b06bff','#5c33a0'], ['#ff8fb0','#8c3a70'], ['#5ad4a8','#2a7a5c'], ['#f2e14c','#8c7a1e'] ];
@@ -4601,6 +4695,8 @@ const BATTLE_MODES=[
   ['build','🧱 Builders & Destroyers','4 random toads get bricks to build walls — the rest get hammers to SMASH them!'],
   ['chaos','☄️ Chaos','meteors, lightning AND a toad-sucking tornado — dodge or get dizzy! Survive AND paint!'],
   ['colorboss','🌈 Color Boss','ALL toads team up against the giant COLOR BOSS! It stomps around stealing pixels in its shifting color and blasts warning zones with debuffs — beat it before time runs out!'],
+  ['hill','👑 King of the Hill','a glowing crown zone hops around the board — stand inside to earn crown points! Most points wins!'],
+  ['speed','💨 Speed Paint','30 seconds. EVERYONE at turbo speed. Boosters raining. Paint the most before time runs out — GO GO GO!'],
 ];
 let battleGrid='m', battleMode='classic';
 function battleScore(id){ battle.score[id]=(battle.score[id]||0)+1; }
@@ -4666,7 +4762,15 @@ function setupBattle(){
   }
   if(battle.mode==='chaos'){ battle.banner='☄️ CHAOS! Dodge the falling danger!'; battle.bannerT=200; }
   if(battle.mode==='wacky'){ battle.banner='🎡 Wacky Wheel is watching…'; battle.bannerT=180; }
-  for(const [,o] of battleEnts()) o.debuff=null;
+  for(const [,o] of battleEnts()){ o.debuff=null; o.shieldB=false; }
+  if(battle.mode==='hill'){
+    battle.hill={cx:Math.floor(battle.cols/2), cy:Math.floor(battle.rows/2), moveT:480};
+    battle.banner='👑 KING OF THE HILL! Stand in the glowing zone to score!'; battle.bannerT=230;
+  } else battle.hill=null;
+  if(battle.mode==='speed'){
+    battle.timer=30*60; battle.turboT=999999; battle.spawnT=60;
+    battle.banner='💨 SPEED PAINT!! 30 seconds — GO GO GO!!'; battle.bannerT=180;
+  }
   if(battle.mode==='colorboss'){
     const chp=Math.round(40*DIFF[difficulty].hp);
     battle.cboss={ gx:Math.floor(battle.cols/2), gy:Math.floor(battle.rows/2), px:0, py:0, hp:chp, maxhp:chp, hue:0, moveCd:30, atkT:240, warn:null };
@@ -4684,7 +4788,7 @@ function battleWackyApply(ev){
   } else if(ev===1){ // rainbow rain repaints random pixels
     for(let k=0;k<Math.max(10, Math.floor(battle.own.length*0.12));k++){ battle.own[Math.floor(Math.random()*battle.own.length)]=1+Math.floor(Math.random()*8); }
     battle.banner='🌈 RAINBOW RAIN! Pixels went wild!'; sfx('buy');
-  } else if(ev===2){ for(const a of battle.ais) a.stun=170; battle.banner='🧊 FREEZE! All friends are frozen!'; sfx('splash'); }
+  } else if(ev===2){ for(const a of battle.ais) battleStun(a, 170); battle.banner='🧊 FREEZE! All friends are frozen!'; sfx('splash'); }
   else if(ev===3){ battle.turboT=300; battle.banner='⚡ TURBO! Everybody hops super fast!'; sfx('coin'); }
   else if(ev===4){ // earthquake clears rows
     const r0=Math.floor(Math.random()*battle.rows);
@@ -4731,6 +4835,15 @@ function battlePickupAt(ent, id){
     const it=battle.items[k];
     if(it.cx===ent.gx && it.cy===ent.gy){
       if(it.type==='paint'){ claimPlus(ent.gx, ent.gy, id, true); battle.fx.push({x:cellPx(ent.gx), y:cellPy(ent.gy), t:0, big:true}); pops.push({x:cellPx(ent.gx), y:cellPy(ent.gy)-30, t:0, txt:'🎨', big:true}); sfx('win'); }
+      else if(it.type==='shield'){ ent.shieldB=true; pops.push({x:cellPx(ent.gx), y:cellPy(ent.gy)-30, t:0, txt:'🛡️', big:true}); sfx('buy'); }
+      else if(it.type==='snow'){
+        // ❄️ freeze burst — every OTHER toad nearby gets iced!
+        const myT=battleTeamOfEnt(id);
+        for(const [oid,o] of battleEnts()){ if(o===ent) continue;
+          if(Math.abs(o.gx-ent.gx)+Math.abs(o.gy-ent.gy)<=2 && battleTeamOfEnt(oid)!==myT) battleStun(o, 110); }
+        pops.push({x:cellPx(ent.gx), y:cellPy(ent.gy)-30, t:0, txt:'❄️💥', big:true});
+        battle.fx.push({x:cellPx(ent.gx), y:cellPy(ent.gy), t:0, big:true}); sfx('splash');
+      }
       else { ent.bType=it.type; ent.bT=480; pops.push({x:cellPx(ent.gx), y:cellPy(ent.gy)-30, t:0, txt:it.e, big:true}); sfx('buy'); }
       battle.items.splice(k,1);
     }
@@ -4833,12 +4946,31 @@ function updateBattle(){
   battle.timer--;
   if(battle.timer<=0){
     if(battle.mode==='colorboss'){ endColorBoss(false); return; }
+    if(battle.mode==='hill'){
+      const h1=battle.score[1]||0, h2=battle.score[2]||0;
+      endBattle(h1===h2?0:(h1>h2?1:2), '👑 Crown points: P1 '+h1+' vs P2 '+h2); return;
+    }
     const [c1,c2]=battleCounts(); endBattle(c1===c2?0:(c1>c2?1:2), 'Territory: 🟩 '+c1+' vs 🟦 '+c2); return;
+  }
+  // 👑 King of the Hill: the zone scores whoever stands inside, then hops away
+  if(battle.mode==='hill' && battle.hill){
+    const hl=battle.hill;
+    hl.moveT--;
+    if(hl.moveT<=0){
+      hl.moveT=420+Math.random()*180;
+      hl.cx=1+Math.floor(Math.random()*(battle.cols-2)); hl.cy=1+Math.floor(Math.random()*(battle.rows-2));
+      pops.push({x:cellPx(hl.cx), y:cellPy(hl.cy)-20, t:0, txt:'👑!', big:true}); sfx('coin');
+    }
+    if(battle.timer%30===0){
+      for(const [oid,o] of battleEnts()){
+        if(Math.abs(o.gx-hl.cx)<=1 && Math.abs(o.gy-hl.cy)<=1){ battleScore(oid); pops.push({x:o.px, y:o.py-14, t:0.5, txt:'+1'}); }
+      }
+    }
   }
   // boosters land in empty squares — ANY toad can hop on and grab them
   battle.spawnT--;
-  if(battle.spawnT<=0 && battle.items.length<3){
-    battle.spawnT=300+Math.random()*240;
+  if(battle.spawnT<=0 && battle.items.length<(battle.mode==='speed'?5:3)){
+    battle.spawnT=battle.mode==='speed'? 90+Math.random()*80 : 300+Math.random()*240;
     const bt=BATTLE_BOOSTS[Math.floor(Math.random()*BATTLE_BOOSTS.length)];
     battle.items.push({ cx:Math.floor(Math.random()*battle.cols), cy:Math.floor(Math.random()*battle.rows), type:bt.id, e:bt.e, life:60*12 });
   }
@@ -4888,7 +5020,7 @@ function updateBattle(){
             const dx2=tx-o.gx, dy2=ty-o.gy, md2=Math.abs(dx2)+Math.abs(dy2);
             if(md2===0){
               // swallowed! spun around and spat out somewhere random
-              o.stun=Math.max(o.stun,70); o.gx=Math.floor(Math.random()*battle.cols); o.gy=Math.floor(Math.random()*battle.rows);
+              battleStun(o, 70); o.gx=Math.floor(Math.random()*battle.cols); o.gy=Math.floor(Math.random()*battle.rows);
               pops.push({x:cellPx(o.gx), y:cellPy(o.gy)-battle.ch*0.5, t:0, txt:'🌪️💫', big:true}); sfx('mad');
             } else if(md2<=2){
               // too close — the pull drags you one square in
@@ -4911,7 +5043,7 @@ function updateBattle(){
         if(cx<0||cx>=battle.cols||cy<0||cy>=battle.rows) continue;
         battle.own[cy*battle.cols+cx]=0; if(battle.wall) battle.wall[cy*battle.cols+cx]=0;
         for(const [oid,o] of battleEnts()){
-          if(o.gx===cx && o.gy===cy && o.stun<=0){ o.stun=70; pops.push({x:o.px, y:o.py-battle.ch*0.5, t:0, txt:'💫'}); }
+          if(o.gx===cx && o.gy===cy && o.stun<=0){ battleStun(o, 70); if(o.stun>0) pops.push({x:o.px, y:o.py-battle.ch*0.5, t:0, txt:'💫'}); }
         }
       }
       const fxX = h.type==='meteor'? cellPx(h.cx) : cellPx(h.col), fxY = h.type==='meteor'? cellPy(h.cy) : battle.top+battle.rows*battle.ch*0.5;
@@ -4938,7 +5070,7 @@ function updateBattle(){
         const type=['slow','stun','rev'][Math.floor(Math.random()*3)];
         for(const [oid,o] of battleEnts()){
           if(cb.warn.cells.some(c=>c[0]===o.gx && c[1]===o.gy)){
-            if(type==='stun'){ o.stun=Math.max(o.stun,80); }
+            if(type==='stun'){ battleStun(o, 80); }
             else o.debuff={type, t:260};
             pops.push({x:o.px, y:o.py-battle.ch*0.5, t:0, txt: type==='slow'?'🐌':type==='rev'?'🔀':'💫', big:true});
           }
@@ -5000,7 +5132,7 @@ function updateBattle(){
       a.tongueCd=100; a.mouth=12;
       if(bestIsPlayer){
         if(hard && best.stun<=0){
-          best.stun=70;   // the whole screen goes dizzy — Sasha's idea!
+          battleStun(best, 70);   // the whole screen goes dizzy — unless a 🛡️ blocks it!
           claimPlus(best.gx, best.gy, i+3, false); battleScore(i+3);
           pops.push({x:best.px, y:best.py-battle.ch*0.5, t:0, txt:'💫'}); sfx('mad');
         }
@@ -5014,7 +5146,15 @@ function updateBattle(){
     // hop toward the target (or wander)
     if(a.moveCd<=0){
       let dir=null;
-      if(best && (hard || !bestIsPlayer || myTeam===1 || myTeam===2)){
+      if(battle.mode==='hill' && battle.hill && (!best || Math.random()<0.6)){
+        // everyone wants the crown!
+        const dx=battle.hill.cx-a.gx, dy=battle.hill.cy-a.gy;
+        if(dx===0 && dy===0) dir=['up','down','left','right'][Math.floor(Math.random()*4)];
+        else if(Math.abs(dx)>=Math.abs(dy)) dir = dx>0?'right':'left';
+        else dir = dy>0?'down':'up';
+        if(Math.random()<0.2) dir=['up','down','left','right'][Math.floor(Math.random()*4)];
+      }
+      else if(best && (hard || !bestIsPlayer || myTeam===1 || myTeam===2)){
         const dx=best.gx-a.gx, dy=best.gy-a.gy;
         if(Math.abs(dx)>=Math.abs(dy)) dir = dx>0?'right':(dx<0?'left':null);
         else dir = dy>0?'down':'up';
@@ -5190,6 +5330,19 @@ function drawBattleAll(){
   // the toads — chunky faces about 4 pixels big, like the sketch
   const fsize=Math.min(battle.cw, battle.ch)*1.35;
   const top=battleTopTonguer();
+  // 👑 the hill zone glows golden
+  if(battle.mode==='hill' && battle.hill){
+    const hl=battle.hill, pulse=0.3+0.15*Math.sin(t*0.12);
+    for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+      const cx=hl.cx+dx, cy=hl.cy+dy;
+      if(cx<0||cx>=battle.cols||cy<0||cy>=battle.rows) continue;
+      ctx.fillStyle='rgba(255,207,58,'+pulse+')';
+      ctx.fillRect(cx*battle.cw+2, battle.top+cy*battle.ch+2, battle.cw-4, battle.ch-4);
+    }
+    ctx.font=Math.round(Math.min(battle.cw,battle.ch)*0.9)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('👑', cellPx(hl.cx), cellPy(hl.cy)-Math.abs(Math.sin(t*0.1))*6);
+    ctx.textBaseline='alphabetic';
+  }
   // Color Boss: flashing warning zone + the giant rainbow face itself
   if(battle.mode==='colorboss' && battle.cboss){
     const cb=battle.cboss;
@@ -5221,7 +5374,9 @@ function drawBattleAll(){
     if(top===id){ ctx.font=Math.round(fsize*0.36)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('👑', P.px, P.py-fsize*0.86+Math.sin(t*0.1)*2); }
     if(P.bT>0){ ctx.font='13px sans-serif'; ctx.fillText((P.bType==='speed'?'⚡':'👅'), P.px+fsize*0.5, P.py+fsize*0.5); }
     if(P.debuff && P.debuff.t>0){ ctx.font=Math.round(fsize*0.4)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText(P.debuff.type==='slow'?'🐌':'🔀', P.px-fsize*0.55, P.py-fsize*0.5); }
+    if(P.shieldB){ ctx.font=Math.round(fsize*0.38)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('🛡️', P.px+fsize*0.55, P.py-fsize*0.45); }
   }
+  for(const a of battle.ais){ if(a.shieldB){ ctx.font=Math.round(fsize*0.32)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('🛡️', a.px+fsize*0.5, a.py-fsize*0.4); } }
   for(const a of battle.ais){ if(a.debuff && a.debuff.t>0){ ctx.font=Math.round(fsize*0.34)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText(a.debuff.type==='slow'?'🐌':'🔀', a.px-fsize*0.5, a.py-fsize*0.45); } }
   drawPops();
   // HUD
@@ -5245,6 +5400,8 @@ function drawBattleAll(){
     : battle.mode==='chaos'? '☄️ dodge meteors, lightning AND the tornado — or get DIZZY!'
     : battle.mode==='wacky'? '🎡 the Wacky Wheel can change EVERYTHING… keep painting!'
     : battle.mode==='colorboss'? '🌈 TEAM UP! Get close and 👅 the boss — stay out of the ⚠️ zones!'
+    : battle.mode==='hill'? '👑 stand in the golden zone to score crown points — most points wins!'
+    : battle.mode==='speed'? '💨 TURBO! Paint everything — 30 seconds only!!'
     : 'you can\'t walk onto enemy pixels — 👅 tongue them open first! 👅 the other player = WIN';
   fitText(hint, W/2, H-12, 12);
   // 🎡 the Wacky Wheel spins ON SCREEN so every toad sees what's coming
@@ -5318,11 +5475,16 @@ function updateWheel(){
           sfx('buy'); pops.push({x:W/2, y:H*0.3, t:0, txt:'🛡️', big:true});
         } else {
           const broll=Math.random();
-          if(broll<0.12){
+          if(broll<0.015){
+            // 😱 THE UNLUCKIEST — super, SUPER rare…
+            wheelG.hearts[me]=0;
+            wheelG.evMsg='😱😱 THE UNLUCKIEST!!! Player '+wheelG.turn+' lost ALL their hearts!!!';
+            sfx('mad'); pops.push({x:W/2, y:H*0.3, t:0, txt:'💔💔💔', big:true});
+          } else if(broll<0.13){
             wheelG.hearts[me]=Math.max(0, wheelG.hearts[me]-2);
             wheelG.evMsg='💀 SUPER UNLUCKY!! Player '+wheelG.turn+' loses TWO hearts!!';
             sfx('mad'); pops.push({x:W/2, y:H*0.3, t:0, txt:'💔💔', big:true});
-          } else if(broll<0.20 && wheelG.bad.filter(x=>x).length<9){
+          } else if(broll<0.21 && wheelG.bad.filter(x=>x).length<9){
             wheelG.hearts[me]--;
             const safe2=[]; wheelG.bad.forEach((b,i)=>{ if(!b) safe2.push(i); });
             wheelG.bad[safe2[Math.floor(Math.random()*safe2.length)]]=true;
@@ -5352,6 +5514,15 @@ function updateWheel(){
           wheelG.freeSpin=true;
           wheelG.evMsg='🌪️ WILD SPIN! Player '+wheelG.turn+' gets a FREE extra spin!';
           sfx('jump'); pops.push({x:W/2, y:H*0.3, t:0, txt:'🌪️', big:true});
+        } else if(roll<0.41){
+          const jp=gainCoins(25);
+          wheelG.evMsg='🎰 JACKPOT!! +'+jp+' REAL coins for the toad bank!!';
+          sfx('win'); pops.push({x:W/2, y:H*0.3, t:0, txt:'🎰🪙', big:true});
+        } else if(wheelG.hearts[me]<3 && roll>0.90 && roll<=0.94){
+          // 🌿 SUPER LUCKY — as rare as a heart swap!
+          wheelG.hearts[me]=3;
+          wheelG.evMsg='🌿✨ SUPER LUCKY!!! Player '+wheelG.turn+'\'s hearts are ALL healed!!';
+          sfx('win'); pops.push({x:W/2, y:H*0.3, t:0, txt:'❤️❤️❤️', big:true});
         } else if(wheelG.hearts[me]!==wheelG.hearts[other] && roll>0.96){
           const tmp=wheelG.hearts[me]; wheelG.hearts[me]=wheelG.hearts[other]; wheelG.hearts[other]=tmp;
           wheelG.evMsg='🔄 HEART SWAP!! The players traded hearts!!';
