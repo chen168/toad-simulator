@@ -70,7 +70,7 @@
   .msgs{ flex:1; overflow-y:auto; background:#f2f8ee; border-radius:16px; padding:12px; display:flex; flex-direction:column; gap:8px; min-height:80px; text-align:left; }
   /* the phrase list grew huge — cap it with its own scroll so Trade & games stay on screen */
   #phrases{ max-height:22vh; overflow-y:auto; flex-shrink:0; }
-  #tttBox, #tradeBox{ flex-shrink:0; }
+  #tttBox, #tradeBox, #rpsBox, #guessBox{ flex-shrink:0; }
   .msg{ max-width:80%; padding:8px 12px; border-radius:16px; font-weight:700; font-size:15px; line-height:1.3; }
   .msg.me{ align-self:flex-end; background:var(--leaf); color:#fff; border-bottom-right-radius:4px; }
   .msg.them{ align-self:flex-start; background:#fff; color:var(--ink); border:1px solid #d9e6d2; border-bottom-left-radius:4px; }
@@ -211,6 +211,8 @@
     <button class="bigbtn" id="bossFly" style="background:linear-gradient(#8a8a92,#45454e);box-shadow:0 8px 20px rgba(69,69,78,.5);margin-top:10px;">🪰 Giant Fly</button>
     <button class="bigbtn" id="bossSnake" style="background:linear-gradient(#7ed957,#2e7a26);box-shadow:0 8px 20px rgba(46,122,38,.5);margin-top:10px;">🐍 Snake</button>
     <button class="bigbtn" id="bossBat" style="background:linear-gradient(#7a5cc0,#3a2a6a);box-shadow:0 8px 20px rgba(58,42,106,.5);margin-top:10px;">🦇 Bat</button>
+    <button class="bigbtn" id="bossToad" style="background:linear-gradient(#8fd05a,#3f7c2a);box-shadow:0 8px 20px rgba(63,124,42,.5);margin-top:10px;">🐸 Giant Toad</button>
+    <button class="bigbtn" id="bossCrab" style="background:linear-gradient(#ff8a5a,#c04a2a);box-shadow:0 8px 20px rgba(192,74,42,.5);margin-top:10px;">🦀 Mega Crab</button>
     <button class="closebtn" id="bossPickClose" style="margin-top:12px;">Cancel</button>
   </div>
 </div>
@@ -247,6 +249,8 @@
     <h1 style="font-size:28px;">🐟 Fish Collection</h1>
     <p class="by" id="fishDexSub">0 / 20 fish found</p>
     <div class="shopgrid" id="fishGrid" style="grid-template-columns:1fr 1fr;"></div>
+    <div class="sethead" style="text-align:center;margin-top:10px;">🧵 Fish Crafting — outfits made of fish! (the fish get used up)</div>
+    <div id="fishCraft"></div>
     <button class="closebtn" id="closeFish">Done</button>
   </div>
 </div>
@@ -280,9 +284,19 @@
       <div class="chatmeta">Pick ONE of your items to trade away (it will be gone!):</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;" id="tradeItems"></div>
     </div>
+    <div id="rpsBox" class="hidden" style="margin:8px 0;">
+      <div style="display:flex;gap:10px;justify-content:center;" id="rpsRow"></div>
+    </div>
+    <div id="guessBox" class="hidden" style="margin:8px 0;">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;" id="guessRow"></div>
+    </div>
     <div class="phrases" style="margin:8px 0 0;">
       <button class="phrase" id="tttBtn" style="background:#dbeafe;color:#3f77ad;">🎮 Tic-Tac-Toe</button>
       <button class="phrase" id="tradeBtn" style="background:#fde8d0;color:#a5763f;">🎁 Trade items</button>
+      <button class="phrase" id="rpsBtn" style="background:#e8dbf5;color:#6a3fb0;">✊ Rock Paper Scissors</button>
+      <button class="phrase" id="jokeBtn" style="background:#fff3c4;color:#a5762a;">😂 Tell me a joke</button>
+      <button class="phrase" id="guessBtn" style="background:#d8f5e0;color:#2e7a4a;">🔍 Guess my bug</button>
+      <button class="phrase" id="fortuneBtn" style="background:#fde0ef;color:#a53a78;">🔮 My fortune</button>
     </div>
     <div class="phrases" id="phrases"></div>
     <button class="closebtn" id="closeChat">Done</button>
@@ -326,6 +340,19 @@
 <!-- Wheel of Luck -->
 <div class="controls2p hidden" id="wheelUI">
   <button id="spinBtn">🎡 SPIN!</button>
+</div>
+
+<!-- Tongue Battle pre-game setup: pick your pixel size and game mode -->
+<div class="overlay hidden" id="battleSetup">
+  <div class="card" style="overflow-y:auto; max-height:86vh;">
+    <h1 style="font-size:26px;">🎨 Tongue Battle Setup</h1>
+    <div class="sethead" style="text-align:center;">🔬 Pixel size</div>
+    <div class="segrow" id="bGridRow"></div>
+    <div class="sethead" style="text-align:center;">🎮 Game mode</div>
+    <div id="bModeRow"></div>
+    <button class="bigbtn" id="battleGo" style="margin-top:12px;">Start the battle! ⚔️</button>
+    <button class="closebtn" id="battleSetupBack" style="margin-top:10px;">Back</button>
+  </div>
 </div>
 
 <!-- Tongue Battle toad style settings — opening this pauses the battle -->
@@ -580,8 +607,22 @@ const FISH=[
   {id:'shark',   e:'🦈', n:'Baby Shark',    r:4},{id:'dolphin', e:'🐬', n:'Happy Dolphin',r:4},
   {id:'seal',    e:'🦭', n:'Silly Seal',    r:4},
   {id:'whale',   e:'🐳', n:'Wonder Whale',  r:5},{id:'goldkoi', e:'🎏', n:'Golden Koi',   r:5},
+  // Update 13: 20 MORE fish!
+  {id:'anchovy', e:'🐟', n:'Tiny Anchovy',  r:1},{id:'mudfish', e:'🐟', n:'Mucky Mudfish',r:1},
+  {id:'pebble',  e:'🐠', n:'Pebble Fish',   r:1},{id:'weedy',   e:'🐟', n:'Weedy Wiggler',r:1},
+  {id:'pond',    e:'🐠', n:'Pond Pal',      r:1},
+  {id:'crabby',  e:'🦀', n:'Crabby Snapper',r:2},{id:'seahorse',e:'🦄', n:'Sea Pony',     r:2},
+  {id:'clam',    e:'🦪', n:'Giggle Clam',   r:2},{id:'stripey', e:'🐠', n:'Zebra Stripey',r:2},
+  {id:'bloop',   e:'🐡', n:'Bloop Balloon', r:2},
+  {id:'ray',     e:'🐟', n:'Gentle Ray',    r:3},{id:'eel',     e:'🪱', n:'Zappy Eel',    r:3},
+  {id:'turtle',  e:'🐢', n:'Shelly Turtle', r:3},{id:'starfish',e:'⭐', n:'Wishing Star', r:3},
+  {id:'sword',   e:'🗡️', n:'Swordfish',     r:4},{id:'anglerf', e:'🔦', n:'Lantern Angler',r:4},
+  {id:'orca',    e:'🐋', n:'Baby Orca',     r:4},
+  {id:'narwhal', e:'🦄', n:'Nifty Narwhal', r:5},{id:'phoenixf',e:'🔥', n:'Phoenix Fish', r:5},
+  // the LEGENDARY — mythic rod only, 1 in 100!
+  {id:'seadragon', e:'🐉', n:'Golden Sea Dragon', r:6},
 ];
-const FISH_VALUE=[0,3,8,15,30,75];
+const FISH_VALUE=[0,3,8,15,30,75,500];
 const ROD_WEIGHTS=[ [60,25,10,4,1], [42,28,17,9,4], [28,27,22,14,9], [16,22,25,21,16] ];
 const RODS=[
   {id:'rod1', name:'Stick Rod',  emoji:'🥢'},
@@ -591,9 +632,12 @@ const RODS=[
 ];
 const fishCaught={};
 let fishing=false, fishT=0, fishWait=0;
+let biteT=0, reelHold=0, fishHoldDown=false, fishMoveT=0;   // ❗ bite window: HOLD the screen to reel — no more AFK fishing!
 function bestRodIdx(){ return owned.rod4?3 : owned.rod3?2 : owned.rod2?1 : 0; }
 function uniqueFishCount(){ return Object.keys(fishCaught).length; }
 function rollFish(){
+  // the Golden Sea Dragon: mythic rod ONLY, a pure 1-in-100 chance — incredibly rare!
+  if(bestRodIdx()===3 && Math.random()<0.01) return FISH.find(f=>f.r===6);
   const w=ROD_WEIGHTS[bestRodIdx()], total=w.reduce((a,b)=>a+b,0);
   let roll=Math.random()*total, rar=1;
   for(let i=0;i<5;i++){ roll-=w[i]; if(roll<=0){ rar=i+1; break; } }
@@ -607,14 +651,17 @@ function catchFish(){
   const got=gainCoins(FISH_VALUE[f.r]);
   sfx(f.r>=4?'win':'coin');
   const stars='⭐'.repeat(f.r);
-  showReward((isNew?'✨ NEW FISH! ':'🎣 Caught ')+f.e+' '+f.n+' '+stars+' +'+got+' 🪙');
+  showReward((f.r===6?'🌟🐉 LEGENDARY!!! ':(isNew?'✨ NEW FISH! ':'🎣 Caught '))+f.e+' '+f.n+' '+stars+' +'+got+' 🪙');
   pops.push({x:toad.x+40, y:toad.y-90, t:0, txt:f.e, big:true});
   // fishing milestones unlock bonus crafting recipes!
   if(uniqueFishCount()>=5 && !recipesFound.fishing5){ recipesFound.fishing5=true; showReward('📜 5 fish found — a recipe washed ashore! Check the Pet Station!'); }
   if(uniqueFishCount()>=15 && !recipesFound.fishing15){ recipesFound.fishing15=true; showReward('📜 15 fish found — a legendary recipe surfaced! Check the Pet Station!'); }
   save();
 }
-function stopFishing(quiet){ if(fishing && !quiet) pops.push({x:toad.x, y:toad.y-90, t:0, txt:'💨'}); fishing=false; fishT=0; }
+function stopFishing(quiet){ if(fishing && !quiet) pops.push({x:toad.x, y:toad.y-90, t:0, txt:'💨'}); fishing=false; fishT=0; biteT=0; reelHold=0; fishMoveT=0; }
+window.addEventListener('pointerdown', ()=>{ fishHoldDown=true; }, true);
+window.addEventListener('pointerup',   ()=>{ fishHoldDown=false; }, true);
+window.addEventListener('pointercancel',()=>{ fishHoldDown=false; }, true);
 /* ---------------- Weather: changes every couple of minutes, affects toad & bug speed ---------------- */
 const WEATHERS={
   sun:  {label:'',            toad:1,    bug:1   },
@@ -702,7 +749,7 @@ let tongue = { active:false, t:0, tx:0, ty:0, hit:false };
 let plant = { active:false, x:0, y:0, timer:0, where:'ground' };
 const boss = { active:false, kind:'heron', x:0, y:0, hp:0, maxhp:6, state:'idle', timer:0, flash:0, vx:0 };
 let petAtk=0;
-const BOSS_KINDS={ heron:{name:'Heron 🐦',hp:6,reward:25}, fly:{name:'Giant Fly 🪰',hp:8,reward:35}, snake:{name:'Snake 🐍',hp:10,reward:50}, bat:{name:'Bat 🦇',hp:12,reward:60} };
+const BOSS_KINDS={ heron:{name:'Heron 🐦',hp:6,reward:25}, fly:{name:'Giant Fly 🪰',hp:8,reward:35}, snake:{name:'Snake 🐍',hp:10,reward:50}, bat:{name:'Bat 🦇',hp:12,reward:60}, toad:{name:'Giant Toad 🐸',hp:14,reward:75}, crab:{name:'Mega Crab 🦀',hp:16,reward:90} };
 let difficulty='normal';
 /* Update 7 state */
 let slowT=0;                      // boss-hit speed debuff (cured by Speedy Juice)
@@ -723,6 +770,8 @@ const BOSS_LINES={
   fly:  {intro:['Bzzz! Catch me if you can!'], hit:['Bzzt!! No fair!','My wing!!'], lose:['Bzz... too ssslow... 🪰']},
   snake:{intro:['Sssurrender, little toad!'], hit:['Hisss!!','Sssstop that!'], lose:['Ssso embarrassssing...']},
   bat:  {intro:['Screee! Who woke me up?!'], hit:['Eeek!!','My ears!!'], lose:['Back to my cave... 🦇']},
+  toad: {intro:['RIBBIT. I\'m the BIGGEST toad here!','Only room for ONE toad around here!'], hit:['Ribbit-OW!!','Hey, we\'re practically family!'], lose:['Fine… YOU\'RE the biggest toad. 🐸']},
+  crab: {intro:['Click clack! Feel my PINCH!','This beach belongs to MEEE!'], hit:['Ouch, my shell!!','Clack!! Not the claw!'], lose:['Scuttling away sideways… 🦀']},
   frozen:['S-s-so c-c-cold!','B-b-brrrr!!','I c-c-can\'t m-move!'],
 };
 function bossLineKey(){ return (boss.kind==='heron' && area==='cave') ? 'duck' : boss.kind; }
@@ -870,8 +919,19 @@ function updateArea(){
     for(const b of areaBugs){ if(b.cat==='fly' && !b.fleeing && !FRUIT_BOOST[b.type]){ b.vx+=(plant.x-b.x)*0.004; b.vy+=((plant.y-16)-b.y)*0.004; b.alarm=0; } }
   }
   if(area==='beach' && fishing){
-    if(dir!==null) stopFishing();
-    else { fishT++; if(fishT>=fishWait){ fishT=0; fishWait=200+Math.random()*200; catchFish(); } }
+    if(biteT>0){
+      // a fish is ON the line! hold the screen to reel it in
+      if(fishHoldDown){
+        reelHold++;
+        if(reelHold>=28){ biteT=0; reelHold=0; fishT=0; fishWait=200+Math.random()*200; fishMoveT=0; catchFish(); }
+      }
+      if(biteT>0){
+        biteT--;
+        if(biteT<=0){ reelHold=0; fishT=0; fishWait=200+Math.random()*200; pops.push({x:toad.x+70, y:toad.y-84, t:0, txt:'💨 got away!'}); sfx('mad'); }
+      }
+    }
+    else if(dir!==null){ fishMoveT++; if(fishMoveT>18) stopFishing(); }
+    else { fishMoveT=0; fishT++; if(fishT>=fishWait){ fishT=0; biteT=80; reelHold=0; sfx('splash'); } }
   }
   if(area==='castle'){
     if(dir==='right' && toad.x>=W-toad.w*0.5-2 && castleFloor<5){ castleFloor++; toad.x=toad.w*0.5+30; refreshCastleBugs(); chestProg=0; secretDone=false; secretProg=0; recipeProg=0; sfx('jump'); }
@@ -1478,6 +1538,71 @@ function drawBoss(){
     drawBossAccessory(hx, hy-15, face, 1.1);
     drawBossOverlays(); return;
   }
+  if(boss.kind==='toad'){
+    // the GIANT TOAD — a huge mirror-match rival! It hops up during its attack.
+    let lift=0, tongueOut=0;
+    if(boss.state==='wind'){ lift=Math.sin(t*0.4)*4+8; }
+    else if(boss.state==='peck'){ const pk=1-boss.timer/16; lift=Math.sin(pk*Math.PI)*46; tongueOut=Math.sin(pk*Math.PI); }
+    else if(boss.state==='defeated'){ lift=-4; }
+    const by=gy-lift, bcol2=flash?'#fff':'#5aa844', dk=flash?'#dfe8df':'#39702a', bel=flash?'#fff':'#c8e6a0';
+    // legs
+    ctx.fillStyle=dk; ctx.beginPath(); ctx.ellipse(x-34,by-10,16,10,0.3,0,7); ctx.ellipse(x+34,by-10,16,10,-0.3,0,7); ctx.fill();
+    // body
+    ctx.fillStyle=bcol2; ctx.beginPath(); ctx.ellipse(x,by-44,46,42,0,0,7); ctx.fill();
+    ctx.fillStyle=bel; ctx.beginPath(); ctx.ellipse(x,by-30,30,22,0,0,7); ctx.fill();
+    // warty spots
+    ctx.fillStyle=dk; for(const [sx2,sy2] of [[-26,-66],[20,-72],[-6,-80],[30,-52]]){ ctx.beginPath(); ctx.arc(x+sx2,by+sy2,4,0,7); ctx.fill(); }
+    // eye bumps
+    for(const s of [-1,1]){
+      ctx.fillStyle=bcol2; ctx.beginPath(); ctx.arc(x+s*22,by-84,14,0,7); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x+s*22,by-86,8,0,7); ctx.fill();
+      ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(x+s*22+face*3,by-86,4,0,7); ctx.fill();
+    }
+    // big mouth + tongue lash at the player during the attack
+    ctx.strokeStyle=dk; ctx.lineWidth=4; ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(x,by-58,22,0.25,Math.PI-0.25); ctx.stroke();
+    if(tongueOut>0.15){
+      const tx=x+face*(30+70*tongueOut), ty=by-52;
+      ctx.strokeStyle='#e8617a'; ctx.lineWidth=9; ctx.beginPath(); ctx.moveTo(x+face*8,by-56); ctx.quadraticCurveTo((x+tx)/2, ty-20, tx, ty); ctx.stroke();
+      ctx.fillStyle='#e8617a'; ctx.beginPath(); ctx.arc(tx,ty,7,0,7); ctx.fill();
+    }
+    drawBossAccessory(x, by-96, face, 1.4);
+    drawBossOverlays(); return;
+  }
+  if(boss.kind==='crab'){
+    // the MEGA CRAB — snappy claws, sideways scuttle!
+    const scuttle=Math.sin(t*0.3)*3;
+    const by=gy-6+ (boss.state==='defeated'? -4:0);
+    const ccol=flash?'#fff':'#e0654a', dk=flash?'#e8e8e8':'#a03a26';
+    // legs
+    ctx.strokeStyle=dk; ctx.lineWidth=5; ctx.lineCap='round';
+    for(const s of [-1,1]){ for(let k=0;k<3;k++){ const lx=x+s*(20+k*12), bend=Math.sin(t*0.3+k)*3;
+      ctx.beginPath(); ctx.moveTo(lx,by-22); ctx.quadraticCurveTo(lx+s*14,by-10+bend, lx+s*20,by); ctx.stroke(); } }
+    // body
+    ctx.fillStyle=ccol; ctx.beginPath(); ctx.ellipse(x+scuttle,by-32,42,28,0,0,7); ctx.fill();
+    ctx.fillStyle=dk; ctx.beginPath(); ctx.ellipse(x+scuttle,by-24,30,12,0,0,7); ctx.fill();
+    // eyes on stalks
+    for(const s of [-1,1]){
+      ctx.strokeStyle=dk; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(x+s*12,by-54); ctx.lineTo(x+s*15,by-70); ctx.stroke();
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x+s*15,by-74,7,0,7); ctx.fill();
+      ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(x+s*15+face*2,by-74,3.5,0,7); ctx.fill();
+    }
+    // claws — the near one snaps forward during the attack
+    for(const s of [-1,1]){
+      const near = s===face;
+      let cx2=x+s*52, cy2=by-40, open=0.35+Math.sin(t*0.2)*0.08;
+      if(near && boss.state==='wind'){ cy2-=18; open=0.8; }
+      if(near && boss.state==='peck'){ const pk=1-boss.timer/16; cx2+=s*44*pk; cy2+=8*pk; open=0.8-0.7*pk; }
+      ctx.strokeStyle=dk; ctx.lineWidth=8; ctx.beginPath(); ctx.moveTo(x+s*34,by-36); ctx.lineTo(cx2-s*8,cy2); ctx.stroke();
+      ctx.fillStyle=ccol;
+      ctx.beginPath(); ctx.ellipse(cx2,cy2,15,12,s*0.3,0,7); ctx.fill();
+      ctx.fillStyle=dk;
+      ctx.beginPath(); ctx.moveTo(cx2,cy2-4); ctx.lineTo(cx2+s*16,cy2-4-14*open); ctx.lineTo(cx2+s*10,cy2-2); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx2,cy2+4); ctx.lineTo(cx2+s*16,cy2+4+10*open); ctx.lineTo(cx2+s*10,cy2+2); ctx.closePath(); ctx.fill();
+    }
+    drawBossAccessory(x, by-58, face, 1.3);
+    drawBossOverlays(); return;
+  }
   if(area==='cave'){
     // birds can't swim — so in the water cave the boss is a big Diving Duck!
     const by=gy-34+Math.sin(t*0.1)*5;
@@ -1838,8 +1963,15 @@ function drawArea(){
     ctx.strokeStyle='rgba(255,255,255,0.75)'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.moveTo(rx, ry-26); ctx.quadraticCurveTo((rx+bobX)/2, ry-44, bobX, bobY); ctx.stroke();
     ctx.fillStyle='#e0554f'; ctx.beginPath(); ctx.arc(bobX, bobY, 5, 0, 7); ctx.fill();
-    if(fishWait-fishT<45){ ctx.font='16px sans-serif'; ctx.textAlign='center'; ctx.fillText('❗', bobX, bobY-14); }
-    ctx.fillStyle='#173a1a'; fitText('🎣 fishing with the '+RODS[bestRodIdx()].name+'... stay still!', W/2, H*0.22, 14);
+    if(biteT>0){
+      const bnc=Math.abs(Math.sin(t*0.3))*6;
+      ctx.font='26px sans-serif'; ctx.textAlign='center'; ctx.fillText('❗', bobX, bobY-20-bnc);
+      ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.arc(bobX, bobY, 16, -Math.PI/2, -Math.PI/2+6.28*(reelHold/28)); ctx.stroke();
+      ctx.fillStyle='#fff'; fitText('❗ HOLD the screen to reel it in!!', W/2, H*0.22, 17);
+    } else {
+      ctx.fillStyle='#173a1a'; fitText('🎣 '+RODS[bestRodIdx()].name+' — stay still & watch for the ❗, then HOLD to reel!', W/2, H*0.22, 14);
+    }
   }
   drawPops();
   drawBossHealth();
@@ -1857,6 +1989,7 @@ function drawPlatform(p){
 function skinColors(){
   switch(worn.skin){
     case 'gold': return {b:'#e9c94a',bel:'#f6e39a',d:'#c9a52f'};
+    case 'fish_dragonskin': return {b:'#3fae9a',bel:'#ffe9a0',d:'#22705f',sparkle:true,spots:'#e9c94a'};
     case 'galaxy': return {b:'#2e2b63',bel:'#3f3c86',d:'#1d1a45',stars:true};
     case 'sparkly': return {b:'#f58fce',bel:'#ffd7f0',d:'#d364ab',sparkle:true};
     case 'boreal': return {b:'#a07a4a',bel:'#dcc79c',d:'#6f5330',spots:'#7c5c34'};
@@ -2143,6 +2276,13 @@ function drawToad(){
     ctx.globalAlpha=1;
   }
   if(!swimming){ ctx.fillStyle='rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(bx, groundY+6, bw*0.5, 9, 0,0,7); ctx.fill(); }
+  if(worn.coat==='fish_scalecape'){
+    const shim=0.5+0.5*Math.sin(t*0.1);
+    ctx.fillStyle='#2e8a9a'; ctx.beginPath(); ctx.moveTo(bx-bw*0.28, cy-bh*0.34); ctx.quadraticCurveTo(bx-bw*0.9, cy+bh*0.3, bx-bw*0.32, cy+bh*0.62); ctx.quadraticCurveTo(bx, cy+bh*0.44, bx+bw*0.32, cy+bh*0.62); ctx.quadraticCurveTo(bx+bw*0.9, cy+bh*0.3, bx+bw*0.28, cy-bh*0.34); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(180,240,220,'+(0.5+0.3*shim)+')'; ctx.lineWidth=2;
+    for(let row=0;row<3;row++){ for(let k=-2;k<=2;k++){ ctx.beginPath(); ctx.arc(bx+k*bw*0.16, cy-bh*0.1+row*bh*0.2, bw*0.09, 0.15, Math.PI-0.15); ctx.stroke(); } }
+    ctx.fillStyle='#ffe9a0'; ctx.fillRect(bx-bw*0.28, cy-bh*0.4, bw*0.56, 5);
+  }
   if(worn.coat==='cape'){ ctx.fillStyle='#c0392b'; ctx.beginPath(); ctx.moveTo(bx-bw*0.28, cy-bh*0.34); ctx.quadraticCurveTo(bx-bw*0.95, cy+bh*0.3, bx-bw*0.34, cy+bh*0.62); ctx.quadraticCurveTo(bx, cy+bh*0.42, bx+bw*0.34, cy+bh*0.62); ctx.quadraticCurveTo(bx+bw*0.95, cy+bh*0.3, bx+bw*0.28, cy-bh*0.34); ctx.closePath(); ctx.fill(); ctx.fillStyle='#a5322b'; ctx.fillRect(bx-bw*0.28, cy-bh*0.4, bw*0.56, 6); }
   if(worn.coat==='royalrobe'){
     ctx.fillStyle='#6a3fb0'; ctx.beginPath(); ctx.moveTo(bx-bw*0.28, cy-bh*0.34); ctx.quadraticCurveTo(bx-bw*0.95, cy+bh*0.3, bx-bw*0.34, cy+bh*0.62); ctx.quadraticCurveTo(bx, cy+bh*0.42, bx+bw*0.34, cy+bh*0.62); ctx.quadraticCurveTo(bx+bw*0.95, cy+bh*0.3, bx+bw*0.28, cy-bh*0.34); ctx.closePath(); ctx.fill();
@@ -2336,6 +2476,17 @@ function drawToad(){
       ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.moveTo(gx-4, ey-6); ctx.lineTo(gx+1, ey-9); ctx.stroke(); }
     ctx.strokeStyle='#3ab8d0'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(bx-ex+10, ey-3); ctx.lineTo(bx+ex-10, ey-3); ctx.stroke(); }
 
+  if(worn.hat==='fish_finhat'){ ctx.fillStyle='#8a9caa'; ctx.beginPath(); ctx.moveTo(bx-16, ey-22); ctx.quadraticCurveTo(bx-4, ey-58, bx+16, ey-50); ctx.quadraticCurveTo(bx+10, ey-34, bx+18, ey-22); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#6a7c8a'; ctx.beginPath(); ctx.moveTo(bx-10, ey-24); ctx.quadraticCurveTo(bx, ey-46, bx+12, ey-44); ctx.lineTo(bx+12, ey-24); ctx.closePath(); ctx.fill(); }
+  if(worn.hat==='fish_bubblecrown'){ for(let i=0;i<5;i++){ const ba=Math.PI+i*(Math.PI/4), bxx=bx+Math.cos(ba+Math.PI)*22, byy=ey-30+Math.sin(t*0.12+i)*3-Math.abs(Math.sin(ba))*8;
+      ctx.fillStyle='rgba(190,235,255,0.55)'; ctx.beginPath(); ctx.arc(bxx, byy, 6+(i%2)*2, 0, 7); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(bxx-2, byy-2, 1.5, 0, 7); ctx.fill(); } }
+  if(worn.glasses==='fish_pearlgoggles'){ for(const s of [-1,1]){ const gx=bx+s*ex;
+      ctx.fillStyle='rgba(160,225,245,0.5)'; ctx.beginPath(); ctx.arc(gx, ey-2, 11, 0, 7); ctx.fill();
+      ctx.strokeStyle='#f0e6d8'; ctx.lineWidth=3.5; ctx.beginPath(); ctx.arc(gx, ey-2, 11, 0, 7); ctx.stroke();
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(gx, ey-14, 3, 0, 7); ctx.fill(); }
+    ctx.strokeStyle='#f0e6d8'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(bx-4, ey-3); ctx.lineTo(bx+4, ey-3); ctx.stroke(); }
   if(worn.hat==='hat'){ ctx.fillStyle='#2b2b3a'; ctx.fillRect(bx-30, ey-24, 60, 8); ctx.fillRect(bx-20, ey-52, 40, 32); ctx.fillStyle='#e0554f'; ctx.fillRect(bx-20, ey-30, 40, 6); }
   if(worn.hat==='strawhat'){
     ctx.fillStyle='#e23b4b'; ctx.beginPath(); ctx.moveTo(bx-24, ey-30); ctx.quadraticCurveTo(bx, ey-50, bx+24, ey-30); ctx.quadraticCurveTo(bx+16, ey-12, bx, ey-6); ctx.quadraticCurveTo(bx-16, ey-12, bx-24, ey-30); ctx.fill();
@@ -2738,7 +2889,13 @@ SHOP.push(
   { id:'knighthelm', name:'Knight Helmet',  emoji:'🛡️', price:0, slot:'hat',   secret:true },
   { id:'royalrobe',  name:'Royal Robe',     emoji:'🟣', price:0, slot:'coat',  secret:true },
   { id:'jesterhat',  name:'Jester Hat',     emoji:'🃏', price:0, slot:'hat',   secret:true },
-  { id:'em_castle',  name:'Castle',         emoji:'🏰', char:'🏰', price:0, slot:'emote', secret:true }
+  { id:'em_castle',  name:'Castle',         emoji:'🏰', char:'🏰', price:0, slot:'emote', secret:true },
+  // fish-crafted outfits (crafted in the Fish Collection — the fish get used up!)
+  { id:'fish_finhat',      name:'Shark Fin Hat',    emoji:'🦈', price:0, slot:'hat',     secret:true },
+  { id:'fish_bubblecrown', name:'Bubble Crown',     emoji:'🫧', price:0, slot:'hat',     secret:true },
+  { id:'fish_pearlgoggles',name:'Pearl Goggles',    emoji:'🤿', price:0, slot:'glasses', secret:true },
+  { id:'fish_scalecape',   name:'Shimmer Scale Cape',emoji:'🧜', price:0, slot:'coat',   secret:true },
+  { id:'fish_dragonskin',  name:'Sea Dragon Skin',  emoji:'🐉', price:0, slot:'skin',    secret:true }
 );
 /* ---- Mystic Pets: one visits the shop each hour (real clock) — collect all 6! ---- */
 const MYSTIC_PETS=[
@@ -3000,8 +3157,8 @@ document.getElementById('shopGrid').addEventListener('click',(e)=>{
   if(wear){ const it=SHOP.find(s=>s.id===wear); if(it){ worn[it.slot] = (worn[it.slot]===wear? null : wear); rerenderShop(); save(); } }
 });
 function updateCoins(){ document.getElementById('coinCount').textContent = coins; save(); }
-function save(){ try{ localStorage.setItem('toadsim_save', JSON.stringify({coins,owned,worn,musicOn,sfxOn,home:homeData,garden,conSeeds,difficulty,secretFound,vbest:volley.best,moveMult,ctrlMode,musicTrack,petCare,petData,bossSkin,recipesFound,fishCaught,castleOpened,battleCfg})); }catch(e){} }
-function load(){ try{ const s=JSON.parse(localStorage.getItem('toadsim_save')||'null'); if(!s) return; if(typeof s.coins==='number') coins=s.coins; if(s.owned) Object.assign(owned,s.owned); if(s.worn) Object.assign(worn,s.worn); if(typeof s.musicOn==='boolean') musicOn=s.musicOn; if(typeof s.sfxOn==='boolean') sfxOn=s.sfxOn; if(Array.isArray(s.home)&&s.home.length){ homeData.length=0; for(const r of s.home) homeData.push({wall:r.wall||0, items:Array.isArray(r.items)?r.items:[]}); } if(Array.isArray(s.garden)&&s.garden.length){ garden.length=0; for(const p of s.garden) garden.push({seed:p.seed||null, t:p.t||0}); } if(typeof s.conSeeds==='number') conSeeds=s.conSeeds; if(s.difficulty && DIFF[s.difficulty]) difficulty=s.difficulty; if(s.secretFound) Object.assign(secretFound,s.secretFound); if(typeof s.vbest==='number') volley.best=s.vbest; if(typeof s.moveMult==='number' && [0.8,1,1.25,1.5].includes(s.moveMult)) moveMult=s.moveMult; if(s.ctrlMode==='stick'||s.ctrlMode==='zones') ctrlMode=s.ctrlMode; if(s.musicTrack && MUSIC_TRACKS[s.musicTrack]) musicTrack=s.musicTrack; if(typeof s.petCare==='boolean') petCare=s.petCare; if(s.petData) Object.assign(petData,s.petData); if(typeof s.bossSkin==='string' && BOSS_SKINS.some(x=>x[0]===s.bossSkin)) bossSkin=s.bossSkin; if(s.recipesFound) Object.assign(recipesFound,s.recipesFound); if(s.fishCaught) Object.assign(fishCaught,s.fishCaught); if(s.castleOpened) Object.assign(castleOpened,s.castleOpened); if(s.battleCfg){ for(const p of [1,2]){ const c=s.battleCfg[p]; if(c){ if(typeof c.ci==='number' && BC_COLORS[c.ci]) battleCfg[p].ci=c.ci; if(BC_EXPRS.some(x=>x[0]===c.expr)) battleCfg[p].expr=c.expr; if(c.acc===null || BC_ACCS.some(x=>x[0]===c.acc)) battleCfg[p].acc=c.acc; } } } }catch(e){} }
+function save(){ try{ localStorage.setItem('toadsim_save', JSON.stringify({coins,owned,worn,musicOn,sfxOn,home:homeData,garden,conSeeds,difficulty,secretFound,vbest:volley.best,moveMult,ctrlMode,musicTrack,petCare,petData,bossSkin,recipesFound,fishCaught,castleOpened,battleCfg,battleGrid,battleMode})); }catch(e){} }
+function load(){ try{ const s=JSON.parse(localStorage.getItem('toadsim_save')||'null'); if(!s) return; if(typeof s.coins==='number') coins=s.coins; if(s.owned) Object.assign(owned,s.owned); if(s.worn) Object.assign(worn,s.worn); if(typeof s.musicOn==='boolean') musicOn=s.musicOn; if(typeof s.sfxOn==='boolean') sfxOn=s.sfxOn; if(Array.isArray(s.home)&&s.home.length){ homeData.length=0; for(const r of s.home) homeData.push({wall:r.wall||0, items:Array.isArray(r.items)?r.items:[]}); } if(Array.isArray(s.garden)&&s.garden.length){ garden.length=0; for(const p of s.garden) garden.push({seed:p.seed||null, t:p.t||0}); } if(typeof s.conSeeds==='number') conSeeds=s.conSeeds; if(s.difficulty && DIFF[s.difficulty]) difficulty=s.difficulty; if(s.secretFound) Object.assign(secretFound,s.secretFound); if(typeof s.vbest==='number') volley.best=s.vbest; if(typeof s.moveMult==='number' && [0.8,1,1.25,1.5].includes(s.moveMult)) moveMult=s.moveMult; if(s.ctrlMode==='stick'||s.ctrlMode==='zones') ctrlMode=s.ctrlMode; if(s.musicTrack && MUSIC_TRACKS[s.musicTrack]) musicTrack=s.musicTrack; if(typeof s.petCare==='boolean') petCare=s.petCare; if(s.petData) Object.assign(petData,s.petData); if(typeof s.bossSkin==='string' && BOSS_SKINS.some(x=>x[0]===s.bossSkin)) bossSkin=s.bossSkin; if(s.recipesFound) Object.assign(recipesFound,s.recipesFound); if(s.fishCaught) Object.assign(fishCaught,s.fishCaught); if(s.castleOpened) Object.assign(castleOpened,s.castleOpened); if(s.battleCfg){ for(const p of [1,2]){ const c=s.battleCfg[p]; if(c){ if(typeof c.ci==='number' && BC_COLORS[c.ci]) battleCfg[p].ci=c.ci; if(BC_EXPRS.some(x=>x[0]===c.expr)) battleCfg[p].expr=c.expr; if(c.acc===null || BC_ACCS.some(x=>x[0]===c.acc)) battleCfg[p].acc=c.acc; } } } if(s.battleGrid && BATTLE_GRIDS[s.battleGrid]) battleGrid=s.battleGrid; if(s.battleMode && BATTLE_MODES.some(m=>m[0]===s.battleMode)) battleMode=s.battleMode; }catch(e){} }
 
 /* ---------------- Buttons ---------------- */
 document.getElementById('dayBtn').addEventListener('click',()=>{
@@ -3036,7 +3193,7 @@ document.getElementById('bossBtn').addEventListener('click',()=>{
   document.getElementById('bossPick').classList.remove('hidden');
 });
 document.getElementById('bossPickClose').addEventListener('click',()=>document.getElementById('bossPick').classList.add('hidden'));
-for(const [bid,kind] of [['bossHeron','heron'],['bossFly','fly'],['bossSnake','snake'],['bossBat','bat']]){
+for(const [bid,kind] of [['bossHeron','heron'],['bossFly','fly'],['bossSnake','snake'],['bossBat','bat'],['bossToad','toad'],['bossCrab','crab']]){
   document.getElementById(bid).addEventListener('click',()=>{ document.getElementById('bossPick').classList.add('hidden'); startBoss(kind); });
 }
 /* ---- Settings: song, movement speed, control mode, pet care ---- */
@@ -3066,6 +3223,13 @@ function buildSettingsRows(){
 document.getElementById('petCareToggle').addEventListener('click',()=>{ petCare = petCare===true? false : true; save(); buildSettingsRows(); sfx('coin'); });
 /* ---- Toad News (title screen update log) ---- */
 const NEWS=[
+  {v:'Update 13', d:'Sep 6', items:[
+    '🎨 TONGUE BATTLE SETUP SCREEN! Before every battle, pick your pixel size (XS to XL) and one of FOUR modes: 🎨 Classic, 🎡 Wacky Wheel (crazy events shake the board — swaps, rainbow rain, earthquakes, turbo!), 🧱 Builders & Destroyers (4 random toads build brick walls, the rest get hammers to SMASH them), and ☄️ Chaos (dodge meteors & lightning or get dizzy!)',
+    '🎣 FISHING GOT REAL: 20 NEW fish (40 total!) including the 🐉 Golden Sea Dragon — a LEGENDARY 6-star fish, mythic rod only, 1-in-100 chance. And no more lazy fishing: when the ❗ pops up you have to HOLD the screen to reel it in!',
+    '🧵 FISH CRAFTING! Craft outfits from the fish you catch (the fish get used up): Shark Fin Hat 🦈, Bubble Crown 🫧, Pearl Goggles 🤿, Shimmer Scale Cape 🧜 and the Sea Dragon Skin 🐉',
+    '⚔️ TWO NEW BOSSES: the GIANT TOAD 🐸 — a huge rival toad with a mega tongue — and the MEGA CRAB 🦀 with snapping claws!',
+    '🎡 Wheel of Luck surprises: 🍀 lucky spins heal a heart (never at full hearts!), 🛡️ shields block a ❌, 🎁 mysteries fix the wheel, 💀 SUPER UNLUCKY costs two hearts, and 🔄 rare heart swaps!',
+    '💬 Toad Chat: 4 new things to do with your friend — ✊ Rock Paper Scissors, 😂 jokes, 🔍 Guess My Bug, and 🔮 silly toad fortunes!']},
   {v:'Update 12', d:'Sep 6', items:[
     '🎨 TONGUE BATTLE is a whole new GRID GAME — designed from Sasha\'s own drawing! Chunky toad faces live on a board of tiny pixels, you hop pixel-to-pixel with a brand-new 4-way arrow pad (👅 tongue button in the middle), and every pixel you land on becomes yours!',
     '🚧 New rule: you CAN\'T walk onto another team\'s pixels — you have to 👅 tongue them open first! Build walls, break through walls',
@@ -3156,15 +3320,51 @@ document.getElementById('rodBtn').addEventListener('click',()=>{
   if(fishing){ stopFishing(true); }
   else { fishing=true; fishT=0; fishWait=200+Math.random()*200; sfx('splash'); }
 });
+/* fish-crafted outfits: the fish are USED UP when you craft (Sasha's call) */
+const FISH_RECIPES=[
+  { out:'fish_finhat',      needs:{shark:2} },
+  { out:'fish_bubblecrown', needs:{moonjelly:2, bloop:2} },
+  { out:'fish_pearlgoggles',needs:{clam:3, seasnail:2} },
+  { out:'fish_scalecape',   needs:{goldkoi:1, tetra:3, stripey:2} },
+  { out:'fish_dragonskin',  needs:{seadragon:1, whale:1, phoenixf:1} },
+];
+function fishName(id){ const f=FISH.find(x=>x.id===id); return f? f.e+' '+f.n : id; }
+function canFishCraft(r){ for(const k in r.needs){ if((fishCaught[k]||0) < r.needs[k]) return false; } return true; }
+function doFishCraft(i){
+  const r=FISH_RECIPES[i]; if(!r || owned[r.out] || !canFishCraft(r)) return;
+  for(const k in r.needs){ fishCaught[k]-=r.needs[k]; if(fishCaught[k]<=0) delete fishCaught[k]; }
+  owned[r.out]=true; save(); sfx('win');
+  const it=SHOP.find(s=>s.id===r.out);
+  showReward('🧵 Crafted the '+it.emoji+' '+it.name+'! Find it in your shop slots!');
+  renderFishdex();
+}
 function renderFishdex(){
   document.getElementById('fishDexSub').textContent = uniqueFishCount()+' / '+FISH.length+' fish found · rod: '+RODS[bestRodIdx()].name+' · better rods at 🧢 City Styles!';
   const g=document.getElementById('fishGrid'); g.innerHTML='';
   for(const f of FISH){
     const c=fishCaught[f.id]||0;
     const d=document.createElement('div'); d.className='fishcard'+(c?'':' unk');
-    d.innerHTML='<div style="font-size:30px;">'+(c?f.e:'❓')+'</div><div style="font-weight:800;font-size:13px;">'+(c?f.n:'???')+'</div><div class="stars">'+'⭐'.repeat(f.r)+'</div>'+(c?'<div style="font-size:11px;color:#6b7a63;font-weight:700;">caught ×'+c+'</div>':'');
+    const lgd = f.r===6? '<div style="font-size:10px;color:#c9891e;font-weight:900;">LEGENDARY · Mythic Rod only!</div>' : '';
+    d.innerHTML='<div style="font-size:30px;">'+(c?f.e:'❓')+'</div><div style="font-weight:800;font-size:13px;">'+(c?f.n:'???')+'</div><div class="stars">'+'⭐'.repeat(f.r)+'</div>'+lgd+(c?'<div style="font-size:11px;color:#6b7a63;font-weight:700;">caught ×'+c+'</div>':'');
     g.appendChild(d);
   }
+  const cr=document.getElementById('fishCraft'); cr.innerHTML='';
+  FISH_RECIPES.forEach((r,i)=>{
+    const it=SHOP.find(s=>s.id===r.out);
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;background:#f2f8ee;border-radius:12px;padding:8px 10px;margin-top:6px;';
+    const needTxt=Object.keys(r.needs).map(k=>{
+      const have=fishCaught[k]||0, need=r.needs[k];
+      return '<span style="color:'+(have>=need?'#2e7a4a':'#a05a4a')+';font-weight:800;">'+fishName(k)+' '+Math.min(have,need)+'/'+need+'</span>';
+    }).join(' · ');
+    row.innerHTML='<div style="font-size:26px;">'+it.emoji+'</div><div style="flex:1;"><div style="font-weight:900;font-size:14px;">'+it.name+'</div><div style="font-size:11px;">'+needTxt+'</div></div>';
+    const b=document.createElement('button');
+    if(owned[r.out]){ b.className='closebtn'; b.style.cssText='padding:8px 14px;font-size:13px;'; b.textContent='Crafted ✓'; b.disabled=true; }
+    else { b.className='bigbtn'; b.style.cssText='width:auto;padding:8px 14px;font-size:14px;margin:0;'; b.textContent='Craft 🧵'; b.disabled=!canFishCraft(r); if(b.disabled) b.style.opacity='0.45';
+      b.addEventListener('click',()=>doFishCraft(i)); }
+    row.appendChild(b);
+    cr.appendChild(row);
+  });
 }
 document.getElementById('dexBtn').addEventListener('click',()=>{ renderFishdex(); document.getElementById('fishScreen').classList.remove('hidden'); });
 document.getElementById('closeFish').addEventListener('click',()=>document.getElementById('fishScreen').classList.add('hidden'));
@@ -3311,7 +3511,7 @@ function tttPlay(i){
   }
 }
 document.getElementById('tttBtn').addEventListener('click',()=>{
-  document.getElementById('tradeBox').classList.add('hidden');
+  hideChatBoxes('tttBox');
   document.getElementById('tttBox').classList.remove('hidden');
   tttBoard=['','','','','','','','','']; tttOver=false; tttRender();
   addMsg('me','Want to play Tic-Tac-Toe? 🎮');
@@ -3357,10 +3557,116 @@ function doTrade(it){
   document.getElementById('tradeBox').classList.add('hidden');
 }
 document.getElementById('tradeBtn').addEventListener('click',()=>{
-  document.getElementById('tttBox').classList.add('hidden');
+  hideChatBoxes('tradeBox');
   const tb=document.getElementById('tradeBox');
   tb.classList.toggle('hidden');
   if(!tb.classList.contains('hidden')){ renderTrade(); addMsg('them','Let\'s trade! Pick something and I\'ll give you a surprise! 🎁'); tb.scrollIntoView({block:'nearest'}); }
+});
+function hideChatBoxes(except){
+  for(const id of ['tttBox','tradeBox','rpsBox','guessBox']){ if(id!==except) document.getElementById(id).classList.add('hidden'); }
+}
+/* ---- Rock Paper Scissors with the friend ---- */
+const RPS=[['rock','🪨'],['paper','📄'],['scissors','✂️']];
+function rpsBeats(a,b){ return (a==='rock'&&b==='scissors')||(a==='paper'&&b==='rock')||(a==='scissors'&&b==='paper'); }
+(function(){
+  const row=document.getElementById('rpsRow');
+  for(const [id,e] of RPS){
+    const b=document.createElement('button'); b.className='phrase'; b.style.fontSize='26px'; b.textContent=e;
+    b.addEventListener('click',()=>{
+      const [fid,fe]=RPS[Math.floor(Math.random()*3)];
+      addMsg('me',e); sfx('coin');
+      setTimeout(()=>{
+        addMsg('them',fe);
+        if(rpsBeats(id,fid)){ gainCoins(5); addMsg('them','You win!! Here\'s 5 coins! 🪙 Again?'); sfx('win'); save(); }
+        else if(rpsBeats(fid,id)) addMsg('them','I win! Hehe! 😄 One more?');
+        else addMsg('them','A tie! Toads think alike! 🐸🐸');
+      }, 500);
+    });
+    row.appendChild(b);
+  }
+})();
+document.getElementById('rpsBtn').addEventListener('click',()=>{
+  hideChatBoxes('rpsBox');
+  const box=document.getElementById('rpsBox'); box.classList.toggle('hidden');
+  if(!box.classList.contains('hidden')){ addMsg('me','Rock paper scissors? ✊'); addMsg('them','You\'re ON! Pick one — win and I\'ll give you coins! 🪙'); box.scrollIntoView({block:'nearest'}); }
+});
+/* ---- Joke time ---- */
+const JOKES=[
+  ['Why are frogs so happy?','They eat whatever bugs them! 😂'],
+  ['What do you call a toad with no legs?','It doesn\'t matter — it won\'t come anyway! 🤭'],
+  ['Why did the fly never land on the computer?','It was afraid of the web! 🕸️😆'],
+  ['What\'s a toad\'s favorite drink?','Croak-a-cola! 🥤🐸'],
+  ['Why was the bee\'s hair sticky?','Because it used a honeycomb! 🐝😂'],
+  ['What do you call a snail on a ship?','A snailor! ⛵🐌'],
+  ['How do fish get to school?','By octobus! 🐙😆'],
+  ['What did the bug say to the flower?','Hi petal, you\'re bee-utiful! 🌸'],
+  ['Why don\'t dragons tell secrets in the castle?','Too many EAVES-droppers on the roof! 🏰😄'],
+  ['What\'s a frog\'s favorite game?','Croak-et! 🐸🏏'],
+];
+let jokeIdx=Math.floor(Math.random()*JOKES.length);
+document.getElementById('jokeBtn').addEventListener('click',()=>{
+  hideChatBoxes();
+  addMsg('me','Tell me a joke! 😄');
+  const j=JOKES[jokeIdx%JOKES.length]; jokeIdx++;
+  setTimeout(()=>{ addMsg('them',j[0]); }, 500);
+  setTimeout(()=>{ addMsg('them',j[1]); sfx('buy'); }, 1900);
+});
+/* ---- Guess my bug: 3 hints, 2 guesses ---- */
+const GUESS_BUGS=[
+  {e:'🪰', n:'fly',       hints:['I\'m super speedy!','I buzz around your head!','Toads think I\'m DELICIOUS!']},
+  {e:'🐝', n:'bee',       hints:['I love flowers!','I\'m stripy!','I make something sweet!']},
+  {e:'🦋', n:'butterfly', hints:['I used to be a caterpillar!','My wings are beautiful!','I flutter, not buzz!']},
+  {e:'🐌', n:'snail',     hints:['I\'m verrrry slow…','I carry my house everywhere!','I leave a shiny trail!']},
+  {e:'🐛', n:'caterpillar',hints:['I\'m always munching leaves!','I\'m long and wiggly!','One day I\'ll have wings!']},
+  {e:'🕷️', n:'spider',    hints:['I have LOTS of legs!','I\'m a great builder!','I catch flies too — like you!']},
+];
+let guessSecret=null, guessTries=0;
+document.getElementById('guessBtn').addEventListener('click',()=>{
+  hideChatBoxes('guessBox');
+  const box=document.getElementById('guessBox'); box.classList.toggle('hidden');
+  if(box.classList.contains('hidden')) return;
+  guessSecret=GUESS_BUGS[Math.floor(Math.random()*GUESS_BUGS.length)]; guessTries=0;
+  const row=document.getElementById('guessRow'); row.innerHTML='';
+  for(const g of GUESS_BUGS){
+    const b=document.createElement('button'); b.className='phrase'; b.style.fontSize='24px'; b.textContent=g.e;
+    b.addEventListener('click',()=>{
+      if(!guessSecret) return;
+      addMsg('me',g.e+'?'); sfx('coin'); guessTries++;
+      if(g===guessSecret){
+        const won=guessTries===1?8:4; gainCoins(won); save();
+        setTimeout(()=>{ addMsg('them','YES!! It was the '+g.n+' '+g.e+'! You get '+won+' coins! 🪙🎉'); sfx('win'); }, 400);
+        guessSecret=null; setTimeout(()=>box.classList.add('hidden'), 1200);
+      } else if(guessTries===1){
+        setTimeout(()=>{ addMsg('them','Nope, not the '+g.n+'! Here\'s another hint: '+guessSecret.hints[1]+' One more guess!'); }, 400);
+      } else {
+        const s=guessSecret; guessSecret=null;
+        setTimeout(()=>{ addMsg('them','Hee hee, it was the '+s.n+' '+s.e+'! Let\'s play again sometime! 😄'); }, 400);
+        setTimeout(()=>box.classList.add('hidden'), 1400);
+      }
+    });
+    row.appendChild(b);
+  }
+  addMsg('me','Let\'s play Guess My Bug! 🔍');
+  addMsg('them','I\'m thinking of a bug… hint: '+guessSecret.hints[0]+' Tap your guess!');
+  box.scrollIntoView({block:'nearest'});
+});
+/* ---- Silly toad fortunes ---- */
+const FORTUNES=[
+  '🔮 I see… a MOUNTAIN of flies in your future! Yum!',
+  '🔮 Tomorrow you will hop higher than ever before! 🦘',
+  '🔮 A shiny coin is waiting for you where the water sparkles… ✨',
+  '🔮 Someone very fuzzy is going to love you a lot. 🐾',
+  '🔮 Your next big jump will be LEGENDARY. Trust the tongue!',
+  '🔮 I see a new hat in your future. A fabulous one. 🎩',
+  '🔮 A fish with SIX stars swims in your destiny… 🌟',
+  '🔮 Beware of onions falling from the sky! 🧅😱',
+  '🔮 Great luck comes to toads who share their bugs. 💚',
+];
+document.getElementById('fortuneBtn').addEventListener('click',()=>{
+  hideChatBoxes();
+  addMsg('me','Tell my fortune! 🔮');
+  setTimeout(()=>{ addMsg('them','Hmmmm… let me look into my crystal dewdrop… 💧'); }, 500);
+  setTimeout(()=>{ addMsg('them',FORTUNES[Math.floor(Math.random()*FORTUNES.length)]); sfx('buy'); }, 1900);
 });
 
 /* ---------------- 2-Player Bug Race (same device, no internet) ---------------- */
@@ -3547,6 +3853,15 @@ const BC_EXPRS=[ ['open','😮 Big Mouth'], ['smile','😊 Smiley'], ['sad','�
 const BC_ACCS=[ [null,'—'], ['👑','👑'], ['🎀','🎀'], ['🎩','🎩'], ['🕶️','🕶️'], ['🌸','🌸'], ['⭐','⭐'] ];
 const battleCfg={ 1:{ci:0, expr:'open', acc:null}, 2:{ci:1, expr:'open', acc:null} };
 function bcCol(p){ return BC_COLORS[battleCfg[p].ci] || BC_COLORS[p-1]; }
+/* pre-game setup: 5 pixel sizes and 4 game modes */
+const BATTLE_GRIDS={ xs:{label:'XS', div:74}, s:{label:'S', div:58}, m:{label:'M', div:46}, l:{label:'L', div:36}, xl:{label:'XL', div:28} };
+const BATTLE_MODES=[
+  ['classic','🎨 Classic','paint the board, recruit friends, tongue the other player!'],
+  ['wacky','🎡 Wacky Wheel','every few seconds the wheel spins a WACKY event that shakes up the whole board!'],
+  ['build','🧱 Builders & Destroyers','4 random toads get bricks to build walls — the rest get hammers to SMASH them!'],
+  ['chaos','☄️ Chaos','meteors and lightning rain on the board — dodge or get dizzy! Survive AND paint!'],
+];
+let battleGrid='m', battleMode='classic';
 function battleScore(id){ battle.score[id]=(battle.score[id]||0)+1; }
 function battleTopTonguer(){
   let best=0, bid=0;
@@ -3574,9 +3889,10 @@ function battleEnts(){ const arr=[[1,P1],[2,P2]]; for(let i=0;i<battle.ais.lengt
 function setupBattle(){
   if(W<50 || H<50) resize();
   battle.top=H*0.14;
-  // tiny pixels! the board is made of lots of small squares; toads are about 4 pixels big
-  battle.cols=Math.max(10, Math.min(20, Math.floor(W/46)));
-  battle.rows=Math.max(5, Math.min(10, Math.floor((groundY-battle.top)/46)));
+  // tiny pixels! the size comes from the setup screen (XS = big chunky pixels, XL = teeny tiny ones)
+  const div=(BATTLE_GRIDS[battleGrid]||BATTLE_GRIDS.m).div;
+  battle.cols=Math.max(6, Math.min(34, Math.floor(W/div)));
+  battle.rows=Math.max(3, Math.min(16, Math.floor((groundY-battle.top)/div)));
   battle.cw=W/battle.cols; battle.ch=(groundY-battle.top)/battle.rows;
   battle.own=new Uint8Array(battle.cols*battle.rows);
   battle.ais=[];
@@ -3594,9 +3910,24 @@ function setupBattle(){
   for(const [id,P] of [[1,P1],[2,P2]]){ P.px=cellPx(P.gx); P.py=cellPy(P.gy); P.moveCd=0; P.stun=0; P.bT=0; P.bType=null; P.mouth=0; claimCell(P.gx,P.gy,id); }
   battle.timer=60*60; battle.score={}; battle.items=[]; battle.spawnT=240; battle.fx=[];
   battleHeld[1]=null; battleHeld[2]=null;
+  // mode state
+  battle.mode=battleMode;
+  battle.wall=new Uint8Array(battle.cols*battle.rows);
+  battle.roles={}; battle.haz=[]; battle.eventT=560; battle.hazT=200; battle.turboT=0;
+  battle.banner=''; battle.bannerT=0;
+  if(battle.mode==='build'){
+    const ids=[1,2,3,4,5,6,7,8];
+    for(let i=ids.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [ids[i],ids[j]]=[ids[j],ids[i]]; }
+    for(let i=0;i<8;i++) battle.roles[ids[i]] = i<4? 'builder':'breaker';
+    battle.banner='🧱 P1: '+(battle.roles[1]==='builder'?'BUILDER 🧱':'DESTROYER 🔨')+' · P2: '+(battle.roles[2]==='builder'?'BUILDER 🧱':'DESTROYER 🔨');
+    battle.bannerT=260;
+  }
+  if(battle.mode==='chaos'){ battle.banner='☄️ CHAOS! Dodge the falling danger!'; battle.bannerT=200; }
+  if(battle.mode==='wacky'){ battle.banner='🎡 Wacky Wheel is watching…'; battle.bannerT=180; }
 }
+function battleWallAt(cx,cy){ return battle.wall && battle.wall[cy*battle.cols+cx]===1; }
 function battleReach(ent){ return (ent.bType==='tongue' && ent.bT>0)? 2 : 1; }
-function battleMoveCd(ent){ return (ent.bType==='speed' && ent.bT>0)? 7 : 13; }
+function battleMoveCd(ent){ if(battle.turboT>0) return 6; return (ent.bType==='speed' && ent.bT>0)? 7 : 13; }
 function battlePickupAt(ent, id){
   for(let k=battle.items.length-1;k>=0;k--){
     const it=battle.items[k];
@@ -3612,6 +3943,7 @@ function battleTryMove(ent, id, dir){
   const dd={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[dir]; if(!dd) return false;
   const nx=ent.gx+dd[0], ny=ent.gy+dd[1];
   if(nx<0||nx>=battle.cols||ny<0||ny>=battle.rows) return false;
+  if(battleWallAt(nx,ny)) return 'wall';   // brick walls block EVERYONE
   // Sasha's rule: you can't step onto another team's pixels — tongue them first!
   const o=battle.own[ny*battle.cols+nx];
   if(o){ const ot=battleTeamOfEnt(o), mt=battleTeamOfEnt(id); if(ot && mt && ot!==mt) return 'blocked'; }
@@ -3640,10 +3972,37 @@ function battleTongue(pnum){
     best.team=me; best.mouth=14; battleScore(me); sfx('win');
     pops.push({x:best.px, y:best.py-battle.ch*0.5, t:0, txt: me===1?'💚':'💙', big:true});
     battle.fx.push({x:best.px, y:best.py, t:0});
+  } else if(battle.mode==='build' && battle.roles[me]==='builder'){
+    battleBuildWalls(P.gx, P.gy, me); sfx('buy');
+  } else if(battle.mode==='build' && battle.roles[me]==='breaker' && battleSmash(P.gx, P.gy, me)){
+    sfx('bosshit');
   } else {
     claimPlus(P.gx, P.gy, me, false); sfx('coin');
     battle.fx.push({x:P.px, y:P.py, t:0});
   }
+}
+/* builders drop bricks on the squares around them; destroyers smash walls open (and claim the rubble) */
+function battleBuildWalls(cx,cy,id){
+  let built=0;
+  for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){
+    const nx=cx+d[0], ny=cy+d[1];
+    if(nx<0||nx>=battle.cols||ny<0||ny>=battle.rows) continue;
+    if(battleWallAt(nx,ny)) continue;
+    if(battleEnts().some(([,o])=>o.gx===nx && o.gy===ny)) continue;   // never brick a toad in
+    battle.wall[ny*battle.cols+nx]=1; battle.own[ny*battle.cols+nx]=0; built++;
+  }
+  if(built){ pops.push({x:cellPx(cx), y:cellPy(cy)-battle.ch*0.5, t:0, txt:'🧱'}); battle.fx.push({x:cellPx(cx), y:cellPy(cy), t:0}); }
+  return built>0;
+}
+function battleSmash(cx,cy,id){
+  let smashed=0;
+  for(const d of [[0,0],[1,0],[-1,0],[0,1],[0,-1]]){
+    const nx=cx+d[0], ny=cy+d[1];
+    if(nx<0||nx>=battle.cols||ny<0||ny>=battle.rows) continue;
+    if(battleWallAt(nx,ny)){ battle.wall[ny*battle.cols+nx]=0; claimCell(nx,ny,id); smashed++; }
+  }
+  if(smashed){ pops.push({x:cellPx(cx), y:cellPy(cy)-battle.ch*0.5, t:0, txt:'🔨💥'}); battle.fx.push({x:cellPx(cx), y:cellPy(cy), t:0, big:true}); if(id<=2) battleScore(id); }
+  return smashed>0;
 }
 function endBattle(winner, why){
   twoP=false;
@@ -3676,6 +4035,60 @@ function updateBattle(){
   }
   for(let k=battle.items.length-1;k>=0;k--){ if(--battle.items[k].life<=0) battle.items.splice(k,1); }
   for(let i=battle.fx.length-1;i>=0;i--){ battle.fx[i].t+=0.04; if(battle.fx[i].t>=1) battle.fx.splice(i,1); }
+  if(battle.bannerT>0) battle.bannerT--;
+  if(battle.turboT>0) battle.turboT--;
+  // 🎡 WACKY WHEEL mode: every few seconds a wild event hits the board
+  if(battle.mode==='wacky'){
+    battle.eventT--;
+    if(battle.eventT<=0){
+      battle.eventT=520+Math.random()*260;
+      const ev=Math.floor(Math.random()*6);
+      if(ev===0){ // swap places!
+        const tmp={gx:P1.gx, gy:P1.gy}; P1.gx=P2.gx; P1.gy=P2.gy; P2.gx=tmp.gx; P2.gy=tmp.gy;
+        battle.banner='🔀 SWAP! P1 and P2 traded places!'; sfx('jump');
+      } else if(ev===1){ // rainbow rain repaints random pixels
+        for(let k=0;k<Math.max(10, Math.floor(battle.own.length*0.12));k++){ battle.own[Math.floor(Math.random()*battle.own.length)]=1+Math.floor(Math.random()*8); }
+        battle.banner='🌈 RAINBOW RAIN! Pixels went wild!'; sfx('buy');
+      } else if(ev===2){ for(const a of battle.ais) a.stun=170; battle.banner='🧊 FREEZE! All friends are frozen!'; sfx('splash'); }
+      else if(ev===3){ battle.turboT=300; battle.banner='⚡ TURBO! Everybody hops super fast!'; sfx('coin'); }
+      else if(ev===4){ // earthquake clears rows
+        const r0=Math.floor(Math.random()*battle.rows);
+        for(let c=0;c<battle.cols;c++){ battle.own[r0*battle.cols+c]=0; if(battle.wall) battle.wall[r0*battle.cols+c]=0; }
+        battle.banner='🌋 EARTHQUAKE! A whole row shook clean!'; sfx('mad');
+      } else { for(let k=0;k<3;k++){ const bt=BATTLE_BOOSTS[Math.floor(Math.random()*BATTLE_BOOSTS.length)];
+          battle.items.push({cx:Math.floor(Math.random()*battle.cols), cy:Math.floor(Math.random()*battle.rows), type:bt.id, e:bt.e, life:60*12}); }
+        battle.banner='🎁 BOOSTER SHOWER!'; sfx('win'); }
+      battle.bannerT=170;
+    }
+  }
+  // ☄️ CHAOS mode: meteors & lightning — dodge or get dizzy!
+  if(battle.mode==='chaos'){
+    battle.hazT--;
+    if(battle.hazT<=0){
+      battle.hazT=170+Math.random()*130;
+      if(Math.random()<0.65) battle.haz.push({type:'meteor', cx:Math.floor(Math.random()*battle.cols), cy:Math.floor(Math.random()*battle.rows), warnT:80});
+      else battle.haz.push({type:'bolt', col:Math.floor(Math.random()*battle.cols), warnT:90});
+    }
+    for(let i=battle.haz.length-1;i>=0;i--){
+      const h=battle.haz[i]; h.warnT--;
+      if(h.warnT>0) continue;
+      // BOOM
+      const hitCells=[];
+      if(h.type==='meteor'){ hitCells.push([h.cx,h.cy]); for(const d of [[1,0],[-1,0],[0,1],[0,-1]]) hitCells.push([h.cx+d[0], h.cy+d[1]]); }
+      else { for(let r2=0;r2<battle.rows;r2++) hitCells.push([h.col,r2]); }
+      for(const [cx,cy] of hitCells){
+        if(cx<0||cx>=battle.cols||cy<0||cy>=battle.rows) continue;
+        battle.own[cy*battle.cols+cx]=0; if(battle.wall) battle.wall[cy*battle.cols+cx]=0;
+        for(const [oid,o] of battleEnts()){
+          if(o.gx===cx && o.gy===cy && o.stun<=0){ o.stun=70; pops.push({x:o.px, y:o.py-battle.ch*0.5, t:0, txt:'💫'}); }
+        }
+      }
+      const fxX = h.type==='meteor'? cellPx(h.cx) : cellPx(h.col), fxY = h.type==='meteor'? cellPy(h.cy) : battle.top+battle.rows*battle.ch*0.5;
+      pops.push({x:fxX, y:fxY, t:0, txt:h.type==='meteor'?'💥':'⚡', big:true});
+      battle.fx.push({x:fxX, y:fxY, t:0, big:true}); sfx('bosshit');
+      battle.haz.splice(i,1);
+    }
+  }
   const hard = difficulty==='hard';
   const md=(a,b)=>Math.abs(a.gx-b.gx)+Math.abs(a.gy-b.gy);
   for(let i=0;i<battle.ais.length;i++){
@@ -3720,12 +4133,20 @@ function updateBattle(){
       } else dir=['up','down','left','right'][Math.floor(Math.random()*4)];
       if(dir){
         const r=battleTryMove(a, i+3, dir);
+        const dd={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[dir];
         if(r==='blocked' && a.tongueCd<=0){
           // enemy pixels in the way — the friend tongues that square open
-          const dd={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[dir];
           claimCell(a.gx+dd[0], a.gy+dd[1], i+3);
           a.tongueCd=50; a.mouth=10;
+        } else if(r==='wall' && battle.roles[i+3]==='breaker' && a.tongueCd<=0){
+          battle.wall[(a.gy+dd[1])*battle.cols+(a.gx+dd[0])]=0; claimCell(a.gx+dd[0], a.gy+dd[1], i+3);
+          pops.push({x:cellPx(a.gx+dd[0]), y:cellPy(a.gy+dd[1]), t:0, txt:'🔨'});
+          a.tongueCd=44; a.mouth=10;
         }
+      }
+      // builders love building little forts
+      if(battle.mode==='build' && battle.roles[i+3]==='builder' && a.tongueCd<=0 && Math.random()<0.25){
+        battleBuildWalls(a.gx, a.gy, i+3); a.tongueCd=90; a.mouth=8;
       }
       a.moveCd=battleMoveCd(a)+8+Math.random()*14;
     }
@@ -3807,6 +4228,45 @@ function drawBattleAll(){
     ctx.fillStyle = o? battleTeamCol(o) : 'rgba(255,255,255,0.16)';
     ctx.fillRect(c*battle.cw+1.5, battle.top+r2*battle.ch+1.5, battle.cw-3, battle.ch-3);
   } }
+  // brick walls (Builders & Destroyers)
+  if(battle.wall){
+    for(let r2=0;r2<battle.rows;r2++){ for(let c=0;c<battle.cols;c++){
+      if(!battle.wall[r2*battle.cols+c]) continue;
+      const wx=c*battle.cw, wy=battle.top+r2*battle.ch;
+      ctx.fillStyle='#a5563a'; ctx.fillRect(wx+1, wy+1, battle.cw-2, battle.ch-2);
+      ctx.strokeStyle='#7c3a24'; ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(wx, wy+battle.ch*0.34); ctx.lineTo(wx+battle.cw, wy+battle.ch*0.34);
+      ctx.moveTo(wx, wy+battle.ch*0.67); ctx.lineTo(wx+battle.cw, wy+battle.ch*0.67);
+      ctx.moveTo(wx+battle.cw*0.5, wy); ctx.lineTo(wx+battle.cw*0.5, wy+battle.ch*0.34);
+      ctx.moveTo(wx+battle.cw*0.25, wy+battle.ch*0.34); ctx.lineTo(wx+battle.cw*0.25, wy+battle.ch*0.67);
+      ctx.moveTo(wx+battle.cw*0.75, wy+battle.ch*0.34); ctx.lineTo(wx+battle.cw*0.75, wy+battle.ch*0.67);
+      ctx.moveTo(wx+battle.cw*0.5, wy+battle.ch*0.67); ctx.lineTo(wx+battle.cw*0.5, wy+battle.ch);
+      ctx.stroke();
+    } }
+  }
+  // chaos warnings: the danger squares flash before the BOOM
+  if(battle.haz){
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(const h of battle.haz){
+      const flash=Math.floor(t/6)%2===0;
+      ctx.fillStyle=flash?'rgba(224,80,60,0.45)':'rgba(255,200,60,0.35)';
+      if(h.type==='meteor'){
+        for(const d of [[0,0],[1,0],[-1,0],[0,1],[0,-1]]){
+          const cx=h.cx+d[0], cy=h.cy+d[1];
+          if(cx<0||cx>=battle.cols||cy<0||cy>=battle.rows) continue;
+          ctx.fillRect(cx*battle.cw+2, battle.top+cy*battle.ch+2, battle.cw-4, battle.ch-4);
+        }
+        ctx.font=Math.round(Math.min(battle.cw,battle.ch)*0.7)+'px sans-serif';
+        ctx.fillText('☄️', cellPx(h.cx), cellPy(h.cy)-h.warnT*1.5);
+      } else {
+        ctx.fillRect(h.col*battle.cw+2, battle.top+2, battle.cw-4, battle.rows*battle.ch-4);
+        ctx.font=Math.round(Math.min(battle.cw,battle.ch)*0.7)+'px sans-serif';
+        ctx.fillText('⚡', cellPx(h.col), battle.top-12);
+      }
+    }
+    ctx.textBaseline='alphabetic';
+  }
   // pencil-style grid lines
   ctx.strokeStyle='rgba(40,30,20,0.45)'; ctx.lineWidth=2;
   for(let c=0;c<=battle.cols;c++){ ctx.beginPath(); ctx.moveTo(c*battle.cw, battle.top); ctx.lineTo(c*battle.cw, battle.top+battle.rows*battle.ch); ctx.stroke(); }
@@ -3832,12 +4292,14 @@ function drawBattleAll(){
     const a=battle.ais[i], tm=a.team;
     const col = tm===1? bcCol(1)[0] : tm===2? bcCol(2)[0] : AI_COLS[tm-3]||'#aaa';
     const dark2 = tm===1? bcCol(1)[1] : tm===2? bcCol(2)[1] : '#5a5a62';
-    drawBattleFace(a.px, a.py, fsize, col, dark2, BATTLE_NAMES[i+3], a.mouth, a.stun>0);
+    const aLbl=BATTLE_NAMES[i+3]+(battle.mode==='build'? (battle.roles[i+3]==='builder'?' 🧱':' 🔨') : '');
+    drawBattleFace(a.px, a.py, fsize, col, dark2, aLbl, a.mouth, a.stun>0);
     if(top===i+3){ ctx.font=Math.round(fsize*0.34)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('👑', a.px, a.py-fsize*0.82+Math.sin(t*0.1)*2); }
   }
   for(const [id,P] of [[1,P1],[2,P2]]){
     const cfg=battleCfg[id], col=bcCol(id)[0], dark2=bcCol(id)[1];
-    drawBattleFace(P.px, P.py, fsize*1.06, col, dark2, 'P'+id, P.mouth, P.stun>0, cfg.expr, cfg.acc);
+    const pLbl='P'+id+(battle.mode==='build'? (battle.roles[id]==='builder'?' 🧱':' 🔨') : '');
+    drawBattleFace(P.px, P.py, fsize*1.06, col, dark2, pLbl, P.mouth, P.stun>0, cfg.expr, cfg.acc);
     if(top===id){ ctx.font=Math.round(fsize*0.36)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('👑', P.px, P.py-fsize*0.86+Math.sin(t*0.1)*2); }
     if(P.bT>0){ ctx.font='13px sans-serif'; ctx.fillText((P.bType==='speed'?'⚡':'👅'), P.px+fsize*0.5, P.py+fsize*0.5); }
   }
@@ -3850,16 +4312,29 @@ function drawBattleAll(){
   ctx.fillStyle=bcCol(2)[0]; ctx.fillRect(bx0+bw2-bw2*(c2/total), by0, bw2*(c2/total), 10);
   ctx.fillStyle='#fff';
   fitText('⏱ '+Math.ceil(battle.timer/60)+(top?' · 👑 '+BATTLE_NAMES[top]+' ×'+battle.score[top]:'')+(difficulty==='hard'?' · 😈 friends bite back!':''), W/2, by0+30, 14);
-  fitText('you can\'t walk onto enemy pixels — 👅 tongue them open first! 👅 the other player = WIN', W/2, H-12, 12);
+  const hint = battle.mode==='build'? '🧱 builders make walls with 👅 · 🔨 destroyers smash them open!'
+    : battle.mode==='chaos'? '☄️ hop away from the flashing squares — or get DIZZY!'
+    : battle.mode==='wacky'? '🎡 the Wacky Wheel can change EVERYTHING… keep painting!'
+    : 'you can\'t walk onto enemy pixels — 👅 tongue them open first! 👅 the other player = WIN';
+  fitText(hint, W/2, H-12, 12);
+  // event banner
+  if(battle.bannerT>0 && battle.banner){
+    ctx.globalAlpha=Math.min(1, battle.bannerT/30);
+    ctx.fillStyle='rgba(20,20,40,0.55)';
+    const bw3=Math.min(W-30, 460); ctx.fillRect((W-bw3)/2, H*0.30, bw3, 46);
+    ctx.fillStyle='#ffe23a'; fitText(battle.banner, W/2, H*0.30+30, 19);
+    ctx.globalAlpha=1;
+  }
   ctx.restore();
 }
 /* ---- Wheel of Luck — Sasha's rules: 10 spaces, 9 ✅ and 1 ❌; after every round one more ✅ turns ❌; 3 hearts each ---- */
-const wheelG={ bad:[], hearts:[3,3], turn:1, phase:'wait', angle:0, vel:0, round:1, resultT:0, hitIdx:-1 };
+const wheelG={ bad:[], hearts:[3,3], turn:1, phase:'wait', angle:0, vel:0, round:1, resultT:0, hitIdx:-1, shield:[false,false], evMsg:'' };
 function setupWheel(){
   wheelG.bad=Array(10).fill(false);
   wheelG.bad[Math.floor(Math.random()*10)]=true;
   wheelG.hearts=[3,3]; wheelG.turn=1; wheelG.phase='wait';
   wheelG.angle=Math.random()*Math.PI*2; wheelG.vel=0; wheelG.round=1; wheelG.resultT=0; wheelG.hitIdx=-1;
+  wheelG.shield=[false,false]; wheelG.evMsg='';
 }
 function wheelSpin(){
   if(!twoP || raceGame!=='wheel' || wheelG.phase!=='wait') return;
@@ -3881,9 +4356,37 @@ function updateWheel(){
       const seg=Math.PI*2/10;
       const a=(((-Math.PI/2)-wheelG.angle)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
       wheelG.hitIdx=Math.floor(a/seg);
-      wheelG.phase='result'; wheelG.resultT=110;
-      if(wheelG.bad[wheelG.hitIdx]){ wheelG.hearts[wheelG.turn-1]--; sfx('mad'); pops.push({x:W/2, y:H*0.3, t:0, txt:'💔', big:true}); }
-      else { sfx('coin'); pops.push({x:W/2, y:H*0.3, t:0, txt:'✅', big:true}); }
+      wheelG.phase='result'; wheelG.resultT=120; wheelG.evMsg='';
+      const me=wheelG.turn-1, other=1-me;
+      if(wheelG.bad[wheelG.hitIdx]){
+        if(wheelG.shield[me]){
+          wheelG.shield[me]=false; wheelG.evMsg='🛡️ The shield blocked the ❌! Phew!!';
+          sfx('buy'); pops.push({x:W/2, y:H*0.3, t:0, txt:'🛡️', big:true});
+        } else if(Math.random()<0.12){
+          wheelG.hearts[me]=Math.max(0, wheelG.hearts[me]-2);
+          wheelG.evMsg='💀 SUPER UNLUCKY!! Player '+wheelG.turn+' loses TWO hearts!!';
+          sfx('mad'); pops.push({x:W/2, y:H*0.3, t:0, txt:'💔💔', big:true});
+        } else { wheelG.hearts[me]--; sfx('mad'); pops.push({x:W/2, y:H*0.3, t:0, txt:'💔', big:true}); }
+      } else {
+        const roll=Math.random();
+        if(wheelG.hearts[me]<3 && roll<0.15){
+          // Lucky! ...but NEVER when your hearts are already full
+          wheelG.hearts[me]++; wheelG.evMsg='🍀 LUCKY!! Player '+wheelG.turn+' gets a heart back! ❤️';
+          sfx('win'); pops.push({x:W/2, y:H*0.3, t:0, txt:'❤️', big:true});
+        } else if(!wheelG.shield[me] && roll<0.23){
+          wheelG.shield[me]=true; wheelG.evMsg='🛡️ Player '+wheelG.turn+' found a SHIELD! It blocks the next ❌!';
+          sfx('buy'); pops.push({x:W/2, y:H*0.3, t:0, txt:'🛡️', big:true});
+        } else if(wheelG.bad.filter(x=>x).length>1 && roll<0.29){
+          const bads=[]; wheelG.bad.forEach((b,i)=>{ if(b) bads.push(i); });
+          wheelG.bad[bads[Math.floor(Math.random()*bads.length)]]=false;
+          wheelG.evMsg='🎁 MYSTERY! One ❌ magically turned back into ✅!';
+          sfx('win'); pops.push({x:W/2, y:H*0.3, t:0, txt:'🎁', big:true});
+        } else if(wheelG.hearts[me]!==wheelG.hearts[other] && roll>0.96){
+          const tmp=wheelG.hearts[me]; wheelG.hearts[me]=wheelG.hearts[other]; wheelG.hearts[other]=tmp;
+          wheelG.evMsg='🔄 HEART SWAP!! The players traded hearts!!';
+          sfx('jump'); pops.push({x:W/2, y:H*0.3, t:0, txt:'🔄', big:true});
+        } else { sfx('coin'); pops.push({x:W/2, y:H*0.3, t:0, txt:'✅', big:true}); }
+      }
     }
   } else if(wheelG.phase==='result'){
     wheelG.resultT--;
@@ -3930,14 +4433,15 @@ function drawWheelAll(){
   const topY = 30 + (window.innerHeight>500?10:0);
   let h1='', h2='';
   for(let i=0;i<3;i++){ h1+= i<wheelG.hearts[0]?'❤️':'🖤'; h2+= i<wheelG.hearts[1]?'❤️':'🖤'; }
+  if(wheelG.shield[0]) h1+='🛡️'; if(wheelG.shield[1]) h2='🛡️'+h2;
   ctx.textAlign='left'; ctx.font='bold 22px sans-serif'; ctx.fillStyle=P1.dark||'#2e6a24'; ctx.fillText('P1 '+h1, 16, topY);
   ctx.textAlign='right'; ctx.fillStyle=P2.dark||'#274e78'; ctx.fillText(h2+' P2', W-16, topY);
   ctx.fillStyle='#173a1a';
   const msg = wheelG.phase==='wait' ? ('Round '+wheelG.round+' — Player '+wheelG.turn+', press SPIN!')
     : wheelG.phase==='spin' ? 'Round and round it goes…'
-    : (wheelG.bad[wheelG.hitIdx]? '❌ Ouch! Player '+wheelG.turn+' loses a heart!' : '✅ Phew! Player '+wheelG.turn+' is safe!');
+    : (wheelG.evMsg || (wheelG.bad[wheelG.hitIdx]? '❌ Ouch! Player '+wheelG.turn+' loses a heart!' : '✅ Phew! Player '+wheelG.turn+' is safe!'));
   fitText(msg, W/2, topY+34, 18);
-  fitText('after every round, one more ❌ sneaks onto the wheel… 😈', W/2, H-12, 12);
+  fitText('every round adds a ❌… but 🍀 luck, 🛡️ shields & 🎁 mysteries hide in the ✅!', W/2, H-12, 12);
   drawPops();
 }
 /* ---- Fruit Catch ---- */
@@ -4280,7 +4784,25 @@ document.getElementById('gameFruit').addEventListener('click',()=>{ document.get
 document.getElementById('gameLily').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('lily'); });
 document.getElementById('gameVolley').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('volley'); });
 document.getElementById('gameHide').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('hide'); });
-document.getElementById('gameBattle').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('battle'); });
+document.getElementById('gameBattle').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); buildBattleSetup(); document.getElementById('battleSetup').classList.remove('hidden'); });
+function buildBattleSetup(){
+  const gr=document.getElementById('bGridRow'); gr.innerHTML='';
+  for(const k in BATTLE_GRIDS){
+    const b=document.createElement('button'); b.className='segbtn'+(battleGrid===k?' on':''); b.textContent=BATTLE_GRIDS[k].label;
+    b.addEventListener('click',()=>{ battleGrid=k; save(); buildBattleSetup(); sfx('coin'); });
+    gr.appendChild(b);
+  }
+  const mr=document.getElementById('bModeRow'); mr.innerHTML='';
+  for(const [id,label,desc] of BATTLE_MODES){
+    const b=document.createElement('button');
+    b.className='bschip'; b.style.cssText='width:100%;height:auto;padding:10px;margin-top:6px;flex-direction:column;'+(battleMode===id?'border-color:#173a1a;box-shadow:0 2px 8px rgba(0,0,0,.25);':'');
+    b.innerHTML='<div style="font-weight:900;font-size:16px;">'+label+'</div><div style="font-size:11px;font-weight:600;color:#667;">'+desc+'</div>';
+    b.addEventListener('click',()=>{ battleMode=id; save(); buildBattleSetup(); sfx('coin'); });
+    mr.appendChild(b);
+  }
+}
+document.getElementById('battleGo').addEventListener('click',()=>{ document.getElementById('battleSetup').classList.add('hidden'); start2P('battle'); });
+document.getElementById('battleSetupBack').addEventListener('click',()=>{ document.getElementById('battleSetup').classList.add('hidden'); document.getElementById('gamePick').classList.remove('hidden'); });
 document.getElementById('gameWheel').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); start2P('wheel'); });
 document.getElementById('gamePickBack').addEventListener('click',()=>{ document.getElementById('gamePick').classList.add('hidden'); document.getElementById('startScreen').classList.remove('hidden'); });
 document.getElementById('againBtn').addEventListener('click',()=>start2P(raceGame));
