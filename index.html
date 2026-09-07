@@ -103,6 +103,15 @@
             padding:16px 42px; font-size:24px; font-weight:900; font-family:var(--ui-font); color:#fff;
             background:linear-gradient(#ffcf4d,#e07a2a); box-shadow:0 8px 20px rgba(224,122,42,.5); }
   #spinBtn:active{ transform:translateX(-50%) scale(.94); }
+  #reelBtn{ position:fixed; left:50%; transform:translateX(-50%);
+            bottom:calc(env(safe-area-inset-bottom) + 18px); z-index:6; border:none; border-radius:999px;
+            padding:20px 54px; font-size:28px; font-weight:900; font-family:var(--ui-font); color:#fff;
+            background:linear-gradient(#9ab8c8,#6a8a9a); box-shadow:0 8px 20px rgba(90,120,140,.5);
+            touch-action:none; white-space:nowrap; max-width:92vw; }
+  #reelBtn.bite{ background:linear-gradient(#5ad46b,#2e9a4a); box-shadow:0 8px 24px rgba(46,154,74,.6);
+                 animation:reelpulse 0.5s ease-in-out infinite; }
+  @keyframes reelpulse{ 0%,100%{ transform:translateX(-50%) scale(1); } 50%{ transform:translateX(-50%) scale(1.12); } }
+  #reelBtn:active{ transform:translateX(-50%) scale(.94); }
   #dressPanel{ position:fixed; left:0; right:0; bottom:0; z-index:8; background:rgba(255,255,255,0.96);
                border-top-left-radius:22px; border-top-right-radius:22px; box-shadow:0 -4px 20px rgba(0,0,0,.2);
                padding:12px 14px calc(env(safe-area-inset-bottom) + 12px); }
@@ -341,6 +350,9 @@
 <div class="controls2p hidden" id="wheelUI">
   <button id="spinBtn">🎡 SPIN!</button>
 </div>
+
+<!-- the BIG reel button for fishing at the beach -->
+<button id="reelBtn" class="hidden">🎣 wait for it…</button>
 
 <!-- Tongue Battle pre-game setup: pick your pixel size and game mode -->
 <div class="overlay hidden" id="battleSetup">
@@ -633,7 +645,7 @@ const RODS=[
 const fishCaught={};
 let fishing=false, fishT=0, fishWait=0;
 /* ❗ bite = a timing game: an arrow spins around a circle above the rod — TAP while it's on the ✅ zone! */
-let biteT=0, fishMoveT=0, fishAng=0, fishZoneStart=0, fishZoneSize=0, fishTap=false, fishHoldDown=false;
+let biteT=0, fishMoveT=0, fishAng=0, fishZoneStart=0, fishZoneSize=0, fishTap=false;
 function bestRodIdx(){ return owned.rod4?3 : owned.rod3?2 : owned.rod2?1 : 0; }
 function uniqueFishCount(){ return Object.keys(fishCaught).length; }
 function rollFish(){
@@ -659,10 +671,14 @@ function catchFish(){
   if(uniqueFishCount()>=15 && !recipesFound.fishing15){ recipesFound.fishing15=true; showReward('📜 15 fish found — a legendary recipe surfaced! Check the Pet Station!'); }
   save();
 }
-function stopFishing(quiet){ if(fishing && !quiet) pops.push({x:toad.x, y:toad.y-90, t:0, txt:'💨'}); fishing=false; fishT=0; biteT=0; fishTap=false; fishMoveT=0; }
-window.addEventListener('pointerdown', ()=>{ fishHoldDown=true; if(fishing && biteT>0) fishTap=true; }, true);
-window.addEventListener('pointerup',   ()=>{ fishHoldDown=false; }, true);
-window.addEventListener('pointercancel',()=>{ fishHoldDown=false; }, true);
+function reelBtnState(bite){
+  const b=document.getElementById('reelBtn');
+  b.classList.toggle('bite', bite);
+  b.textContent = bite? '🎣 REEL!!' : '🎣 wait for it…';
+}
+function stopFishing(quiet){ if(fishing && !quiet) pops.push({x:toad.x, y:toad.y-90, t:0, txt:'💨'}); fishing=false; fishT=0; biteT=0; fishTap=false; fishMoveT=0; document.getElementById('reelBtn').classList.add('hidden'); }
+/* the BIG reel button is the only way to reel — press it while the arrow is on ✅! */
+document.getElementById('reelBtn').addEventListener('pointerdown', e=>{ e.preventDefault(); if(fishing && biteT>0) fishTap=true; else sfx('mad'); });
 /* ---------------- Weather: changes every couple of minutes, affects toad & bug speed ---------------- */
 const WEATHERS={
   sun:  {label:'',            toad:1,    bug:1   },
@@ -926,12 +942,12 @@ function updateArea(){
       if(fishTap){
         fishTap=false;
         const rel=((fishAng-fishZoneStart)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
-        biteT=0; fishT=0; fishWait=200+Math.random()*200; fishMoveT=0;
+        biteT=0; fishT=0; fishWait=200+Math.random()*200; fishMoveT=0; reelBtnState(false);
         if(rel<=fishZoneSize){ catchFish(); }
         else { pops.push({x:toad.x+70, y:toad.y-84, t:0, txt:'💨 got away!'}); sfx('mad'); }
       } else {
         biteT--;
-        if(biteT<=0){ fishT=0; fishWait=200+Math.random()*200; pops.push({x:toad.x+70, y:toad.y-84, t:0, txt:'💨 got away!'}); sfx('mad'); }
+        if(biteT<=0){ fishT=0; fishWait=200+Math.random()*200; reelBtnState(false); pops.push({x:toad.x+70, y:toad.y-84, t:0, txt:'💨 got away!'}); sfx('mad'); }
       }
     }
     else if(dir!==null){ fishMoveT++; if(fishMoveT>18) stopFishing(); }
@@ -943,6 +959,7 @@ function updateArea(){
         fishZoneSize=Math.PI*2*0.30;                       // ~30% of the circle is ✅
         fishZoneStart=Math.random()*Math.PI*2;
         fishTap=false;
+        reelBtnState(true);                                // the big button lights up — REEL!!
       }
     }
   }
@@ -2002,9 +2019,9 @@ function drawArea(){
       // countdown ring + hint
       ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=3;
       ctx.beginPath(); ctx.arc(ccx, ccy, R2+12, -Math.PI/2, -Math.PI/2+6.28*(biteT/300)); ctx.stroke();
-      ctx.fillStyle='#fff'; fitText('👆 TAP when the arrow points at the ✅ zone!', W/2, H*0.16, 17);
+      ctx.fillStyle='#fff'; fitText('🎣 press the BIG REEL button when the arrow is on the ✅!', W/2, H*0.16, 17);
     } else {
-      ctx.fillStyle='#173a1a'; fitText('🎣 '+RODS[bestRodIdx()].name+' — stay still… when the ❗ comes, TAP at the right moment!', W/2, H*0.22, 14);
+      ctx.fillStyle='#173a1a'; fitText('🎣 '+RODS[bestRodIdx()].name+' — stay still… when the ❗ comes, hit the big REEL button at the right moment!', W/2, H*0.22, 14);
     }
   }
   drawPops();
@@ -3358,7 +3375,7 @@ document.getElementById('elevCastle').addEventListener('click',()=>goArea('castl
 document.getElementById('rodBtn').addEventListener('click',()=>{
   if(area!=='beach' || !started || twoP) return;
   if(fishing){ stopFishing(true); }
-  else { fishing=true; fishT=0; fishWait=200+Math.random()*200; sfx('splash'); }
+  else { fishing=true; fishT=0; fishWait=200+Math.random()*200; sfx('splash'); reelBtnState(false); document.getElementById('reelBtn').classList.remove('hidden'); }
 });
 /* fish-crafted outfits: the fish are USED UP when you craft (Sasha's call) */
 const FISH_RECIPES=[
