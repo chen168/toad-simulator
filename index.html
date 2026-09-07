@@ -1968,7 +1968,16 @@ function drawArea(){
       ctx.font='26px sans-serif'; ctx.textAlign='center'; ctx.fillText('❗', bobX, bobY-20-bnc);
       ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=4;
       ctx.beginPath(); ctx.arc(bobX, bobY, 16, -Math.PI/2, -Math.PI/2+6.28*(reelHold/28)); ctx.stroke();
-      ctx.fillStyle='#fff'; fitText('❗ HOLD the screen to reel it in!!', W/2, H*0.22, 17);
+      ctx.fillStyle='#fff'; fitText('❗ press and HOLD anywhere to reel!', W/2, H*0.22, 17);
+      // big pulsing HOLD hint in the middle of the screen — you can't miss it
+      if(reelHold<28){
+        const pulse=1+Math.sin(t*0.25)*0.12;
+        ctx.save(); ctx.translate(W/2, H*0.45); ctx.scale(pulse, pulse);
+        ctx.fillStyle='rgba(20,20,40,0.45)';
+        ctx.beginPath(); ctx.roundRect? ctx.roundRect(-92, -34, 184, 62, 18) : ctx.rect(-92, -34, 184, 62); ctx.fill();
+        ctx.fillStyle='#ffe23a'; ctx.font='bold 30px sans-serif'; ctx.textAlign='center'; ctx.fillText('👇 HOLD!', 0, 10);
+        ctx.restore();
+      }
     } else {
       ctx.fillStyle='#173a1a'; fitText('🎣 '+RODS[bestRodIdx()].name+' — stay still & watch for the ❗, then HOLD to reel!', W/2, H*0.22, 14);
     }
