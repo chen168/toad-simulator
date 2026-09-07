@@ -677,6 +677,18 @@ const FISH=[
   {id:'sword',   e:'🗡️', n:'Swordfish',     r:4},{id:'anglerf', e:'🔦', n:'Lantern Angler',r:4},
   {id:'orca',    e:'🐋', n:'Baby Orca',     r:4},
   {id:'narwhal', e:'🦄', n:'Nifty Narwhal', r:5},{id:'phoenixf',e:'🔥', n:'Phoenix Fish', r:5},
+  // Update 16: 20 MORE fish — 60 in all!
+  {id:'tadpole2',e:'🐟', n:'Tiny Tadpole',  r:1},{id:'gummy',   e:'🐠', n:'Gummy Fish',   r:1},
+  {id:'sock',    e:'🧦', n:'Old Sock?!',    r:1},{id:'splashy', e:'🐟', n:'Splashy Sal',  r:1},
+  {id:'noodle',  e:'🍜', n:'Noodle Fish',   r:1},{id:'burbly',  e:'🐠', n:'Burbly Burb',  r:1},
+  {id:'kelpy',   e:'🌿', n:'Kelpy Kip',     r:2},{id:'buttonf', e:'🔘', n:'Button Fish',  r:2},
+  {id:'moonfish',e:'🌙', n:'Moon Minnow',   r:2},{id:'zigzag',  e:'🐠', n:'Zigzag Zed',   r:2},
+  {id:'bubblef', e:'🫧', n:'Bubble Buddy',  r:2},
+  {id:'crystalf',e:'❄️', n:'Crystal Cod',   r:3},{id:'melody',  e:'🎵', n:'Melody Bass',  r:3},
+  {id:'cloudf',  e:'☁️', n:'Cloud Carp',    r:3},{id:'pirate',  e:'🏴‍☠️', n:'Pirate Perch', r:3},
+  {id:'thunderf',e:'⚡', n:'Thunder Tuna',  r:4},{id:'ghostf',  e:'👻', n:'Ghost Guppy',  r:4},
+  {id:'royalf',  e:'👑', n:'Royal Angelfish', r:4},
+  {id:'galaxyf', e:'🌌', n:'Galaxy Ray',    r:5},{id:'timefish',e:'⏳', n:'Timeless Trout', r:5},
   // the LEGENDARY — mythic rod only, 1 in 100!
   {id:'seadragon', e:'🐉', n:'Golden Sea Dragon', r:6},
 ];
@@ -760,6 +772,28 @@ const ORES=[
   {id:'ruby',    e:'🔴', n:'Royal Ruby',    r:4},{id:'sapphire',e:'🔵', n:'Deep Sapphire', r:4},
   {id:'emeraldore', e:'💚', n:'Emerald Shard', r:4},
   {id:'diamond', e:'💎', n:'True Diamond',  r:5},{id:'moonstone',e:'🌕', n:'Moonstone',    r:5},
+  // Update 16: 40 MORE ores — 60 in all!
+  {id:'gravel',  e:'🪨', n:'Grumpy Gravel', r:1},{id:'chalk',   e:'⚪', n:'Chalk Chunk',  r:1},
+  {id:'clay',    e:'🟤', n:'Squishy Clay',  r:1},{id:'sand2',   e:'🟨', n:'Packed Sand',  r:1},
+  {id:'mud',     e:'🟫', n:'Mystery Mud',   r:1},{id:'slate',   e:'⬛', n:'Slippy Slate', r:1},
+  {id:'chert',   e:'🪨', n:'Cheery Chert',  r:1},{id:'basalt',  e:'⚫', n:'Bold Basalt',  r:1},
+  {id:'pumice',  e:'🌫️', n:'Floaty Pumice', r:1},{id:'shale',   e:'🥌', n:'Sneaky Shale', r:1},
+  {id:'gypsum',  e:'🤍', n:'Gentle Gypsum', r:1},
+  {id:'nickel',  e:'🪙', n:'Nifty Nickel',  r:2},{id:'zinc',    e:'⚙️', n:'Zippy Zinc',   r:2},
+  {id:'lead',    e:'🔗', n:'Heavy Lead',    r:2},{id:'mica',    e:'✨', n:'Glittery Mica',r:2},
+  {id:'pyrite',  e:'🌟', n:'Fool\'s Gold',  r:2},{id:'sulfur',  e:'🟡', n:'Stinky Sulfur',r:2},
+  {id:'graphite',e:'✏️', n:'Pencil Graphite', r:2},{id:'onyx',  e:'⬛', n:'Only Onyx',   r:2},
+  {id:'agate',   e:'🟠', n:'Zebra Agate',   r:2},{id:'fluorite',e:'🟩', n:'Glowy Fluorite', r:2},
+  {id:'obsidian',e:'🖤', n:'Obsidian Shard',r:3},{id:'lapis',   e:'🔷', n:'Lapis Lazuli', r:3},
+  {id:'garnet',  e:'🍒', n:'Juicy Garnet',  r:3},{id:'peridot', e:'🥝', n:'Perky Peridot',r:3},
+  {id:'citrine', e:'🍋', n:'Sunny Citrine', r:3},{id:'turquoise',e:'🩵', n:'Turquoise',   r:3},
+  {id:'opalite', e:'🫧', n:'Dreamy Opalite',r:3},{id:'malachite',e:'💚', n:'Swirl Malachite', r:3},
+  {id:'rosequartz',e:'🌷', n:'Rose Quartz', r:3},
+  {id:'opal',    e:'🌈', n:'Fire Opal',     r:4},{id:'tanzanite',e:'💜', n:'Tanzanite',   r:4},
+  {id:'aquamarine',e:'🌊', n:'Aquamarine',  r:4},{id:'sunstone',e:'🌞', n:'Sunstone',    r:4},
+  {id:'blackpearl',e:'🖤', n:'Black Pearl', r:4},{id:'dragonglass',e:'🐲', n:'Dragonglass', r:4},
+  {id:'starmetal',e:'⭐', n:'Star Metal',   r:5},{id:'voidgem', e:'🌑', n:'Void Gem',     r:5},
+  {id:'sunheart',e:'☀️', n:'Sun Heart',     r:5},{id:'frostgem',e:'❄️', n:'Everfrost Gem',r:5},
   // the LEGENDARY — mythic pickaxe only, 1 in 100!
   {id:'prismheart', e:'🌈', n:'Prism Heart', r:6},
 ];
@@ -2342,8 +2376,13 @@ function skinColors(){
 const BABY_COLS={ baby_mint:['#7ed9a0','#4aa570','#d8f5e0'], baby_sky:['#8fc8ff','#4a88c8','#ddeeff'], baby_sunny:['#ffd95a','#d9a52a','#fff2c0'] };
 function drawBabyToad(id,x,y){
   const c=BABY_COLS[id]||BABY_COLS.baby_mint;
+  const bp=petData[id], bage=(bp && typeof bp.age==='number')? bp.age : 0;
+  const bscale=1+Math.min(10,bage)*0.06;   // every age the baby grows a tiny bit bigger!
   ctx.save(); ctx.translate(x,y);
-  ctx.fillStyle='rgba(0,0,0,.14)'; ctx.beginPath(); ctx.ellipse(0, toad.y-y+4, 13,4,0,0,7); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.14)'; ctx.beginPath(); ctx.ellipse(0, toad.y-y+4, 13*bscale,4,0,0,7); ctx.fill();
+  ctx.scale(bscale,bscale);
+  // grown-up babies learned to celebrate!
+  if(bage>=2 && Math.sin(t*0.03+3)>0.86){ ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText(bage>=6?'🎉':'✨', -10, -26); }
   ctx.fillStyle=c[0]; ctx.beginPath(); ctx.ellipse(0,-8,11,9,0,0,7); ctx.fill();
   ctx.fillStyle=c[2]; ctx.beginPath(); ctx.ellipse(0,-5,7,5,0,0,7); ctx.fill();
   ctx.fillStyle=c[0]; ctx.beginPath(); ctx.arc(-5,-16,4.6,0,7); ctx.arc(5,-16,4.6,0,7); ctx.fill();
@@ -3100,11 +3139,13 @@ function stepGame(){
     if(crystalT>=600){ crystalT=0; gainCoins(5); pops.push({x:toad.x-30, y:toad.y-90, t:0, val:5}); sfx('coin'); }
   }
   // Pet Care: the equipped pet's needs slowly grow while you play
-  if(petCare===true && worn.pet && (started||twoP)){
+  if(petCare===true && (worn.pet||worn.baby) && (started||twoP)){
     petTickN++;
-    if(petTickN>=60){ petTickN=0; const p=ensurePet(worn.pet);
-      const pr=persOf(worn.pet), nm=(pr && pr.needs)? pr.needs : 1;
-      for(const k in p.needs){ p.needs[k]=Math.min(100, p.needs[k]+(0.2+Math.random()*0.35)*nm); } }
+    if(petTickN>=60){ petTickN=0;
+      for(const pid of [worn.pet, worn.baby]){ if(!pid) continue;
+        const p=ensurePet(pid);
+        const pr=persOf(pid), nm=(pr && pr.needs)? pr.needs : 1;
+        for(const k in p.needs){ p.needs[k]=Math.min(100, p.needs[k]+(0.2+Math.random()*0.35)*nm); } } }
   }
   if(gardenMode){ updateGarden(); return; }
   if(homeMode || showMode){ if(showMode) showTimer++; return; }
@@ -3448,10 +3489,7 @@ const MILESTONES={
   13:{item:'pet_goldtoad'}, 14:{item:'tg_rainbowlaser'}, 15:{baby:'baby_sunny'},
   16:{item:'tg_ice'}, 17:{item:'tg_gold'}, 18:{coins:300}, 19:{item:'mil_wings'}, 20:{item:'tg_fire', coins:500},
 };
-function ensureBaby(id){
-  if(!petData[id]) petData[id]={ pers:PERSONALITIES[Math.floor(Math.random()*PERSONALITIES.length)].id };
-  return petData[id];
-}
+function ensureBaby(id){ return ensurePet(id); }   // babies have full needs, XP & vibes — just like pets
 function addXp(n){
   xp+=n;
   while(toadLevel<40 && xp>=mlNeed(toadLevel)){
@@ -3486,8 +3524,12 @@ const PERSONALITIES=[
 ];
 function ensurePet(id){
   if(!petData[id]) petData[id]={age:0, xp:0, potion:false, needs:{food:25, sleep:10, potty:0, love:35}};
-  if(!petData[id].pers) petData[id].pers=PERSONALITIES[Math.floor(Math.random()*PERSONALITIES.length)].id;
-  return petData[id];
+  const p=petData[id];
+  // backfill older records (babies from Update 15 only had a vibe — now they have needs & XP too!)
+  if(!p.needs) p.needs={food:25, sleep:10, potty:0, love:35};
+  if(typeof p.age!=='number'){ p.age=0; p.xp=0; }
+  if(!p.pers) p.pers=PERSONALITIES[Math.floor(Math.random()*PERSONALITIES.length)].id;
+  return p;
 }
 function persOf(id){ if(!id) return null; const p=ensurePet(id); return PERSONALITIES.find(x=>x.id===p.pers)||null; }
 function persAtkTick(id){ const pr=persOf(id); return pr && pr.atk? 1/pr.atk : 1; }
@@ -3504,7 +3546,7 @@ function petXpGain(id, amt){
   while(p.xp>=xpNeed(p.age)){ p.xp-=xpNeed(p.age); p.age++; leveled=true;
     if(isMystic(id) && p.age%5===0) grantMythReward();
   }
-  if(leveled){ sfx('win'); showReward('🎉 Your pet grew to age '+p.age+'!'); }
+  if(leveled){ sfx('win'); showReward(id.startsWith('baby_')? '🍼 Your baby toad grew to age '+p.age+' — a little bigger now!' : '🎉 Your pet grew to age '+p.age+'!'); }
   save();
 }
 function craftHtml(){
@@ -3530,25 +3572,46 @@ function renderPetStation(){
     return;
   }
   const id=worn.pet;
-  if(!id){ box.innerHTML='<p class="by">No pet equipped! Wear a pet in the 🛍️ shop, then come back to take care of it. 🐾</p>'+craftHtml(); return; }
-  const it=SHOP.find(s=>s.id===id), p=ensurePet(id);
-  let h='<div style="font-size:52px;">'+(it?it.emoji:'🐾')+'</div>';
-  h+='<div style="font-weight:900;font-size:20px;">'+(it?it.name:id)+' · Age '+p.age+'</div>';
-  const prv=persOf(id);
-  if(prv) h+='<div class="mysticnote" style="margin:2px 0 4px;">Vibe: '+prv.e+' '+prv.n+' — '+prv.desc+'</div>';
-  h+='<div class="by" style="margin:2px 0 4px;">'+Math.floor(p.xp)+' / '+xpNeed(p.age)+' XP to age '+(p.age+1)+'</div>';
-  h+='<div class="xpbar"><div style="width:'+Math.min(100, p.xp/xpNeed(p.age)*100)+'%"></div></div>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
-  for(const k in NEED_INFO){
-    const v=Math.floor(p.needs[k]), ready=v>=50;
-    h+='<button class="needbtn" data-care="'+k+'" '+(ready?'':'disabled')+'>'+NEED_INFO[k].e+' '+NEED_INFO[k].n+(ready?' (+50 XP)':'')+
-       '<div class="needbar"><div style="width:'+v+'%"></div></div></button>';
+  if(!id && !worn.baby){ box.innerHTML='<p class="by">No pet or baby equipped! Wear one in the 🛍️ shop, then come back to take care of it. 🐾</p>'+craftHtml(); return; }
+  let h='';
+  if(id){
+    const it=SHOP.find(s=>s.id===id), p=ensurePet(id);
+    h+='<div style="font-size:52px;">'+(it?it.emoji:'🐾')+'</div>';
+    h+='<div style="font-weight:900;font-size:20px;">'+(it?it.name:id)+' · Age '+p.age+'</div>';
+    const prv=persOf(id);
+    if(prv) h+='<div class="mysticnote" style="margin:2px 0 4px;">Vibe: '+prv.e+' '+prv.n+' — '+prv.desc+'</div>';
+    h+='<div class="by" style="margin:2px 0 4px;">'+Math.floor(p.xp)+' / '+xpNeed(p.age)+' XP to age '+(p.age+1)+'</div>';
+    h+='<div class="xpbar"><div style="width:'+Math.min(100, p.xp/xpNeed(p.age)*100)+'%"></div></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+    for(const k in NEED_INFO){
+      const v=Math.floor(p.needs[k]), ready=v>=50;
+      h+='<button class="needbtn" data-care="'+k+'" '+(ready?'':'disabled')+'>'+NEED_INFO[k].e+' '+NEED_INFO[k].n+(ready?' (+50 XP)':'')+
+         '<div class="needbar"><div style="width:'+v+'%"></div></div></button>';
+    }
+    h+='</div>';
+    if(isMystic(id)) h+='<div class="mysticnote" style="margin-top:10px;">🌟 Mystic pets give a MYTHIC gift every 5 ages!</div>';
+    if(p.potion) h+='<div class="by" style="margin-top:10px;">🏇 Ride ready! While this pet is equipped, your toad rides it — extra speed!</div>';
+    else if(p.age>=13) h+='<button class="bigbtn" style="margin-top:10px;font-size:18px;padding:12px 20px;" data-potion="1" '+(coins>=30?'':'disabled')+'>🧪 Buy Pet Potion (30 🪙) — unlock riding!</button>';
+    else h+='<div class="by" style="margin-top:10px;">Reach age 13 to buy the 🧪 Pet Potion and RIDE your pet!</div>';
   }
-  h+='</div>';
-  if(isMystic(id)) h+='<div class="mysticnote" style="margin-top:10px;">🌟 Mystic pets give a MYTHIC gift every 5 ages!</div>';
-  if(p.potion) h+='<div class="by" style="margin-top:10px;">🏇 Ride ready! While this pet is equipped, your toad rides it — extra speed!</div>';
-  else if(p.age>=13) h+='<button class="bigbtn" style="margin-top:10px;font-size:18px;padding:12px 20px;" data-potion="1" '+(coins>=30?'':'disabled')+'>🧪 Buy Pet Potion (30 🪙) — unlock riding!</button>';
-  else h+='<div class="by" style="margin-top:10px;">Reach age 13 to buy the 🧪 Pet Potion and RIDE your pet!</div>';
+  // 👶 the baby toad gets its own care card — feed it and watch it grow a little bigger each age!
+  if(worn.baby){
+    const bid=worn.baby, bit=SHOP.find(s=>s.id===bid), bp=ensureBaby(bid);
+    h+='<div class="sethead" style="text-align:center;margin-top:14px;">👶 Baby Toad</div>';
+    h+='<div style="font-size:44px;">'+(bit?bit.emoji:'👶')+'</div>';
+    h+='<div style="font-weight:900;font-size:18px;">'+(bit?bit.name:bid)+' · Age '+bp.age+'</div>';
+    const bpr=persOf(bid);
+    if(bpr) h+='<div class="mysticnote" style="margin:2px 0 4px;">Vibe: '+bpr.e+' '+bpr.n+' — '+bpr.desc+'</div>';
+    h+='<div class="by" style="margin:2px 0 4px;">'+Math.floor(bp.xp)+' / '+xpNeed(bp.age)+' XP to age '+(bp.age+1)+' · every age it grows a bit bigger! 🍼</div>';
+    h+='<div class="xpbar"><div style="width:'+Math.min(100, bp.xp/xpNeed(bp.age)*100)+'%"></div></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+    for(const k in NEED_INFO){
+      const v=Math.floor(bp.needs[k]), ready=v>=50;
+      h+='<button class="needbtn" data-careb="'+k+'" '+(ready?'':'disabled')+'>'+NEED_INFO[k].e+' '+NEED_INFO[k].n+(ready?' (+50 XP)':'')+
+         '<div class="needbar"><div style="width:'+v+'%"></div></div></button>';
+    }
+    h+='</div>';
+  }
   h+=craftHtml();
   box.innerHTML=h;
 }
@@ -3567,6 +3630,10 @@ document.getElementById('petBody').addEventListener('click',(e)=>{
   if(k){ const id=worn.pet; if(!id) return; const p=ensurePet(id); if(p.needs[k]<50) return;
     const pr=persOf(id), bonus=(pr && pr.xp)? pr.xp : 0;
     p.needs[k]=0; sfx(k==='sleep'?'splash':(k==='love'?'win':'buy')); petXpGain(id, 50+bonus); renderPetStation(); return; }
+  const kb=el.getAttribute('data-careb');
+  if(kb){ const bid=worn.baby; if(!bid) return; const bp=ensureBaby(bid); if(bp.needs[kb]<50) return;
+    const bpr=persOf(bid), bonus=(bpr && bpr.xp)? bpr.xp : 0;
+    bp.needs[kb]=0; sfx(kb==='sleep'?'splash':(kb==='love'?'win':'buy')); petXpGain(bid, 50+bonus); renderPetStation(); return; }
   if(el.getAttribute('data-potion')){ const id=worn.pet; if(!id || coins<30) return; const p=ensurePet(id);
     coins-=30; updateCoins(); p.potion=true; sfx('win'); showReward('🧪 Potion fed! You can now RIDE your pet! 🏇'); save(); renderPetStation(); return; }
 });
@@ -3727,6 +3794,9 @@ function buildSettingsRows(){
 document.getElementById('petCareToggle').addEventListener('click',()=>{ petCare = petCare===true? false : true; save(); buildSettingsRows(); sfx('coin'); });
 /* ---- Toad News (title screen update log) ---- */
 const NEWS=[
+  {v:'Update 16', d:'Sep 7', items:[
+    '🎣⛏️ 60 FISH and 60 ORES! Twenty new fish (Ghost Guppy 👻, Galaxy Ray 🌌, Noodle Fish 🍜, even an Old Sock 🧦…) and forty new ores (Fool\'s Gold, Dragonglass 🐲, Void Gem 🌑, Sun Heart ☀️…) — happy collecting!',
+    '👶 Baby toads have NEEDS and XP now, just like pets! Feed, cuddle and care for your baby in the 🐾 Pet Station — every age it grows a little bigger (and learns to celebrate 🎉), but it stays your baby forever']},
   {v:'Update 15', d:'Sep 7', items:[
     '🏅 TOAD MILESTONES! Earn XP from bugs (+1), fish & ores (+2), bosses (+10) and legendaries (+25) — level up for exclusive rewards: coins, tongue skins, outfits, a golden pet… tap the new 🏅 button!',
     '👅 TONGUE SKINS! Black & white in the shop — and bunny 🐰, pastel 🌸, rainbow 🌈, laser 🔴, RAINBOW LASER 💥, gold, fire & ice from milestones!',
