@@ -245,6 +245,8 @@
       <button class="toggle on" id="musicToggle">🎵 Music: On</button>
       <div class="sethead">🎼 Song</div>
       <div class="segrow" id="musicRow" style="flex-wrap:wrap;margin:0;"></div>
+      <div class="sethead">🖼️ Title wallpaper</div>
+      <div class="segrow" id="wallRow" style="flex-wrap:wrap;margin:0;"></div>
       <button class="toggle on" id="sfxToggle">🔊 Sound effects: On</button>
       <div class="sethead">🎮 Controls (game pauses while you're here)</div>
       <div class="segrow" id="speedRow" style="margin:0;"></div>
@@ -379,6 +381,18 @@
 
 <!-- the BIG reel button for fishing at the beach -->
 <button id="reelBtn" class="hidden">🎣 wait for it…</button>
+
+<!-- pause / leave button for 2-player games -->
+<button class="padbtn hidden" id="mpPauseBtn" style="position:fixed; top:calc(env(safe-area-inset-top) + 10px); left:12px; z-index:6; pointer-events:auto;">⏸️</button>
+<div class="overlay hidden" id="mpPause">
+  <div class="card">
+    <h1 style="font-size:28px;">⏸️ Game paused</h1>
+    <p class="by">Take a breath, toads!</p>
+    <button class="bigbtn" id="mpResume">▶️ Keep playing!</button>
+    <button class="bigbtn" id="mpRestart" style="background:linear-gradient(#ffcf4d,#e07a2a);box-shadow:0 8px 20px rgba(224,122,42,.5);margin-top:10px;">🔁 Restart this game</button>
+    <button class="closebtn" id="mpLeave" style="margin-top:12px;background:#fdeaea;color:#c0392b;">🚪 Leave game</button>
+  </div>
+</div>
 
 <!-- Tongue Battle pre-game setup: pick your pixel size and game mode -->
 <div class="overlay hidden" id="battleSetup">
@@ -693,6 +707,19 @@ const FISH=[
   {id:'seadragon', e:'🐉', n:'Golden Sea Dragon', r:6},
   {id:'kraken',    e:'🐙', n:'Kraken King',       r:6},
   {id:'celestwhale', e:'🐋', n:'Celestial Whale', r:6},
+  // 🌳 POND fish — they only bite at the pond at home!
+  {id:'p_dew',     e:'💧', n:'Dewdrop Darter', r:1, area:'pond'},{id:'p_lilyp', e:'🐟', n:'Lilypad Loafer', r:1, area:'pond'},
+  {id:'p_mudpup',  e:'🟤', n:'Mud Puppy',      r:1, area:'pond'},{id:'p_skitter',e:'🐠', n:'Skitter Fish', r:2, area:'pond'},
+  {id:'p_frogfish',e:'🐸', n:'Frog Fish',      r:2, area:'pond'},{id:'p_dragonet',e:'🦎', n:'Pond Dragonet', r:3, area:'pond'},
+  {id:'p_neighbor',e:'🎩', n:'Fancy Fish',     r:3, area:'pond'},{id:'p_kingkoi', e:'🎏', n:'King Koi',    r:4, area:'pond'},
+  {id:'p_moonpond',e:'🌝', n:'Pond Moonface',  r:5, area:'pond'},
+  {id:'p_lilyking',e:'🪷', n:'The Lily King',  r:6, area:'pond'},
+  // 🌊 WATERFALL fish — only under the falls!
+  {id:'w_splash',  e:'💦', n:'Splash Dancer',  r:1, area:'falls'},{id:'w_pebbler',e:'🐟', n:'Pebble Nibbler', r:1, area:'falls'},
+  {id:'w_foam',    e:'🫧', n:'Foam Floater',   r:2, area:'falls'},{id:'w_leaper', e:'🐠', n:'Falls Leaper', r:2, area:'falls'},
+  {id:'w_rainbowt',e:'🌈', n:'Rainbow Trout',  r:3, area:'falls'},{id:'w_mistcat',e:'🌫️', n:'Misty Catfish', r:3, area:'falls'},
+  {id:'w_thunderf',e:'🌩️', n:'Storm Swimmer',  r:4, area:'falls'},{id:'w_cascade',e:'✨', n:'Cascade Sprite', r:5, area:'falls'},
+  {id:'w_mistspirit', e:'🦢', n:'The Mist Spirit', r:6, area:'falls'},
 ];
 const FISH_VALUE=[0,3,8,15,30,75,500];
 const ROD_WEIGHTS=[ [60,25,10,4,1], [42,28,17,9,4], [28,27,22,14,9], [16,22,25,21,16] ];
@@ -709,12 +736,14 @@ let biteT=0, fishMoveT=0, fishAng=0, fishZoneStart=0, fishZoneSize=0, fishTap=fa
 function bestRodIdx(){ return owned.rod4?3 : owned.rod3?2 : owned.rod2?1 : 0; }
 function uniqueFishCount(){ return Object.keys(fishCaught).length; }
 function rollFish(){
+  const tag=fishAreaTag();   // each fishing spot has its OWN fish!
   // legendaries: mythic rod ONLY, a pure 1-in-100 chance — then it picks WHICH legendary at random!
-  if(bestRodIdx()===3 && Math.random()<0.01){ const pool=FISH.filter(f=>f.r===6); return pool[Math.floor(Math.random()*pool.length)]; }
+  if(bestRodIdx()===3 && Math.random()<0.01){ const pool=FISH.filter(f=>f.r===6 && (f.area||null)===tag); if(pool.length) return pool[Math.floor(Math.random()*pool.length)]; }
   const w=ROD_WEIGHTS[bestRodIdx()], total=w.reduce((a,b)=>a+b,0);
   let roll=Math.random()*total, rar=1;
   for(let i=0;i<5;i++){ roll-=w[i]; if(roll<=0){ rar=i+1; break; } }
-  const pool=FISH.filter(f=>f.r===rar);
+  let pool=FISH.filter(f=>f.r===rar && (f.area||null)===tag);
+  while(!pool.length && rar>1){ rar--; pool=FISH.filter(f=>f.r===rar && (f.area||null)===tag); }
   return pool[Math.floor(Math.random()*pool.length)];
 }
 function catchFish(){
@@ -752,6 +781,10 @@ const TONGUE_SKINS={
   tg_galaxy:{grad:['#1a1a48','#5c33a0','#3f77d4','#1a1a48'], glow:'rgba(120,120,255,0.7)'},
   tg_sparkle:{grad:['#ffe9f5','#e8f4ff','#fff9d8'], glow:'rgba(255,255,255,0.9)', fluffy:true},
   tg_ultimate:{grad:['#ff5a5a','#ffa53a','#ffe23a','#5ad46b','#4aa8ff','#9a6bff'], glow:'rgba(255,255,255,0.9)', laser:true, fluffy:true},
+  tg_bronze:{c:'#c9885a', glow:'rgba(201,136,90,0.55)'},
+  tg_silver:{c:'#d0d4dc', glow:'rgba(208,212,220,0.65)'},
+  tg_rankgold:{grad:['#ffcf3a','#ffe9a0','#ffcf3a'], glow:'rgba(255,207,58,0.75)'},
+  tg_diamond:{grad:['#d8f4ff','#ffffff','#bfeeff'], glow:'rgba(200,240,255,0.95)', laser:true},
 };
 function drawTongueLine(x0,y0,x1,y1,skinId){
   const s=TONGUE_SKINS[skinId]||null;
@@ -809,6 +842,13 @@ const ORES=[
   {id:'prismheart', e:'🌈', n:'Prism Heart', r:6},
   {id:'dragonheart', e:'🐉', n:'Dragon Heart', r:6},
   {id:'starcore',    e:'💫', n:'Fallen Star Core', r:6},
+  // ⛏️ UNDERGROUND ores — only in the Underground world!
+  {id:'u_dirtball', e:'🟤', n:'Perfect Dirtball', r:1, area:'under'},{id:'u_rootrock',e:'🌿', n:'Root Rock',   r:1, area:'under'},
+  {id:'u_wormstone',e:'🪱', n:'Worm Stone',       r:1, area:'under'},{id:'u_fossil',  e:'🦴', n:'Tiny Fossil', r:2, area:'under'},
+  {id:'u_geode',    e:'🥚', n:'Secret Geode',     r:2, area:'under'},{id:'u_amberbug',e:'🐜', n:'Bug in Amber',r:3, area:'under'},
+  {id:'u_glowshroom',e:'🍄', n:'Glowshroom Gem',  r:3, area:'under'},{id:'u_goldroot',e:'🌟', n:'Golden Root', r:4, area:'under'},
+  {id:'u_deepcrystal',e:'🔮', n:'Deep Crystal',   r:5, area:'under'},
+  {id:'u_earthheart', e:'🌍', n:'Heart of the Earth', r:6, area:'under'},
 ];
 const ORE_VALUE=[0,3,8,15,30,75,500];
 const PICKS=[
@@ -821,11 +861,13 @@ const oresMined={};
 let mining=false, mineT=0, mineWait=0;
 function bestPickIdx(){ return owned.pick4?3 : owned.pick3?2 : owned.pick2?1 : 0; }
 function rollOre(){
-  if(bestPickIdx()===3 && Math.random()<0.01){ const pool=ORES.filter(o=>o.r===6); return pool[Math.floor(Math.random()*pool.length)]; }
+  const tag=(area==='under')? 'under' : null;   // the Underground has its very own ores!
+  if(bestPickIdx()===3 && Math.random()<0.01){ const pool=ORES.filter(o=>o.r===6 && (o.area||null)===tag); if(pool.length) return pool[Math.floor(Math.random()*pool.length)]; }
   const w=ROD_WEIGHTS[bestPickIdx()], total=w.reduce((a,b)=>a+b,0);
   let roll=Math.random()*total, rar=1;
   for(let i=0;i<5;i++){ roll-=w[i]; if(roll<=0){ rar=i+1; break; } }
-  const pool=ORES.filter(o=>o.r===rar);
+  let pool=ORES.filter(o=>o.r===rar && (o.area||null)===tag);
+  while(!pool.length && rar>1){ rar--; pool=ORES.filter(o=>o.r===rar && (o.area||null)===tag); }
   return pool[Math.floor(Math.random()*pool.length)];
 }
 function catchOre(){
@@ -847,6 +889,88 @@ function reelBtnState(bite){
   b.textContent = bite? e+(mining?' MINE!!':' REEL!!') : e+' wait for it…';
 }
 function stopFishing(quiet){ if(fishing && !quiet) pops.push({x:toad.x, y:toad.y-90, t:0, txt:'💨'}); fishing=false; fishT=0; biteT=0; fishTap=false; fishMoveT=0; document.getElementById('reelBtn').classList.add('hidden'); }
+/* fishing works at the beach, the ground pond AND the waterfall pool now — one shared tick */
+function tickFishing(dir){
+  if(biteT>0){
+    // a fish is ON! the arrow spins — tap while it's over the ✅ zone
+    fishAng=(fishAng+0.075)%(Math.PI*2);
+    if(fishTap){
+      fishTap=false;
+      const rel=((fishAng-fishZoneStart)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+      biteT=0; fishT=0; fishWait=200+Math.random()*200; fishMoveT=0; reelBtnState(false);
+      if(rel<=fishZoneSize){ catchFish(); }
+      else { pops.push({x:toad.x+70, y:toad.y-84, t:0, txt:'💨 got away!'}); sfx('mad'); }
+    } else {
+      biteT--;
+      if(biteT<=0){ fishT=0; fishWait=200+Math.random()*200; reelBtnState(false); pops.push({x:toad.x+70, y:toad.y-84, t:0, txt:'💨 got away!'}); sfx('mad'); }
+    }
+  }
+  else if(dir!==null){ fishMoveT++; if(fishMoveT>18) stopFishing(); }
+  else {
+    fishMoveT=0; fishT++;
+    if(fishT>=fishWait){
+      fishT=0; biteT=60*5; sfx('splash');
+      fishAng=Math.random()*Math.PI*2;
+      fishZoneSize=Math.PI*2*0.30;                       // ~30% of the circle is ✅
+      fishZoneStart=Math.random()*Math.PI*2;
+      fishTap=false;
+      reelBtnState(true);                                // the big button lights up — REEL!!
+    }
+  }
+}
+function fishBobPos(){
+  if(area==='beach') return {x:Math.max(oceanX1()+40, Math.min(W-30, toad.x+130)), y:groundY+4+Math.sin(t*0.1)*3};
+  if(area==='waterfall') return {x:Math.max(wfPoolX()+40, Math.min(W-30, toad.x+130)), y:groundY+4+Math.sin(t*0.1)*3};
+  return {x:Math.max(pond.x1+30, Math.min(pond.x2-24, toad.x+110)), y:pond.surfaceY+4+Math.sin(t*0.1)*3};
+}
+function fishAreaTag(){ return area==='ground'? 'pond' : area==='waterfall'? 'falls' : null; }
+function updateAreaButtons(a){
+  const fa=(a==='beach'||a==='ground'||a==='waterfall'), ma=(a==='cave'||a==='under');
+  document.getElementById('rodBtn').classList.toggle('hidden', !fa);
+  document.getElementById('dexBtn').classList.toggle('hidden', !fa);
+  document.getElementById('mineBtn').classList.toggle('hidden', !ma);
+  document.getElementById('oreBtn').classList.toggle('hidden', !ma);
+}
+function drawFishRig(){
+  const bob=fishBobPos(), bobX=bob.x, bobY=bob.y;
+
+  const rx=toad.x+toad.facing*34, ry=toad.y-toad.h-14;
+    ctx.strokeStyle='#5a3a22'; ctx.lineWidth=3.5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(toad.x+toad.facing*12, toad.y-44); ctx.lineTo(rx, ry-26); ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,0.75)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(rx, ry-26); ctx.quadraticCurveTo((rx+bobX)/2, ry-44, bobX, bobY); ctx.stroke();
+    ctx.fillStyle='#e0554f'; ctx.beginPath(); ctx.arc(bobX, bobY, 5, 0, 7); ctx.fill();
+    if(biteT>0){
+      const bnc=Math.abs(Math.sin(t*0.3))*5;
+      ctx.font='24px sans-serif'; ctx.textAlign='center'; ctx.fillText('❗', bobX, bobY-18-bnc);
+      // the timing circle floats right above the rod — TAP when the arrow is over the ✅ zone!
+      const ccx=toad.x+toad.facing*34, ccy=Math.max(76, toad.y-toad.h-116), R2=46;
+      ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.arc(ccx, ccy, R2+12, 0, 7); ctx.fill();
+      // ❌ ring
+      ctx.strokeStyle='#e0554f'; ctx.lineWidth=16;
+      ctx.beginPath(); ctx.arc(ccx, ccy, R2, fishZoneStart+fishZoneSize, fishZoneStart+Math.PI*2); ctx.stroke();
+      // ✅ zone
+      ctx.strokeStyle='#5ad46b'; ctx.beginPath(); ctx.arc(ccx, ccy, R2, fishZoneStart, fishZoneStart+fishZoneSize); ctx.stroke();
+      ctx.font='15px sans-serif'; ctx.textBaseline='middle';
+      const mid=fishZoneStart+fishZoneSize/2, opp=mid+Math.PI;
+      ctx.fillText('✅', ccx+Math.cos(mid)*R2, ccy+Math.sin(mid)*R2);
+      ctx.fillText('❌', ccx+Math.cos(opp)*R2, ccy+Math.sin(opp)*R2);
+      ctx.textBaseline='alphabetic';
+      // the spinning arrow
+      ctx.save(); ctx.translate(ccx, ccy); ctx.rotate(fishAng);
+      ctx.strokeStyle='#173a1a'; ctx.lineWidth=5; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(R2-24,0); ctx.stroke();
+      ctx.fillStyle='#173a1a'; ctx.beginPath(); ctx.moveTo(R2-8,0); ctx.lineTo(R2-26,-8); ctx.lineTo(R2-26,8); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle='#ffe23a'; ctx.beginPath(); ctx.arc(ccx, ccy, 7, 0, 7); ctx.fill();
+      // countdown ring + hint
+      ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(ccx, ccy, R2+12, -Math.PI/2, -Math.PI/2+6.28*(biteT/300)); ctx.stroke();
+      ctx.fillStyle='#fff'; fitText('🎣 press the BIG REEL button when the arrow is on the ✅!', W/2, H*0.16, 17);
+    } else {
+      ctx.fillStyle='#173a1a'; fitText('🎣 '+RODS[bestRodIdx()].name+' — stay still… when the ❗ comes, hit the big REEL button at the right moment!', W/2, H*0.22, 14);
+    }
+  }
 /* the BIG reel button is the only way to reel — press it while the arrow is on ✅! */
 document.getElementById('reelBtn').addEventListener('pointerdown', e=>{ e.preventDefault(); if((fishing||mining) && biteT>0) fishTap=true; else sfx('mad'); });
 /* ---------------- Weather: changes every couple of minutes, affects toad & bug speed ---------------- */
@@ -1047,11 +1171,8 @@ function goArea(a){
   secretDone=false; secretProg=0; recipeProg=0; cityLock=true; cityLockX=W*0.5;
   if(a==='castle'){ castleFloor=1; chestProg=0; }
   stopFishing(true);
-  document.getElementById('rodBtn').classList.toggle('hidden', a!=='beach');
-  document.getElementById('dexBtn').classList.toggle('hidden', a!=='beach');
-  document.getElementById('mineBtn').classList.toggle('hidden', a!=='cave');
-  document.getElementById('oreBtn').classList.toggle('hidden', a!=='cave');
-  if(mining && a!=='cave') stopMining(true);
+  updateAreaButtons(a);
+  if(mining && !(a==='cave'||a==='under')) stopMining(true);
   if(a==='city'){ const pool=SHOP.filter(s=>s.price>0 && !s.secret && !s.mystic); cityAds=[]; for(let i=0;i<3;i++) cityAds.push(pool[Math.floor(Math.random()*pool.length)]); }
   toad.x=W*0.5; toad.y=groundY; toad.vy=0; toad.facing=-1; toad.grounded=true; pointerDirs.clear();
   // the boss follows you between worlds — it flies in from the side of the new world
@@ -1117,35 +1238,8 @@ function updateArea(){
     plant.timer--; if(plant.timer<=0) plant.active=false;
     for(const b of areaBugs){ if(b.cat==='fly' && !b.fleeing && !FRUIT_BOOST[b.type]){ b.vx+=(plant.x-b.x)*0.004; b.vy+=((plant.y-16)-b.y)*0.004; b.alarm=0; } }
   }
-  if(area==='beach' && fishing){
-    if(biteT>0){
-      // a fish is ON! the arrow spins — tap while it's over the ✅ zone
-      fishAng=(fishAng+0.075)%(Math.PI*2);
-      if(fishTap){
-        fishTap=false;
-        const rel=((fishAng-fishZoneStart)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
-        biteT=0; fishT=0; fishWait=200+Math.random()*200; fishMoveT=0; reelBtnState(false);
-        if(rel<=fishZoneSize){ catchFish(); }
-        else { pops.push({x:toad.x+70, y:toad.y-84, t:0, txt:'💨 got away!'}); sfx('mad'); }
-      } else {
-        biteT--;
-        if(biteT<=0){ fishT=0; fishWait=200+Math.random()*200; reelBtnState(false); pops.push({x:toad.x+70, y:toad.y-84, t:0, txt:'💨 got away!'}); sfx('mad'); }
-      }
-    }
-    else if(dir!==null){ fishMoveT++; if(fishMoveT>18) stopFishing(); }
-    else {
-      fishMoveT=0; fishT++;
-      if(fishT>=fishWait){
-        fishT=0; biteT=60*5; sfx('splash');
-        fishAng=Math.random()*Math.PI*2;
-        fishZoneSize=Math.PI*2*0.30;                       // ~30% of the circle is ✅
-        fishZoneStart=Math.random()*Math.PI*2;
-        fishTap=false;
-        reelBtnState(true);                                // the big button lights up — REEL!!
-      }
-    }
-  }
-  if(area==='cave' && mining){
+  if(fishing && (area==='beach'||area==='waterfall')) tickFishing(dir);
+  if((area==='cave'||area==='under') && mining){
     // ⛏️ mining works just like fishing: wait for the ❗, then hit the button on the ✅
     if(biteT>0){
       fishAng=(fishAng+0.075)%(Math.PI*2);
@@ -1344,6 +1438,7 @@ function update(){
   const dir = currentDir();
   toad.move = dir || 'none';
   const moving = dir!==null;
+  if(fishing) tickFishing(dir);   // pond fishing right at home!
   const overPond = toad.x > pond.x1 && toad.x < pond.x2;
   const spd = overPond ? curSpeed()*0.72 : curSpeed();
   if(dir==='left'){ toad.x -= spd; toad.facing=-1; }
@@ -2271,46 +2366,8 @@ function drawArea(){
     if((b.alarm||0)>0.35 && !b.fleeing && !FRUIT_BOOST[b.type]){ ctx.fillStyle='#c0392b'; ctx.font='bold 16px sans-serif'; ctx.textAlign='center'; ctx.fillText('!', b.x, b.y-16); } }
   drawBoss();
   drawToad();
-  if(area==='beach' && fishing){
-    const rx=toad.x+toad.facing*34, ry=toad.y-toad.h-14;
-    const bobX=Math.max(oceanX1()+40, Math.min(W-30, toad.x+130)), bobY=groundY+4+Math.sin(t*0.1)*3;
-    ctx.strokeStyle='#5a3a22'; ctx.lineWidth=3.5; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(toad.x+toad.facing*12, toad.y-44); ctx.lineTo(rx, ry-26); ctx.stroke();
-    ctx.strokeStyle='rgba(255,255,255,0.75)'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(rx, ry-26); ctx.quadraticCurveTo((rx+bobX)/2, ry-44, bobX, bobY); ctx.stroke();
-    ctx.fillStyle='#e0554f'; ctx.beginPath(); ctx.arc(bobX, bobY, 5, 0, 7); ctx.fill();
-    if(biteT>0){
-      const bnc=Math.abs(Math.sin(t*0.3))*5;
-      ctx.font='24px sans-serif'; ctx.textAlign='center'; ctx.fillText('❗', bobX, bobY-18-bnc);
-      // the timing circle floats right above the rod — TAP when the arrow is over the ✅ zone!
-      const ccx=toad.x+toad.facing*34, ccy=Math.max(76, toad.y-toad.h-116), R2=46;
-      ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.arc(ccx, ccy, R2+12, 0, 7); ctx.fill();
-      // ❌ ring
-      ctx.strokeStyle='#e0554f'; ctx.lineWidth=16;
-      ctx.beginPath(); ctx.arc(ccx, ccy, R2, fishZoneStart+fishZoneSize, fishZoneStart+Math.PI*2); ctx.stroke();
-      // ✅ zone
-      ctx.strokeStyle='#5ad46b'; ctx.beginPath(); ctx.arc(ccx, ccy, R2, fishZoneStart, fishZoneStart+fishZoneSize); ctx.stroke();
-      ctx.font='15px sans-serif'; ctx.textBaseline='middle';
-      const mid=fishZoneStart+fishZoneSize/2, opp=mid+Math.PI;
-      ctx.fillText('✅', ccx+Math.cos(mid)*R2, ccy+Math.sin(mid)*R2);
-      ctx.fillText('❌', ccx+Math.cos(opp)*R2, ccy+Math.sin(opp)*R2);
-      ctx.textBaseline='alphabetic';
-      // the spinning arrow
-      ctx.save(); ctx.translate(ccx, ccy); ctx.rotate(fishAng);
-      ctx.strokeStyle='#173a1a'; ctx.lineWidth=5; ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(R2-24,0); ctx.stroke();
-      ctx.fillStyle='#173a1a'; ctx.beginPath(); ctx.moveTo(R2-8,0); ctx.lineTo(R2-26,-8); ctx.lineTo(R2-26,8); ctx.closePath(); ctx.fill();
-      ctx.restore();
-      ctx.fillStyle='#ffe23a'; ctx.beginPath(); ctx.arc(ccx, ccy, 7, 0, 7); ctx.fill();
-      // countdown ring + hint
-      ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=3;
-      ctx.beginPath(); ctx.arc(ccx, ccy, R2+12, -Math.PI/2, -Math.PI/2+6.28*(biteT/300)); ctx.stroke();
-      ctx.fillStyle='#fff'; fitText('🎣 press the BIG REEL button when the arrow is on the ✅!', W/2, H*0.16, 17);
-    } else {
-      ctx.fillStyle='#173a1a'; fitText('🎣 '+RODS[bestRodIdx()].name+' — stay still… when the ❗ comes, hit the big REEL button at the right moment!', W/2, H*0.22, 14);
-    }
-  }
-  if(area==='cave' && mining){
+  if(fishing && (area==='beach'||area==='waterfall')) drawFishRig();
+  if((area==='cave'||area==='under') && mining){
     // the ore vein the toad is chipping at
     const vx=toad.x+toad.facing*44, vy=toad.y-10;
     ctx.fillStyle='#3a4a52'; ctx.beginPath(); ctx.ellipse(vx, vy, 20, 14, 0, 0, 7); ctx.fill();
@@ -2705,6 +2762,12 @@ function drawToad(){
     ctx.globalAlpha=1;
   }
   if(!swimming){ ctx.fillStyle='rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(bx, groundY+6, bw*0.5, 9, 0,0,7); ctx.fill(); }
+  if(worn.coat==='bf_blankie'){
+    ctx.fillStyle='#a8d8f0'; ctx.beginPath(); ctx.moveTo(bx-bw*0.28, cy-bh*0.34); ctx.quadraticCurveTo(bx-bw*0.85, cy+bh*0.3, bx-bw*0.3, cy+bh*0.6); ctx.quadraticCurveTo(bx, cy+bh*0.44, bx+bw*0.3, cy+bh*0.6); ctx.quadraticCurveTo(bx+bw*0.85, cy+bh*0.3, bx+bw*0.28, cy-bh*0.34); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#78b0d0'; ctx.lineWidth=2;
+    for(let k=-1;k<=1;k++){ ctx.beginPath(); ctx.moveTo(bx+k*bw*0.2, cy-bh*0.3); ctx.lineTo(bx+k*bw*0.24, cy+bh*0.55); ctx.stroke(); }
+    ctx.font='10px sans-serif'; ctx.textAlign='center'; ctx.fillText('🧸', bx+bw*0.12, cy+bh*0.3);
+  }
   if(worn.coat==='fish_galaxycape'){
     ctx.fillStyle='#1a1a48'; ctx.beginPath(); ctx.moveTo(bx-bw*0.28, cy-bh*0.34); ctx.quadraticCurveTo(bx-bw*0.92, cy+bh*0.3, bx-bw*0.32, cy+bh*0.62); ctx.quadraticCurveTo(bx, cy+bh*0.44, bx+bw*0.32, cy+bh*0.62); ctx.quadraticCurveTo(bx+bw*0.92, cy+bh*0.3, bx+bw*0.28, cy-bh*0.34); ctx.closePath(); ctx.fill();
     for(let k=0;k<8;k++){ const sx4=bx+Math.sin(k*2.3)*bw*0.34, sy4=cy+((k*37)%Math.floor(bh*0.8)); const tw2=0.4+0.6*Math.abs(Math.sin(t*0.08+k));
@@ -2946,6 +3009,23 @@ function drawToad(){
       ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.moveTo(gx-4, ey-6); ctx.lineTo(gx+1, ey-9); ctx.stroke(); }
     ctx.strokeStyle='#3ab8d0'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(bx-ex+10, ey-3); ctx.lineTo(bx+ex-10, ey-3); ctx.stroke(); }
 
+  if(worn.hat && worn.hat.startsWith('rank_')){
+    const RC={rank_bronzecrown:['#c9885a','#8c5a34','#e8b088'], rank_silvercrown:['#d0d4dc','#8a92a0','#f0f2f6'], rank_goldcrown:['#ffcf3a','#c9a020','#ffe9a0'], rank_diamondcrown:['#bfeeff','#7ab8d8','#ffffff']}[worn.hat];
+    if(RC){ const y0=ey-26;
+      ctx.fillStyle=RC[0]; ctx.beginPath(); ctx.moveTo(bx-22,y0); ctx.lineTo(bx-22,y0-12); ctx.lineTo(bx-11,y0-5); ctx.lineTo(bx,y0-18); ctx.lineTo(bx+11,y0-5); ctx.lineTo(bx+22,y0-12); ctx.lineTo(bx+22,y0); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle=RC[1]; ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle=RC[2]; ctx.beginPath(); ctx.arc(bx, y0-4, 3.5, 0, 7); ctx.fill();
+      if(worn.hat==='rank_diamondcrown'){ ctx.globalAlpha=0.5+0.5*Math.abs(Math.sin(t*0.14)); ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText('✦', bx-14, y0-14); ctx.fillText('✦', bx+15, y0-10); ctx.globalAlpha=1; }
+    }
+  }
+  if(worn.hat==='bf_bonnet'){
+    ctx.fillStyle='#ffe9c0'; ctx.beginPath(); ctx.arc(bx, ey-16, 24, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#e0b878'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#ffe9c0'; ctx.fillRect(bx-28, ey-16, 56, 5);
+    for(const s of [-1,0,1]){ const fx4=bx+s*13;
+      ctx.fillStyle='#fff'; for(let p2=0;p2<5;p2++){ const pa=p2*1.256; ctx.beginPath(); ctx.ellipse(fx4+Math.cos(pa)*4.5, ey-28+Math.sin(pa)*4.5, 3, 2, pa, 0, 7); ctx.fill(); }
+      ctx.fillStyle='#ffcf3a'; ctx.beginPath(); ctx.arc(fx4, ey-28, 2.5, 0, 7); ctx.fill(); }
+  }
   if(worn.hat==='fish_ghosthood'){
     ctx.fillStyle='rgba(240,244,255,0.85)'; ctx.beginPath(); ctx.arc(bx, ey-12, 26, Math.PI, 0);
     ctx.quadraticCurveTo(bx+30, ey+2, bx+22, ey+10+Math.sin(t*0.1)*3);
@@ -3180,6 +3260,7 @@ function drawPops(){
 const STEP_MS = 1000/60;
 function overlayOpen(){ return document.querySelector('.overlay:not(.hidden)')!==null; }
 function stepGame(){
+  document.getElementById('mpPauseBtn').classList.toggle('hidden', !twoP);
   const pausedNow = overlayOpen();   // any open menu pauses the world
   if(pausedNow) return;
   if(boostT>0) boostT--; if(constSkyT>0){ constSkyT--; if(constSkyT<=0) constSky=false; }
@@ -3199,6 +3280,37 @@ function stepGame(){
         const pr=persOf(pid), nm=(pr && pr.needs)? pr.needs : 1;
         for(const k in p.needs){ p.needs[k]=Math.min(100, p.needs[k]+(0.2+Math.random()*0.35)*nm); } } }
   }
+  // 👶 Baby power: your baby toad catches bugs for you — and sometimes digs up baby-only treasures!
+  if(started && !twoP && !inside && !homeMode && !gardenMode && !showMode && worn.baby){
+    babyAssistT++;
+    const bage=(petData[worn.baby] && petData[worn.baby].age)||0;
+    const rate=Math.max(60*16, 60*32 - bage*90);   // older babies help more often
+    if(babyAssistT>=rate){
+      babyAssistT=0;
+      if(!(area==='ground' && villager.state==='out')){   // even babies behave near the neighbour
+        const pool=(area==='ground')? flies : areaBugs;
+        let best=null, bd=180;
+        for(const b of pool){
+          if(b.fleeing||b.hidden) continue;
+          if(FRUIT_BOOST[b.type] || b.type==='starcoin' || b.type==='gift') continue;
+          const d=Math.hypot(b.x-babyPos.x, b.y-(babyPos.y-20)); if(d<bd){ bd=d; best=b; }
+        }
+        if(best){
+          const got=gainCoins(best.val||1); addXp(1);
+          pops.push({x:best.x, y:best.y, t:0, val:got});
+          pops.push({x:babyPos.x, y:babyPos.y-32, t:0, txt:'👶👅'});
+          sfx('coin');
+          if(area==='ground') spawnFly(best); else spawnAreaBug(best);
+          const finds=['bf_bonnet','bf_blankie','bf_ducky'].filter(id=>!owned[id]);
+          if(finds.length && Math.random()<0.10){
+            const fid=finds[0]; owned[fid]=true; const it=SHOP.find(s=>s.id===fid);
+            showReward('👶💝 Your baby dug up the '+it.emoji+' '+it.name+' — a treasure only babies can find!!');
+            sfx('win'); save();
+          }
+        }
+      }
+    }
+  } else babyAssistT=0;
   if(gardenMode){ updateGarden(); return; }
   if(homeMode || showMode){ if(showMode) showTimer++; return; }
   if(twoP){ update2P(); return; }
@@ -3219,6 +3331,7 @@ function drawGame(){
   drawBoss();
   drawToad();
   drawPondFront();
+  if(fishing) drawFishRig();
   if(diveTimer>0){ ctx.fillStyle='#fff'; fitText('💧 keep diving to find a secret!', (pond.x1+pond.x2)/2, pond.surfaceY-10, 15); }
   drawRecipeSpot();
   drawWeather(); drawBoostBadge();
@@ -3453,6 +3566,19 @@ SHOP.push(
   { id:'tg_ultimate',name:'ULTIMATE Tongue',  emoji:'🏆', price:0, slot:'tongue', secret:true },
   { id:'mil_legendhat',   name:'Legend Top Hat',  emoji:'🎩', price:0, slot:'hat',  secret:true },
   { id:'mil_rainbowwings',name:'Rainbow Wings',   emoji:'🌈', price:0, slot:'coat', secret:true },
+  // RANK trophies — beat each rank's 100 milestones!
+  { id:'rank_bronzecrown', name:'Bronze Rank Crown',  emoji:'🥉', price:0, slot:'hat', secret:true },
+  { id:'rank_silvercrown', name:'Silver Rank Crown',  emoji:'🥈', price:0, slot:'hat', secret:true },
+  { id:'rank_goldcrown',   name:'Gold Rank Crown',    emoji:'🥇', price:0, slot:'hat', secret:true },
+  { id:'rank_diamondcrown',name:'Diamond Rank Crown', emoji:'💎', price:0, slot:'hat', secret:true },
+  { id:'tg_bronze',   name:'Bronze Rank Tongue',  emoji:'🥉', price:0, slot:'tongue', secret:true },
+  { id:'tg_silver',   name:'Silver Rank Tongue',  emoji:'🥈', price:0, slot:'tongue', secret:true },
+  { id:'tg_rankgold', name:'Gold Rank Tongue',    emoji:'🥇', price:0, slot:'tongue', secret:true },
+  { id:'tg_diamond',  name:'Diamond Rank Tongue', emoji:'💎', price:0, slot:'tongue', secret:true },
+  // baby-found treasures — ONLY your baby toad can dig these up!
+  { id:'bf_bonnet',  name:'Daisy Bonnet',  emoji:'👒', price:0, slot:'hat',  secret:true },
+  { id:'bf_blankie', name:'Blankie Cape',  emoji:'🧸', price:0, slot:'coat', secret:true },
+  { id:'bf_ducky',   name:'Rubber Ducky',  emoji:'🐤', char:'🐤', price:0, slot:'emote', secret:true },
   // new fish & ore crafted outfits
   { id:'fish_ghosthood',  name:'Ghost Hood',       emoji:'👻', price:0, slot:'hat',  secret:true },
   { id:'fish_galaxycape', name:'Galaxy Cape',      emoji:'🌌', price:0, slot:'coat', secret:true },
@@ -3554,8 +3680,17 @@ const worn = { skin:null, hat:null, glasses:null, coat:null, emote:null, pet:nul
 const petPos = { x:0, y:0 };
 const babyPos = { x:0, y:0 };
 /* ---- Toad Milestones: earn XP from bugs, fish, ores & bosses — level up for exclusive rewards! ---- */
-let xp=0, toadLevel=1;
-function mlNeed(l){ return 20+l*15; }   // milestone XP per level (the pet system has its own xpNeed!)
+let xp=0, toadLevel=1, babyAssistT=0;
+function mlNeed(l){ return Math.min(20+l*15, 200); }   // milestone XP per level, capped so high ranks stay reachable (pet system has its own xpNeed!)
+/* ---- RANKS: C → B → A → S. Each rank holds 100 milestones — beat all 100 to rank up and win that rank's crown & tongue! ---- */
+const RANKS=[
+  {id:'C', e:'🥉', name:'Rank C', from:1,   crown:'rank_bronzecrown', tongue:'tg_bronze',  label:'BRONZE'},
+  {id:'B', e:'🥈', name:'Rank B', from:101, crown:'rank_silvercrown', tongue:'tg_silver',  label:'SILVER'},
+  {id:'A', e:'🥇', name:'Rank A', from:201, crown:'rank_goldcrown',   tongue:'tg_rankgold',label:'GOLD'},
+  {id:'S', e:'💎', name:'Rank S', from:301, crown:'rank_diamondcrown',tongue:'tg_diamond', label:'DIAMOND'},
+];
+function rankOf(l){ for(let i=RANKS.length-1;i>=0;i--){ if(l>=RANKS[i].from) return RANKS[i]; } return RANKS[0]; }
+const RANK_UPS={ 101:RANKS[0], 201:RANKS[1], 301:RANKS[2], 401:RANKS[3] };   // beating a rank's 100th milestone grants ITS trophies
 const MILESTONES={
   2:{coins:30}, 3:{item:'tg_bunny'}, 4:{baby:'baby_mint'}, 5:{item:'tg_pastel'},
   6:{coins:80}, 7:{item:'mil_cape'}, 8:{item:'tg_rainbow'}, 9:{baby:'baby_sky'},
@@ -3569,7 +3704,7 @@ const MILESTONES={
 function ensureBaby(id){ return ensurePet(id); }   // babies have full needs, XP & vibes — just like pets
 function addXp(n){
   xp+=n;
-  while(toadLevel<40 && xp>=mlNeed(toadLevel)){
+  while(toadLevel<401 && xp>=mlNeed(toadLevel)){
     xp-=mlNeed(toadLevel); toadLevel++;
     const r=MILESTONES[toadLevel]; let msg='🏅 TOAD LEVEL '+toadLevel+'!';
     if(r){
@@ -3581,8 +3716,19 @@ function addXp(n){
         const it=SHOP.find(s=>s.id===r.baby);
         msg+=' '+(it? it.emoji+' '+it.name : 'a baby toad')+' hatched'+(pr? ' — a '+pr.e+' '+pr.n+' one!' : '!');
       }
+    } else {
+      // every single level still rewards you — filler levels pay coins that grow as you climb
+      const cr=20+Math.floor(toadLevel/2)*2;
+      coins+=cr; updateCoins(); msg+=' +'+cr+'🪙';
     }
-    showReward(msg); sfx('win');
+    // RANK UP! Beating the 100th milestone of a rank wins that rank's crown + tongue skin
+    const ru=RANK_UPS[toadLevel];
+    if(ru){
+      owned[ru.crown]=true; owned[ru.tongue]=true;
+      const nr=rankOf(toadLevel);
+      showReward('🏆🎉 RANK '+ru.id+' COMPLETE!! You won the '+ru.e+' '+ru.label+' CROWN & TONGUE'+(toadLevel<401? ' — welcome to '+nr.name+'!!' : ' — you are an S★ LEGEND!!'));
+      sfx('win');
+    } else { showReward(msg); sfx('win'); }
   }
   save();
 }
@@ -3680,6 +3826,7 @@ function renderPetStation(){
     const bpr=persOf(bid);
     if(bpr) h+='<div class="mysticnote" style="margin:2px 0 4px;">Vibe: '+bpr.e+' '+bpr.n+' — '+bpr.desc+'</div>';
     h+='<div class="by" style="margin:2px 0 4px;">'+Math.floor(bp.xp)+' / '+xpNeed(bp.age)+' XP to age '+(bp.age+1)+' · every age it grows a bit bigger! 🍼</div>';
+    h+='<div class="mysticnote" style="margin:2px 0 4px;">👶 Baby power: catches bugs for you (faster as it grows!) and sniffs out treasures ONLY babies can find 💝</div>';
     h+='<div class="xpbar"><div style="width:'+Math.min(100, bp.xp/xpNeed(bp.age)*100)+'%"></div></div>';
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
     for(const k in NEED_INFO){
@@ -3805,8 +3952,8 @@ document.getElementById('shopGrid').addEventListener('click',(e)=>{
   if(wear){ const it=SHOP.find(s=>s.id===wear); if(it){ worn[it.slot] = (worn[it.slot]===wear? null : wear); rerenderShop(); save(); } }
 });
 function updateCoins(){ document.getElementById('coinCount').textContent = coins; save(); }
-function save(){ try{ localStorage.setItem('toadsim_save', JSON.stringify({coins,owned,worn,musicOn,sfxOn,home:homeData,garden,conSeeds,difficulty,secretFound,vbest:volley.best,moveMult,ctrlMode,musicTrack,petCare,petData,bossSkin,recipesFound,fishCaught,castleOpened,battleCfg,battleGrid,battleMode,xp,toadLevel,oresMined,ucOpened})); }catch(e){} }
-function load(){ try{ const s=JSON.parse(localStorage.getItem('toadsim_save')||'null'); if(!s) return; if(typeof s.coins==='number') coins=s.coins; if(s.owned) Object.assign(owned,s.owned); if(s.worn) Object.assign(worn,s.worn); if(typeof s.musicOn==='boolean') musicOn=s.musicOn; if(typeof s.sfxOn==='boolean') sfxOn=s.sfxOn; if(Array.isArray(s.home)&&s.home.length){ homeData.length=0; for(const r of s.home) homeData.push({wall:r.wall||0, items:Array.isArray(r.items)?r.items:[]}); } if(Array.isArray(s.garden)&&s.garden.length){ garden.length=0; for(const p of s.garden) garden.push({seed:p.seed||null, t:p.t||0}); } if(typeof s.conSeeds==='number') conSeeds=s.conSeeds; if(s.difficulty && DIFF[s.difficulty]) difficulty=s.difficulty; if(s.secretFound) Object.assign(secretFound,s.secretFound); if(typeof s.vbest==='number') volley.best=s.vbest; if(typeof s.moveMult==='number' && [0.8,1,1.25,1.5].includes(s.moveMult)) moveMult=s.moveMult; if(s.ctrlMode==='stick'||s.ctrlMode==='zones') ctrlMode=s.ctrlMode; if(s.musicTrack && MUSIC_TRACKS[s.musicTrack]) musicTrack=s.musicTrack; if(typeof s.petCare==='boolean') petCare=s.petCare; if(s.petData) Object.assign(petData,s.petData); if(typeof s.bossSkin==='string' && BOSS_SKINS.some(x=>x[0]===s.bossSkin)) bossSkin=s.bossSkin; if(s.recipesFound) Object.assign(recipesFound,s.recipesFound); if(s.fishCaught) Object.assign(fishCaught,s.fishCaught); if(s.castleOpened) Object.assign(castleOpened,s.castleOpened); if(s.battleCfg){ for(const p of [1,2]){ const c=s.battleCfg[p]; if(c){ if(typeof c.ci==='number' && BC_COLORS[c.ci]) battleCfg[p].ci=c.ci; if(BC_EXPRS.some(x=>x[0]===c.expr)) battleCfg[p].expr=c.expr; if(c.acc===null || BC_ACCS.some(x=>x[0]===c.acc)) battleCfg[p].acc=c.acc; } } } if(s.battleGrid && BATTLE_GRIDS[s.battleGrid]) battleGrid=s.battleGrid; if(s.battleMode && BATTLE_MODES.some(m=>m[0]===s.battleMode)) battleMode=s.battleMode; if(typeof s.xp==='number' && s.xp>=0) xp=s.xp; if(typeof s.toadLevel==='number' && s.toadLevel>=1) toadLevel=Math.min(40, Math.floor(s.toadLevel)); if(s.oresMined) Object.assign(oresMined,s.oresMined); if(s.ucOpened) Object.assign(ucOpened,s.ucOpened); }catch(e){} }
+function save(){ try{ localStorage.setItem('toadsim_save', JSON.stringify({coins,owned,worn,musicOn,sfxOn,home:homeData,garden,conSeeds,difficulty,secretFound,vbest:volley.best,moveMult,ctrlMode,musicTrack,petCare,petData,bossSkin,recipesFound,fishCaught,castleOpened,battleCfg,battleGrid,battleMode,xp,toadLevel,oresMined,ucOpened,wallpaper})); }catch(e){} }
+function load(){ try{ const s=JSON.parse(localStorage.getItem('toadsim_save')||'null'); if(!s) return; if(typeof s.coins==='number') coins=s.coins; if(s.owned) Object.assign(owned,s.owned); if(s.worn) Object.assign(worn,s.worn); if(typeof s.musicOn==='boolean') musicOn=s.musicOn; if(typeof s.sfxOn==='boolean') sfxOn=s.sfxOn; if(Array.isArray(s.home)&&s.home.length){ homeData.length=0; for(const r of s.home) homeData.push({wall:r.wall||0, items:Array.isArray(r.items)?r.items:[]}); } if(Array.isArray(s.garden)&&s.garden.length){ garden.length=0; for(const p of s.garden) garden.push({seed:p.seed||null, t:p.t||0}); } if(typeof s.conSeeds==='number') conSeeds=s.conSeeds; if(s.difficulty && DIFF[s.difficulty]) difficulty=s.difficulty; if(s.secretFound) Object.assign(secretFound,s.secretFound); if(typeof s.vbest==='number') volley.best=s.vbest; if(typeof s.moveMult==='number' && [0.8,1,1.25,1.5].includes(s.moveMult)) moveMult=s.moveMult; if(s.ctrlMode==='stick'||s.ctrlMode==='zones') ctrlMode=s.ctrlMode; if(s.musicTrack && MUSIC_TRACKS[s.musicTrack]) musicTrack=s.musicTrack; if(typeof s.petCare==='boolean') petCare=s.petCare; if(s.petData) Object.assign(petData,s.petData); if(typeof s.bossSkin==='string' && BOSS_SKINS.some(x=>x[0]===s.bossSkin)) bossSkin=s.bossSkin; if(s.recipesFound) Object.assign(recipesFound,s.recipesFound); if(s.fishCaught) Object.assign(fishCaught,s.fishCaught); if(s.castleOpened) Object.assign(castleOpened,s.castleOpened); if(s.battleCfg){ for(const p of [1,2]){ const c=s.battleCfg[p]; if(c){ if(typeof c.ci==='number' && BC_COLORS[c.ci]) battleCfg[p].ci=c.ci; if(BC_EXPRS.some(x=>x[0]===c.expr)) battleCfg[p].expr=c.expr; if(c.acc===null || BC_ACCS.some(x=>x[0]===c.acc)) battleCfg[p].acc=c.acc; } } } if(s.battleGrid && BATTLE_GRIDS[s.battleGrid]) battleGrid=s.battleGrid; if(s.battleMode && BATTLE_MODES.some(m=>m[0]===s.battleMode)) battleMode=s.battleMode; if(typeof s.xp==='number' && s.xp>=0) xp=s.xp; if(typeof s.toadLevel==='number' && s.toadLevel>=1) toadLevel=Math.min(401, Math.floor(s.toadLevel)); if(s.oresMined) Object.assign(oresMined,s.oresMined); if(s.ucOpened) Object.assign(ucOpened,s.ucOpened); if(s.wallpaper && TITLE_WALLS[s.wallpaper]) wallpaper=s.wallpaper; }catch(e){} }
 
 /* ---------------- Buttons ---------------- */
 document.getElementById('dayBtn').addEventListener('click',()=>{
@@ -3845,12 +3992,28 @@ for(const [bid,kind] of [['bossHeron','heron'],['bossFly','fly'],['bossSnake','s
   document.getElementById(bid).addEventListener('click',()=>{ document.getElementById('bossPick').classList.add('hidden'); startBoss(kind); });
 }
 /* ---- Settings: song, movement speed, control mode, pet care ---- */
+const TITLE_WALLS={
+  classic:  {n:'🐸 Classic',  bg:'linear-gradient(rgba(20,40,26,0.55),rgba(20,40,26,0.55)), linear-gradient(#6ec6ff, #bfe8d0 70%, #7ed957)'},
+  beach:    {n:'🏖️ Beach',    bg:'linear-gradient(rgba(20,30,40,0.45),rgba(20,30,40,0.45)), linear-gradient(#6ec6ff 45%, #3fa6cf 45%, #3fa6cf 70%, #f0d9a0 70%)'},
+  waterfall:{n:'🌊 Waterfall', bg:'linear-gradient(rgba(15,35,45,0.45),rgba(15,35,45,0.45)), linear-gradient(105deg, #8fd8e8 60%, #eaf8ff 60%, #eaf8ff 72%, #3fa6cf 72%)'},
+  castle:   {n:'🏰 Castle',   bg:'linear-gradient(rgba(20,18,30,0.45),rgba(20,18,30,0.45)), repeating-linear-gradient(0deg, #5a5468 0 44px, #4a4458 44px 46px), repeating-linear-gradient(90deg, #5a5468 0 80px, #4a4458 80px 82px)'},
+  space:    {n:'🚀 Space',    bg:'linear-gradient(rgba(0,0,20,0.3),rgba(0,0,20,0.3)), radial-gradient(2px 2px at 20% 30%, #fff, transparent), radial-gradient(2px 2px at 70% 20%, #fff, transparent), radial-gradient(2px 2px at 40% 70%, #fff, transparent), radial-gradient(2px 2px at 85% 60%, #fff, transparent), linear-gradient(#0a0a2a, #2c2065)'},
+  night:    {n:'🌙 Night',    bg:'linear-gradient(rgba(10,8,30,0.35),rgba(10,8,30,0.35)), radial-gradient(3px 3px at 80% 15%, #f2f0d8, transparent), linear-gradient(#1a1147, #3d3170)'},
+};
+let wallpaper='classic';
+function applyWallpaper(){ const w=TITLE_WALLS[wallpaper]||TITLE_WALLS.classic; document.getElementById('startScreen').style.background=w.bg; }
 function buildSettingsRows(){
   const mrow=document.getElementById('musicRow'); mrow.innerHTML='';
   for(const k in MUSIC_TRACKS){
     const b=document.createElement('button'); b.className='segbtn'+(musicTrack===k?' on':''); b.textContent=MUSIC_TRACKS[k].name;
     b.addEventListener('click',()=>{ initAudio(); setMusicTrack(k); buildSettingsRows(); });
     mrow.appendChild(b);
+  }
+  const wrow=document.getElementById('wallRow'); wrow.innerHTML='';
+  for(const k in TITLE_WALLS){
+    const b=document.createElement('button'); b.className='segbtn'+(wallpaper===k?' on':''); b.textContent=TITLE_WALLS[k].n;
+    b.addEventListener('click',()=>{ wallpaper=k; applyWallpaper(); save(); buildSettingsRows(); sfx('coin'); });
+    wrow.appendChild(b);
   }
   const srow=document.getElementById('speedRow'); srow.innerHTML='';
   for(const [m,em] of [[0.8,'🐢'],[1,'🙂'],[1.25,'🐇'],[1.5,'⚡']]){
@@ -3871,6 +4034,13 @@ function buildSettingsRows(){
 document.getElementById('petCareToggle').addEventListener('click',()=>{ petCare = petCare===true? false : true; save(); buildSettingsRows(); sfx('coin'); });
 /* ---- Toad News (title screen update log) ---- */
 const NEWS=[
+  {v:'Update 17', d:'Sep 8', items:[
+    '🏆 RANKS! Your toad now climbs C → B → A → S — each rank holds 100 milestones. Beat all 100 to rank up and win that rank\'s trophies: 🥉 bronze, 🥈 silver, 🥇 gold and 💎 DIAMOND crowns & tongue skins! (Level rewards still pay out every single level.)',
+    '👶 Baby powers! Since babies can\'t ride, they HELP instead: your baby catches bugs for you (faster as it grows) and can dig up treasures ONLY babies can find — the Daisy Bonnet 👒, Blankie Cape 🧸 and Rubber Ducky 🐤!',
+    '🎣 Fishing came HOME: fish the ground pond 🌳 and the waterfall pool 🌊 — each with its own exclusive fish, including the legendary 🪷 Lily King and 🦢 Mist Spirit!',
+    '⛏️ Mining spread to the Underground world — 10 exclusive ores including the legendary 🌍 Heart of the Earth!',
+    '🖼️ Title wallpapers! Pick a world backdrop for the title screen in ⚙️ Settings — Beach, Waterfall, Castle, Space, Night…',
+    '⏸️ Every 2-player game has a pause button now — take a break, restart, or leave the game whenever you like!']},
   {v:'Update 16.5', d:'Sep 7', items:[
     '🌟 MORE LEGENDARIES! The 🐙 Kraken King & 🐋 Celestial Whale swim the deep, and the 🐉 Dragon Heart & 💫 Fallen Star Core hide in the cave — all mythic-gear only, 1-in-100!',
     '🧵 6 new crafting recipes: Ghost Hood 👻, Galaxy Cape 🌌, Kraken Skin 🐙, Obsidian Helm 🖤, Star Metal Cape 💫 & Dragon Heart Skin 🐉',
@@ -3989,7 +4159,7 @@ document.getElementById('elevBeach').addEventListener('click',()=>goArea('beach'
 document.getElementById('elevWaterfall').addEventListener('click',()=>goArea('waterfall'));
 document.getElementById('elevCastle').addEventListener('click',()=>goArea('castle'));
 document.getElementById('rodBtn').addEventListener('click',()=>{
-  if(area!=='beach' || !started || twoP) return;
+  if(!(area==='beach'||area==='ground'||area==='waterfall') || !started || twoP || inside) return;
   if(fishing){ stopFishing(true); }
   else { fishing=true; fishT=0; fishWait=200+Math.random()*200; sfx('splash'); reelBtnState(false); document.getElementById('reelBtn').classList.remove('hidden'); }
 });
@@ -4022,7 +4192,8 @@ function renderFishdex(){
     const c=fishCaught[f.id]||0, disc=(f.id in fishCaught);
     const d=document.createElement('div'); d.className='fishcard'+(disc?'':' unk');
     const lgd = f.r===6? '<div style="font-size:10px;color:#c9891e;font-weight:900;">LEGENDARY · Mythic Rod only!</div>' : '';
-    d.innerHTML='<div style="font-size:30px;">'+(disc?f.e:'❓')+'</div><div style="font-weight:800;font-size:13px;">'+(disc?f.n:'???')+'</div><div class="stars">'+'⭐'.repeat(f.r)+'</div>'+lgd+(disc?'<div style="font-size:11px;color:#6b7a63;font-weight:700;">caught ×'+c+(c===0?' (used in crafting)':'')+'</div>':'');
+    const where = f.area==='pond'? ' 🌳' : f.area==='falls'? ' 🌊' : ' 🏖️';
+    d.innerHTML='<div style="font-size:30px;">'+(disc?f.e:'❓')+'</div><div style="font-weight:800;font-size:13px;">'+(disc?f.n:'???')+'</div><div class="stars">'+'⭐'.repeat(f.r)+where+'</div>'+lgd+(disc?'<div style="font-size:11px;color:#6b7a63;font-weight:700;">caught ×'+c+(c===0?' (used in crafting)':'')+'</div>':'');
     g.appendChild(d);
   }
   const cr=document.getElementById('fishCraft'); cr.innerHTML='';
@@ -4047,7 +4218,7 @@ document.getElementById('dexBtn').addEventListener('click',()=>{ renderFishdex()
 document.getElementById('closeFish').addEventListener('click',()=>document.getElementById('fishScreen').classList.add('hidden'));
 /* ---- Mining buttons, ore dex & ore crafting ---- */
 document.getElementById('mineBtn').addEventListener('click',()=>{
-  if(area!=='cave' || !started || twoP) return;
+  if(!(area==='cave'||area==='under') || !started || twoP) return;
   if(mining){ stopMining(true); }
   else { mining=true; mineT=0; mineWait=200+Math.random()*200; sfx('bosshit'); reelBtnState(false); document.getElementById('reelBtn').classList.remove('hidden'); }
 });
@@ -4077,7 +4248,8 @@ function renderOredex(){
     const c=oresMined[o.id]||0, disc=(o.id in oresMined);
     const d=document.createElement('div'); d.className='fishcard'+(disc?'':' unk');
     const lgd = o.r===6? '<div style="font-size:10px;color:#c9891e;font-weight:900;">LEGENDARY · Mythic Pick only!</div>' : '';
-    d.innerHTML='<div style="font-size:30px;">'+(disc?o.e:'❓')+'</div><div style="font-weight:800;font-size:13px;">'+(disc?o.n:'???')+'</div><div class="stars">'+'⭐'.repeat(o.r)+'</div>'+lgd+(disc?'<div style="font-size:11px;color:#6b7a63;font-weight:700;">mined ×'+c+(c===0?' (used in crafting)':'')+'</div>':'');
+    const where = o.area==='under'? ' ⛏️' : ' 💧';
+    d.innerHTML='<div style="font-size:30px;">'+(disc?o.e:'❓')+'</div><div style="font-weight:800;font-size:13px;">'+(disc?o.n:'???')+'</div><div class="stars">'+'⭐'.repeat(o.r)+where+'</div>'+lgd+(disc?'<div style="font-size:11px;color:#6b7a63;font-weight:700;">mined ×'+c+(c===0?' (used in crafting)':'')+'</div>':'');
     g.appendChild(d);
   }
   const cr=document.getElementById('oreCraft'); cr.innerHTML='';
@@ -4102,9 +4274,19 @@ document.getElementById('oreBtn').addEventListener('click',()=>{ renderOredex();
 document.getElementById('closeOre').addEventListener('click',()=>document.getElementById('oreScreen').classList.add('hidden'));
 /* ---- Toad Milestones screen ---- */
 function renderMilestones(){
-  document.getElementById('milesSub').textContent='Level '+toadLevel+' Toad · '+xp+' / '+mlNeed(toadLevel)+' XP to level '+(toadLevel+1);
+  const rk=rankOf(toadLevel), inRank=toadLevel-rk.from+1, isMax=toadLevel>=401;
+  document.getElementById('milesSub').textContent=(isMax? '💎★ S LEGEND — every rank conquered! · ' : rk.e+' '+rk.name+' · milestone '+Math.min(inRank,100)+'/100 · ')+'Level '+toadLevel+' · '+xp+' / '+mlNeed(toadLevel)+' XP';
   document.getElementById('milesBar').style.width=Math.min(100, Math.round(100*xp/mlNeed(toadLevel)))+'%';
   const list=document.getElementById('milesList'); list.innerHTML='';
+  // the four rank trophies up top
+  for(let i=0;i<RANKS.length;i++){
+    const r2=RANKS[i], beat=toadLevel>=r2.from+100;
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;background:'+(beat?'#fdf3d8':(rankOf(toadLevel)===r2?'#e4f0fa':'#f2f2ee'))+';border-radius:12px;padding:8px 12px;margin-top:6px;'+(beat?'':'opacity:0.85;');
+    row.innerHTML='<div style="font-size:22px;">'+r2.e+'</div><div style="font-weight:900;font-size:14px;flex:1;">'+r2.name+' — beat 100 milestones → '+r2.label+' Crown + Tongue</div><div style="font-weight:900;">'+(beat?'🏆 BEATEN!':(rankOf(toadLevel)===r2?'⬅️ you are here':'🔒'))+'</div>';
+    list.appendChild(row);
+  }
+  const hd=document.createElement('div'); hd.className='sethead'; hd.style.cssText='text-align:center;margin-top:10px;'; hd.textContent='⭐ Special level rewards (every other level pays coins!)'; list.appendChild(hd);
   for(let l=2;l<=30;l++){
     const r=MILESTONES[l]; if(!r) continue;
     const got=toadLevel>=l;
@@ -4150,7 +4332,7 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
     stopMusic(); mi=0; initAudio(); if(AC && AC.state==='suspended') AC.resume(); if(musicOn) startMusic();
   }
 });
-document.getElementById('playBtn').addEventListener('click',()=>{ document.getElementById('startScreen').classList.add('hidden'); started=true; guideTimer=(ctrlMode==='stick'?0:180); initAudio(); startMusic();
+document.getElementById('playBtn').addEventListener('click',()=>{ document.getElementById('startScreen').classList.add('hidden'); started=true; guideTimer=(ctrlMode==='stick'?0:180); updateAreaButtons(area); initAudio(); startMusic();
   if(petCare===null && SHOP.some(s=>s.slot==='pet' && owned[s.id])) document.getElementById('petAsk').classList.remove('hidden');
 });
 
@@ -5858,6 +6040,26 @@ function set2P(pnum,action,down){
   else if(down){ if(action==='jump') jump2(P); else if(action==='eat') eat2(P); }
 }
 document.getElementById('spinBtn').addEventListener('click',()=>{ wheelSpin(); });
+/* ---- multiplayer pause: settings for every 2P game, including leaving it ---- */
+document.getElementById('mpPauseBtn').addEventListener('click',()=>{
+  if(!twoP) return;
+  battleHeld[1]=null; battleHeld[2]=null; P1.dir=null; P2.dir=null;
+  document.getElementById('mpPause').classList.remove('hidden'); sfx('coin');
+});
+document.getElementById('mpResume').addEventListener('click',()=>{ document.getElementById('mpPause').classList.add('hidden'); sfx('coin'); });
+document.getElementById('mpRestart').addEventListener('click',()=>{ document.getElementById('mpPause').classList.add('hidden'); start2P(raceGame); sfx('buy'); });
+document.getElementById('mpLeave').addEventListener('click',()=>{
+  document.getElementById('mpPause').classList.add('hidden');
+  twoP=false;
+  document.getElementById('controls2p').classList.add('hidden');
+  document.getElementById('battlePads').classList.add('hidden');
+  document.getElementById('wheelUI').classList.add('hidden');
+  document.getElementById('mpPauseBtn').classList.add('hidden');
+  document.getElementById('winScreen').classList.add('hidden');
+  document.getElementById('startScreen').classList.remove('hidden');
+  document.querySelector('.hud').style.display='';
+  setFriendMode(false); sfx('mad');
+});
 /* ---- Tongue Battle ⚙️ style panel (opening any overlay pauses the game) ---- */
 function buildBattleSet(){
   const wrap=document.getElementById('bsWrap'); wrap.innerHTML='';
@@ -6056,7 +6258,7 @@ function enterHome(){
   document.getElementById('homeTop').classList.remove('hidden'); document.getElementById('homePanel').classList.remove('hidden');
   updateHomeLabel(); buildHomeItems(); initAudio(); startMusic();
 }
-function exitHome(){ homeMode=false; document.getElementById('homeTop').classList.add('hidden'); document.getElementById('homePanel').classList.add('hidden'); document.querySelector('.hud').style.display=''; save(); }
+function exitHome(){ homeMode=false; document.getElementById('homeTop').classList.add('hidden'); document.getElementById('homePanel').classList.add('hidden'); document.querySelector('.hud').style.display=''; updateAreaButtons(area); save(); }
 function trashPos(){ return {x:W-42, y:homeFloor()-30}; }
 function homePointerDown(e){ if(!homeMode) return; const x=e.clientX, y=e.clientY; const room=homeData[homeRoom];
   const items=[...room.items].sort((a,b)=>b.y-a.y);
@@ -6168,7 +6370,7 @@ document.getElementById('gardenDone').addEventListener('click', exitGarden);
 
 /* ---------------- Go ---------------- */
 resize(); toad.x=W*0.5; toad.y=groundY; initEntities();
-load(); initHome(); initGarden();
+load(); initHome(); initGarden(); applyWallpaper();
 document.getElementById('musicToggle').textContent='🎵 Music: '+(musicOn?'On':'Off'); document.getElementById('musicToggle').classList.toggle('on',musicOn);
 document.getElementById('sfxToggle').textContent='🔊 Sound effects: '+(sfxOn?'On':'Off'); document.getElementById('sfxToggle').classList.toggle('on',sfxOn);
 buildSettingsRows();
