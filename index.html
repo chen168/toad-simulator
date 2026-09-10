@@ -4285,6 +4285,26 @@ function renderHourly(){
   else h+='<div class="by" style="margin-top:8px;">Finish all 3 → +25 XP and a special gift you can\'t get ANYWHERE else! ('+HH_ITEMS.filter(id=>!owned[id]).length+' gifts left)</div>';
   box.innerHTML=h;
 }
+/* if a milestone/rank/pass item ever goes missing (old resets left levels without their prizes),
+   this quietly hands back everything your level has already earned */
+function reclaimMilestones(){
+  let got=[];
+  for(let l=2;l<=toadLevel;l++){
+    const r=MILESTONES[l]; if(!r) continue;
+    if(r.item && !owned[r.item]){ owned[r.item]=true; got.push(r.item); }
+    if(r.baby && !owned[r.baby]){ owned[r.baby]=true; ensureBaby(r.baby); got.push(r.baby); }
+  }
+  for(const lvl in RANK_UPS){
+    if(toadLevel>=+lvl){ const ru=RANK_UPS[lvl];
+      if(!owned[ru.crown]){ owned[ru.crown]=true; got.push(ru.crown); }
+      if(!owned[ru.tongue]){ owned[ru.tongue]=true; got.push(ru.tongue); } }
+  }
+  for(const ps of PASSES){ if(owned[ps.id] && !owned[ps.gift]){ owned[ps.gift]=true; got.push(ps.gift); } }
+  if(got.length){
+    showReward('🎁 Welcome back! '+got.length+' milestone prize'+(got.length>1?'s were':' was')+' returned to your collection!');
+    save();
+  }
+}
 function addXp(n){
   xp+=n;
   while(toadLevel<401 && xp>=mlNeed(toadLevel)){
@@ -5015,6 +5035,14 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
     for(const k in fishCaught) delete fishCaught[k]; stopFishing(true);
     for(const k in castleOpened) delete castleOpened[k]; castleFloor=1;
     weather='sun'; weatherT=3000;
+    // newer systems reset too — milestones, ranks, hourly, mining, candyland, sunken castle, tags & blind boxes
+    xp=0; toadLevel=1;
+    worn.tongue=null; worn.baby=null;
+    for(const k in oresMined) delete oresMined[k]; stopMining(true);
+    for(const k in ucOpened) delete ucOpened[k];
+    for(const k in candyFound) delete candyFound[k]; candyFloor=1;
+    hourly.key=0; hourly.prog={}; hourly.claimed=false;
+    myTags.length=0; for(const k in blindOwned) delete blindOwned[k]; jobLast=0; tagIncomeT=0;
     try{ localStorage.removeItem('toadsim_save'); }catch(e){}
     updateCoins(); renderShop(); buildSettingsRows(); buildExprBar(); document.getElementById('settingsScreen').classList.add('hidden');
     // keep the music going after a reset (it used to stop until the app restarted)
@@ -7335,7 +7363,7 @@ document.getElementById('gardenDone').addEventListener('click', exitGarden);
 
 /* ---------------- Go ---------------- */
 resize(); toad.x=W*0.5; toad.y=groundY; initEntities();
-load(); initHome(); initGarden(); applyWallpaper();
+load(); initHome(); initGarden(); applyWallpaper(); reclaimMilestones();
 document.getElementById('musicToggle').textContent='🎵 Music: '+(musicOn?'On':'Off'); document.getElementById('musicToggle').classList.toggle('on',musicOn);
 document.getElementById('sfxToggle').textContent='🔊 Sound effects: '+(sfxOn?'On':'Off'); document.getElementById('sfxToggle').classList.toggle('on',sfxOn);
 buildSettingsRows();
