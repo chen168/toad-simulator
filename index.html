@@ -171,6 +171,7 @@
     <button class="iconbtn hidden" id="mineBtn" title="Mining">⛏️</button>
     <button class="iconbtn hidden" id="oreBtn" title="Ore Collection">💎</button>
     <button class="iconbtn" id="milesBtn" title="Toad Milestones">🏅</button>
+    <button class="iconbtn" id="hourBtn" title="Hourly Honesty">🕐</button>
     <button class="iconbtn" id="exprBtn" title="Expressions">😊</button>
     <button class="iconbtn" id="dayBtn" title="Time of day">☀️</button>
     <button class="iconbtn" id="bossBtn" title="Boss fight">⚔️</button>
@@ -277,6 +278,15 @@
     <div class="sethead" style="text-align:center;margin-top:10px;">⚒️ Ore Crafting — outfits made of ores! (the ores get used up)</div>
     <div id="oreCraft"></div>
     <button class="closebtn" id="closeOre">Done</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="hourlyScreen">
+  <div class="card" style="overflow-y:auto;">
+    <h1 style="font-size:28px;">🕐 Hourly Honesty</h1>
+    <p class="by">Honest work, hourly rewards — themed by the visiting Mystic Pet!</p>
+    <div id="hourlyBody"></div>
+    <button class="closebtn" id="closeHourly" style="margin-top:12px;">Done</button>
   </div>
 </div>
 
@@ -616,7 +626,51 @@ const AREAS = {
   castle:   { name:'Castle 🏰',      bugs:['moth','firefly','ant','centipede'] },
   waterfall:{ name:'Waterfall 🌊',   bugs:['dragonfly','butterfly','bee','firefly'] },
   ucastle:  { name:'Sunken Castle 🫧',bugs:['glowfish','jelly','glowfish'] },
+  candy:    { name:'Candyland 🍬',   bugs:['butterfly','bee','firefly'] },
 };
+/* ---- CANDYLAND: eat a Magic Cotton Candy at Sweet Treats and the world goes white… ---- */
+const CANDY_FLOORS={1:'Lollipop Lane',2:'Gummy Gardens',3:'Chocolate Hills',4:'Marshmallow Meadow',5:'Rainbow Sugar Peak'};
+let candyFloor=1, candyTeleT=0, candyProg=0;
+const CANDY_SECRETS=[
+  {floor:1, fx:0.12, coins:80},
+  {floor:2, fx:0.85, item:'cd_candycrown'},
+  {floor:3, fx:0.07, item:'cd_gummycape'},
+  {floor:4, fx:0.92, item:'cd_lollipop'},
+  {floor:5, fx:0.95, item:'pet_candy'},   // the Candy Toad — hidden VERY well
+];
+const candyFound={};
+let candyPickups=[];
+function spawnCandyPickups(){
+  candyPickups=[];
+  const CE=['🍬','🍭','🍫','🧁','🍩','🍪'];
+  for(let i=0;i<5;i++) candyPickups.push({fx:0.12+Math.random()*0.76, e:CE[Math.floor(Math.random()*CE.length)], got:false});
+}
+function eatCottonCandy(){
+  showReward('✨ You feel magical…');
+  candyTeleT=150; sfx('win');
+}
+function refreshCandyBugs(){ areaBugs.length=0; for(let i=0;i<5;i++) areaBugs.push(spawnAreaBug()); }
+function candySecretCheck(){
+  let near=-1;
+  for(let i=0;i<CANDY_SECRETS.length;i++){
+    const s=CANDY_SECRETS[i];
+    if(s.floor!==candyFloor || candyFound[i]) continue;
+    if(Math.abs(toad.x-W*s.fx)<50) near=i;
+  }
+  if(near<0){ candyProg=0; return; }
+  candyProg++;
+  if(candyProg>=60){
+    candyProg=0; candyFound[near]=true;
+    const s=CANDY_SECRETS[near];
+    if(s.coins){ gainCoins(s.coins); showReward('🍬 A sugar stash! +'+s.coins+' 🪙'); }
+    if(s.item){
+      owned[s.item]=true; const it=SHOP.find(x=>x.id===s.item);
+      if(s.item==='pet_candy'){ ensurePet('pet_candy'); showReward('🍬🌟 THE CANDY TOAD!!! As rare as a mystic pet — it gives MYTHIC gifts as it grows!!'); }
+      else showReward('🍬✨ CANDYLAND SECRET! '+(it?it.emoji+' '+it.name:s.item)+' — found nowhere else!');
+    }
+    sfx('win'); save();
+  }
+}
 function wfPoolX(){ return W*0.34; }   // the plunge pool covers the right side of the waterfall world
 const UC_CHESTS=[ {fx:0.22, loot:{coins:150}}, {fx:0.46, loot:{item:'uc_tridentcrown'}}, {fx:0.66, loot:{item:'uc_pearlcape'}}, {fx:0.86, loot:{item:'pet_mercat'}} ];
 const ucOpened={}; let ucProg=0, wfDive=0;
@@ -750,7 +804,7 @@ function catchFish(){
   const f=rollFish();
   const isNew=!(f.id in fishCaught);
   fishCaught[f.id]=(fishCaught[f.id]||0)+1;
-  addXp(f.r>=6? 25 : 2);
+  addXp(f.r>=6? 25 : 2); hourlyBump('fish');
   const got=gainCoins(FISH_VALUE[f.r]);
   sfx(f.r>=4?'win':'coin');
   const stars='⭐'.repeat(f.r);
@@ -785,6 +839,10 @@ const TONGUE_SKINS={
   tg_silver:{c:'#d0d4dc', glow:'rgba(208,212,220,0.65)'},
   tg_rankgold:{grad:['#ffcf3a','#ffe9a0','#ffcf3a'], glow:'rgba(255,207,58,0.75)'},
   tg_diamond:{grad:['#d8f4ff','#ffffff','#bfeeff'], glow:'rgba(200,240,255,0.95)', laser:true},
+  tg_xmas:{grad:['#c0392b','#ffffff','#2e8a4a','#ffffff','#c0392b'], glow:'rgba(255,220,180,0.6)'},
+  tg_feather:{c:'#f4efe4', glow:'rgba(244,239,228,0.7)', fluffy:true},
+  tg_bubblegum:{grad:['#ff9ec4','#ffd1e5'], fluffy:true},
+  tg_choco:{grad:['#6a4028','#8a5a3a','#6a4028']},
 };
 function drawTongueLine(x0,y0,x1,y1,skinId){
   const s=TONGUE_SKINS[skinId]||null;
@@ -874,7 +932,7 @@ function catchOre(){
   const o=rollOre();
   const isNew=!(o.id in oresMined);
   oresMined[o.id]=(oresMined[o.id]||0)+1;
-  addXp(o.r>=6? 25 : 2);
+  addXp(o.r>=6? 25 : 2); hourlyBump('ore');
   const got=gainCoins(ORE_VALUE[o.r]);
   sfx(o.r>=4?'win':'coin');
   showReward((o.r===6?'🌈💎 LEGENDARY!!! ':(isNew?'✨ NEW ORE! ':'⛏️ Mined '))+o.e+' '+o.n+' '+'⭐'.repeat(o.r)+' +'+got+' 🪙');
@@ -1041,7 +1099,7 @@ const FRUIT_EMOJI={ fruit_speed:'🍓', fruit_tongue:'🍎', fruit_coins:'🍊',
 function curSpeed(){ return SPEED*moveMult*wToad()*((boost==='speed'||boost==='sugar')&&boostT>0?1.7:1)*(slowT>0?0.55:1)*(ridingActive()?1.35:1); }
 function curTongue(){ return R_TONGUE*((boost==='tongue'||boost==='sugar')&&boostT>0?1.5:1); }
 function coinsDoubled(){ return (boost==='coins'&&boostT>0) || (outdoorNow() && WEATHERS[weather].coins2); }
-function gainCoins(n){ const amt = coinsDoubled()? n*2 : n; coins += amt; updateCoins(); return amt; }
+function gainCoins(n){ const amt = coinsDoubled()? n*2 : n; coins += amt; updateCoins(); hourlyBump('coin', amt); return amt; }
 function startBoost(b,msg){ boost=b; boostT=600; if(b==='speed' && slowT>0){ slowT=0; msg+=' Slowness cured!'; } showReward(msg); }
 function startConstSky(){ constSky=true; constSkyT=5*60*60; showReward('🌌 Constellation Sky for 5 min!'); }
 const GARDEN_PLOTS=4;
@@ -1174,6 +1232,7 @@ function goArea(a){
   updateAreaButtons(a);
   if(mining && !(a==='cave'||a==='under')) stopMining(true);
   if(a==='city'){ const pool=SHOP.filter(s=>s.price>0 && !s.secret && !s.mystic); cityAds=[]; for(let i=0;i<3;i++) cityAds.push(pool[Math.floor(Math.random()*pool.length)]); }
+  if(a==='candy'){ candyFloor=1; spawnCandyPickups(); }
   toad.x=W*0.5; toad.y=groundY; toad.vy=0; toad.facing=-1; toad.grounded=true; pointerDirs.clear();
   // the boss follows you between worlds — it flies in from the side of the new world
   if(boss.active){ boss.x=(toad.x<W/2? W-60 : 60); boss.y=groundY; boss.vx=0; if(boss.state!=='defeated'){ boss.state='approach'; boss.timer=0; } }
@@ -1268,6 +1327,20 @@ function updateArea(){
     }
   }
   if(area==='ucastle') ucChestCheck();
+  if(area==='candy'){
+    candySecretCheck();
+    // sweet-tooth pickups scattered on the ground
+    for(const cp of candyPickups){
+      if(cp.got) continue;
+      if(Math.abs(toad.x-W*cp.fx)<34 && toad.y>groundY-10){
+        cp.got=true; const got=gainCoins(2);
+        pops.push({x:W*cp.fx, y:groundY-30, t:0, val:got}); pops.push({x:W*cp.fx, y:groundY-52, t:0, txt:cp.e}); sfx('coin');
+      }
+    }
+    // wander between the five candy areas at the edges
+    if(dir==='right' && toad.x>=W-toad.w*0.5-2 && candyFloor<5){ candyFloor++; toad.x=toad.w*0.6; spawnCandyPickups(); refreshCandyBugs(); sfx('jump'); }
+    else if(dir==='left' && toad.x<=toad.w*0.5+2 && candyFloor>1){ candyFloor--; toad.x=W-toad.w*0.6; spawnCandyPickups(); refreshCandyBugs(); sfx('jump'); }
+  }
   if(area==='castle'){
     if(dir==='right' && toad.x>=W-toad.w*0.5-2 && castleFloor<5){ castleFloor++; toad.x=toad.w*0.5+30; refreshCastleBugs(); chestProg=0; secretDone=false; secretProg=0; recipeProg=0; sfx('jump'); }
     else if(dir==='left' && toad.x<=toad.w*0.5+2 && castleFloor>1){ castleFloor--; toad.x=W-toad.w*0.5-30; refreshCastleBugs(); chestProg=0; secretDone=false; secretProg=0; recipeProg=0; sfx('jump'); }
@@ -1356,7 +1429,7 @@ function doEat(){
     let best=null,bd=R_TONGUE,val=1;
     for(const b of indoorBugs){ if(b.fleeing) continue; const d=Math.hypot(b.x-hp.x,b.y-hp.y); if(d<bd){ bd=d; best=b; val=b.val; } }
     tongue.active=true; tongue.t=0; tongue.hit=!!best;
-    if(best){ tongue.tx=best.x; tongue.ty=best.y; const got=gainCoins(val); addXp(1); sfx('coin'); pops.push({x:best.x,y:best.y,t:0,val:got}); spawnIndoorBug(best); }
+    if(best){ tongue.tx=best.x; tongue.ty=best.y; const got=gainCoins(val); addXp(1); hourlyBump('bug'); sfx('coin'); pops.push({x:best.x,y:best.y,t:0,val:got}); spawnIndoorBug(best); }
     else { tongue.tx=hp.x+toad.facing*20; tongue.ty=hp.y-R_TONGUE*0.7; }
     return;
   }
@@ -1368,7 +1441,7 @@ function doEat(){
     if(best){ tongue.tx=best.x; tongue.ty=best.y;
       if(FRUIT_BOOST[best.type]){ startBoost(FRUIT_BOOST[best.type].b, FRUIT_BOOST[best.type].msg); }
       else if(best.type==='gift'){ rollSpaceReward(); }
-      else { const got=gainCoins(val); addXp(1); pops.push({x:best.x,y:best.y,t:0,val:got}); }
+      else { const got=gainCoins(val); addXp(1); hourlyBump('bug'); pops.push({x:best.x,y:best.y,t:0,val:got}); }
       sfx('coin'); spawnAreaBug(best);
     }
     else { tongue.tx=hp.x+toad.facing*20; tongue.ty=hp.y-R_TONGUE*0.7; }
@@ -1388,7 +1461,7 @@ function doEat(){
       tongue.hit=false;
       return;
     }
-    const got=gainCoins(val); addXp(1); sfx('coin'); pops.push({x:best.x,y:best.y,t:0,val:got});
+    const got=gainCoins(val); addXp(1); hourlyBump('bug'); sfx('coin'); pops.push({x:best.x,y:best.y,t:0,val:got});
     if(bug){ best.hidden=true; best.respawn=300; } else spawnFly(best);
   } else { tongue.tx = hp.x + toad.facing*20; tongue.ty = hp.y - R_TONGUE*0.7; }
 }
@@ -1501,12 +1574,12 @@ function update(){
   if(guideTimer>0) guideTimer--;
 }
 function bossHeadY(){ if(boss.kind==='fly'||boss.kind==='bat') return boss.y; if(boss.kind==='snake') return groundY-40; return groundY-92; }
-function isMystic(id){ return !!id && id.slice(0,3)==='mp_'; }
+function isMystic(id){ return !!id && (id.slice(0,3)==='mp_' || id==='pet_candy'); }   // the Candy Toad counts — mythic gifts every 5 ages!
 function bossDefeatCheck(){
   if(boss.hp<=0 && boss.state!=='defeated'){
     boss.state='defeated'; boss.timer=0; boss.vx=(boss.x>=toad.x?4:-4); bossFrozen=0;
     const r=(BOSS_KINDS[boss.kind]?BOSS_KINDS[boss.kind].reward:25)*DIFF[difficulty].reward;
-    coins+=r; updateCoins(); addXp(10); sfx('win'); pops.push({x:boss.x, y:groundY-90, t:0, val:r, big:true});
+    coins+=r; updateCoins(); addXp(10); hourlyBump('boss'); sfx('win'); pops.push({x:boss.x, y:groundY-90, t:0, val:r, big:true});
     bossSay(pickLine(BOSS_LINES[bossLineKey()].lose), 170);
   }
 }
@@ -2300,6 +2373,70 @@ function drawArea(){
       else { ctx.globalAlpha=0.5+0.4*Math.abs(Math.sin(t*0.08)); ctx.font='13px sans-serif'; ctx.textAlign='center'; ctx.fillText('✨', cx+14, groundY-40); ctx.globalAlpha=1; }
     }
     fitText('🫧 The Sunken Castle — stand by a chest to open it! 🛗 to leave', W/2, H*0.09, 15);
+  } else if(area==='candy'){
+    const skies={1:['#ffd8ec','#fff2d8'],2:['#d8ffe0','#fff8d8'],3:['#e8d0c0','#ffe8d0'],4:['#f0f0ff','#fff8f8'],5:['#d8ecff','#ffe0f5']};
+    const sk2=skies[candyFloor]||skies[1];
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,sk2[0]); g.addColorStop(1,sk2[1]); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // cotton candy clouds
+    ctx.fillStyle='rgba(255,190,225,0.75)';
+    for(const [cx2,cy2,cs] of [[0.2,0.14,1],[0.62,0.1,1.3],[0.88,0.2,0.8]]){ for(const [ox2,oy2,r3] of [[0,0,26],[22,6,20],[-22,8,18],[6,-12,20]]){ ctx.beginPath(); ctx.arc(W*cx2+ox2*cs, H*cy2+oy2*cs, r3*cs, 0, 7); ctx.fill(); } }
+    if(candyFloor===1){
+      // Lollipop Lane
+      for(const [lx,lr,lc] of [[0.2,26,'#ff6aa8'],[0.45,32,'#5ad4a8'],[0.72,24,'#ffcf4d'],[0.9,28,'#9a6bff']]){
+        ctx.strokeStyle='#fff'; ctx.lineWidth=7; ctx.beginPath(); ctx.moveTo(W*lx, groundY); ctx.lineTo(W*lx, groundY-90-lr); ctx.stroke();
+        ctx.fillStyle=lc; ctx.beginPath(); ctx.arc(W*lx, groundY-95-lr, lr, 0, 7); ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(W*lx, groundY-95-lr, lr*0.55, 0.5, 4.5); ctx.stroke();
+      }
+    } else if(candyFloor===2){
+      // Gummy Gardens
+      for(const [gx3,gc] of [[0.18,'#e05a5a'],[0.38,'#5ad46b'],[0.6,'#ffcf4d'],[0.82,'#5a9bd4']]){
+        ctx.fillStyle=gc; ctx.globalAlpha=0.85;
+        ctx.beginPath(); ctx.ellipse(W*gx3, groundY-26, 30, 30, 0, Math.PI, 0); ctx.fill();
+        ctx.fillRect(W*gx3-30, groundY-26, 60, 26);
+        ctx.globalAlpha=1;
+        ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.ellipse(W*gx3-10, groundY-40, 8, 12, -0.4, 0, 7); ctx.fill();
+      }
+    } else if(candyFloor===3){
+      // Chocolate Hills with a fudge river
+      ctx.fillStyle='#8a5a3a'; ctx.beginPath(); ctx.moveTo(0,groundY); ctx.quadraticCurveTo(W*0.25, groundY-130, W*0.5, groundY); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(W*0.4,groundY); ctx.quadraticCurveTo(W*0.7, groundY-100, W,groundY); ctx.fill();
+      ctx.fillStyle='#6a4028';
+      ctx.beginPath(); for(let x=0;x<=W;x+=20){ const y=groundY+8+Math.sin(x*0.05+t*0.05)*3; x===0?ctx.moveTo(x,y):ctx.lineTo(x,y); } ctx.lineTo(W,groundY+26); ctx.lineTo(0,groundY+26); ctx.closePath(); ctx.fill();
+    } else if(candyFloor===4){
+      // Marshmallow Meadow
+      for(const [mx,ms] of [[0.15,1],[0.35,0.7],[0.58,1.2],[0.8,0.9]]){
+        ctx.fillStyle='#fff'; ctx.beginPath();
+        ctx.roundRect? ctx.roundRect(W*mx-24*ms, groundY-46*ms, 48*ms, 46*ms, 12*ms) : ctx.rect(W*mx-24*ms, groundY-46*ms, 48*ms, 46*ms); ctx.fill();
+        ctx.strokeStyle='#f0d8e0'; ctx.lineWidth=2; ctx.stroke();
+        ctx.fillStyle='#ffd8ec'; ctx.beginPath(); ctx.arc(W*mx, groundY-46*ms, 10*ms, Math.PI, 0); ctx.fill();
+      }
+    } else {
+      // Rainbow Sugar Peak
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.moveTo(W*0.2,groundY); ctx.lineTo(W*0.55,H*0.2); ctx.lineTo(W*0.9,groundY); ctx.closePath(); ctx.fill();
+      const rcs=['#ff5a5a','#ffa53a','#ffe23a','#5ad46b','#4aa8ff','#9a6bff'];
+      for(let k=0;k<6;k++){ ctx.strokeStyle=rcs[k]; ctx.globalAlpha=0.6; ctx.lineWidth=5; ctx.beginPath(); ctx.arc(W*0.55, groundY, 150-k*7, Math.PI*1.15, Math.PI*1.85); ctx.stroke(); }
+      ctx.globalAlpha=1;
+      for(let k=0;k<8;k++){ ctx.globalAlpha=0.5+0.5*Math.sin(t*0.1+k); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc((k*127)%W, H*0.3+((k*67)%Math.floor(H*0.3)), 2, 0, 7); ctx.fill(); } ctx.globalAlpha=1;
+    }
+    // candy ground
+    ctx.fillStyle='#ffd8ec'; ctx.fillRect(0,groundY,W,H-groundY);
+    ctx.fillStyle='#ffb8dc'; for(let x2=0;x2<W;x2+=46){ ctx.fillRect(x2+(candyFloor*11)%23, groundY, 23, 8); }
+    // candies all over the ground!
+    ctx.font='18px sans-serif'; ctx.textAlign='center';
+    for(let i=0;i<9;i++){ const cxp=((i*127+candyFloor*61)%Math.floor(W-40))+20; ctx.fillText(['🍬','🍭','🍫','🧁','🍪','🍩'][i%6], cxp, groundY+26+((i*37)%Math.max(10,H-groundY-40))); }
+    for(const cp of candyPickups){ if(!cp.got){ ctx.font='22px sans-serif'; ctx.fillText(cp.e, W*cp.fx, groundY-8+Math.sin(t*0.1+cp.fx*20)*3); } }
+    // the very-well-hidden secrets: only a faint hint when you're basically standing on one
+    for(let i=0;i<CANDY_SECRETS.length;i++){
+      const s=CANDY_SECRETS[i];
+      if(s.floor!==candyFloor || candyFound[i]) continue;
+      const d=Math.abs(toad.x-W*s.fx);
+      if(d<70){ ctx.globalAlpha=0.4+0.3*Math.sin(t*0.15); ctx.font='15px sans-serif'; ctx.fillText('❓', W*s.fx, groundY-56); ctx.globalAlpha=1; }
+      if(d<50 && candyProg>0){ ctx.strokeStyle='#ff6aa8'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(W*s.fx, groundY-40, 18, -Math.PI/2, -Math.PI/2+6.28*(candyProg/60)); ctx.stroke(); }
+    }
+    ctx.fillStyle='#c0397a'; ctx.font='bold 13px sans-serif';
+    if(candyFloor<5) ctx.fillText('▶', W-24, groundY-46);
+    if(candyFloor>1) ctx.fillText('◀', 24, groundY-46);
+    fitText('🍬 Candyland '+candyFloor+'/5 — '+CANDY_FLOORS[candyFloor]+' · secrets hide here…', W/2, H*0.08, 15);
   } else if(area==='city'){
     const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#7fa8d8'); g.addColorStop(0.7,'#c8d8e8'); g.addColorStop(1,'#e8e0d0'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
     // skyline
@@ -2422,6 +2559,8 @@ function skinColors(){
     case 'ore_prismskin': return {b:'#b8e8f5',bel:'#ffe9f5',d:'#7aa8c8',sparkle:true,spots:'#d8a8f0'};
     case 'fish_krakenskin': return {b:'#6a4a9a',bel:'#c8a8e8',d:'#432b68',spots:'#8a5ac8'};
     case 'ore_dragonhskin': return {b:'#c0392b',bel:'#ffcf8a',d:'#7c2418',sparkle:true,spots:'#e9944a'};
+    case 'cardboard': return {b:'#c9a06a',bel:'#e0c9a0',d:'#8c6a3e',cardboard:true};
+    case 'pixelpurple': return {b:'#9a6bff',bel:'#c8a8ff',d:'#5c33a0',pixel:true};
     case 'galaxy': return {b:'#2e2b63',bel:'#3f3c86',d:'#1d1a45',stars:true};
     case 'sparkly': return {b:'#f58fce',bel:'#ffd7f0',d:'#d364ab',sparkle:true};
     case 'boreal': return {b:'#a07a4a',bel:'#dcc79c',d:'#6f5330',spots:'#7c5c34'};
@@ -2445,7 +2584,7 @@ function skinColors(){
     default: return {b:(dark?'#4f9d54':'#6bbf4f'),bel:'#d7edb0',d:(dark?'#3f7c42':'#54a53f')};
   }
 }
-const BABY_COLS={ baby_mint:['#7ed9a0','#4aa570','#d8f5e0'], baby_sky:['#8fc8ff','#4a88c8','#ddeeff'], baby_sunny:['#ffd95a','#d9a52a','#fff2c0'], baby_night:['#7a6ac8','#4a3a8c','#d0c8f0'] };
+const BABY_COLS={ baby_mint:['#7ed9a0','#4aa570','#d8f5e0'], baby_sky:['#8fc8ff','#4a88c8','#ddeeff'], baby_sunny:['#ffd95a','#d9a52a','#fff2c0'], baby_night:['#7a6ac8','#4a3a8c','#d0c8f0'], baby_sugar:['#f077a0','#d94a86','#ffb8d4'] };
 function drawBabyToad(id,x,y){
   const c=BABY_COLS[id]||BABY_COLS.baby_mint;
   const bp=petData[id], bage=(bp && typeof bp.age==='number')? bp.age : 0;
@@ -2457,11 +2596,27 @@ function drawBabyToad(id,x,y){
   if(bage>=2 && Math.sin(t*0.03+3)>0.86){ ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText(bage>=6?'🎉':'✨', -10, -26); }
   ctx.fillStyle=c[0]; ctx.beginPath(); ctx.ellipse(0,-8,11,9,0,0,7); ctx.fill();
   ctx.fillStyle=c[2]; ctx.beginPath(); ctx.ellipse(0,-5,7,5,0,0,7); ctx.fill();
-  ctx.fillStyle=c[0]; ctx.beginPath(); ctx.arc(-5,-16,4.6,0,7); ctx.arc(5,-16,4.6,0,7); ctx.fill();
-  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(-5,-17,3,0,7); ctx.arc(5,-17,3,0,7); ctx.fill();
-  ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(-5,-17,1.6,0,7); ctx.arc(5,-17,1.6,0,7); ctx.fill();
-  ctx.strokeStyle=c[1]; ctx.lineWidth=1.6; ctx.lineCap='round'; ctx.beginPath(); ctx.arc(0,-9,3.6,0.2,Math.PI-0.2); ctx.stroke();
-  ctx.fillStyle='rgba(255,150,150,.6)'; ctx.beginPath(); ctx.arc(-7,-8,1.8,0,7); ctx.arc(7,-8,1.8,0,7); ctx.fill();
+  if(id==='baby_sugar'){
+    // Sasha's drawing: bright pink eye patches, happy closed eyes looking up, satisfied smile with a tiny tongue out
+    ctx.fillStyle='#e8388a'; ctx.beginPath(); ctx.arc(-5,-16,4.8,0,7); ctx.arc(5,-16,4.8,0,7); ctx.fill();
+    ctx.strokeStyle='#161616'; ctx.lineWidth=1.6; ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(-5,-14.5,3, Math.PI+0.5, -0.5); ctx.stroke();   // ∩ closed eyes, curved upward
+    ctx.beginPath(); ctx.arc(5,-14.5,3, Math.PI+0.5, -0.5); ctx.stroke();
+    // squiggle hair (green + pink, like the drawing!)
+    ctx.lineWidth=1.4;
+    ctx.strokeStyle='#8ac850'; ctx.beginPath(); ctx.moveTo(-2,-21); ctx.quadraticCurveTo(-4,-24,-1,-26); ctx.quadraticCurveTo(2,-28,-1,-30); ctx.stroke();
+    ctx.strokeStyle='#e8388a'; ctx.beginPath(); ctx.moveTo(2,-20); ctx.quadraticCurveTo(4,-23,1,-25); ctx.quadraticCurveTo(-1,-27,2,-29); ctx.stroke();
+    // satisfied closed smile + tongue sticking out
+    ctx.strokeStyle='#161616'; ctx.lineWidth=1.6; ctx.beginPath(); ctx.arc(0,-9.5,4,0.25,Math.PI-0.25); ctx.stroke();
+    ctx.fillStyle='#e0254f'; ctx.beginPath(); ctx.ellipse(2,-5.5,2.2,3.2,0.15,0,7); ctx.fill();
+    ctx.fillStyle='rgba(232,56,138,.55)'; ctx.beginPath(); ctx.arc(-7.5,-8,2,0,7); ctx.arc(7.5,-8,2,0,7); ctx.fill();
+  } else {
+    ctx.fillStyle=c[0]; ctx.beginPath(); ctx.arc(-5,-16,4.6,0,7); ctx.arc(5,-16,4.6,0,7); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(-5,-17,3,0,7); ctx.arc(5,-17,3,0,7); ctx.fill();
+    ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(-5,-17,1.6,0,7); ctx.arc(5,-17,1.6,0,7); ctx.fill();
+    ctx.strokeStyle=c[1]; ctx.lineWidth=1.6; ctx.lineCap='round'; ctx.beginPath(); ctx.arc(0,-9,3.6,0.2,Math.PI-0.2); ctx.stroke();
+    ctx.fillStyle='rgba(255,150,150,.6)'; ctx.beginPath(); ctx.arc(-7,-8,1.8,0,7); ctx.arc(7,-8,1.8,0,7); ctx.fill();
+  }
   // the baby's vibe peeks out every few seconds
   const bd=petData[id], pr=bd? PERSONALITIES.find(p=>p.id===bd.pers) : null;
   if(pr && Math.sin(t*0.02)>0.75){ ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText(pr.e, 9, -22); }
@@ -2477,6 +2632,19 @@ function drawPetSprite(id,x,y){
     ctx.globalAlpha=0.3+0.15*Math.sin(t*0.12); ctx.fillStyle=craftR.aura;
     ctx.beginPath(); ctx.arc(0,-12,24,0,7); ctx.fill(); ctx.globalAlpha=1;
     craftBadge=craftR.emoji; craftOrig=id; id=craftR.base;
+  }
+  if(id==='pet_candy'){
+    // the Candy Toad — pink swirls, wrapper ears, pure sugar
+    ctx.globalAlpha=0.3+0.15*Math.sin(t*0.1); ctx.fillStyle='#ffc9e5'; ctx.beginPath(); ctx.arc(0,-10,20,0,7); ctx.fill(); ctx.globalAlpha=1;
+    ctx.fillStyle='#ff8fc0'; ctx.beginPath(); ctx.ellipse(0,-8,13,10,0,0,7); ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(0,-8,7,0.4,3.4); ctx.stroke();
+    for(const s of [-1,1]){ ctx.fillStyle='#ffcf4d'; ctx.beginPath(); ctx.moveTo(s*12,-10); ctx.lineTo(s*20,-16); ctx.lineTo(s*20,-4); ctx.closePath(); ctx.fill(); }
+    ctx.fillStyle='#ff8fc0'; ctx.beginPath(); ctx.arc(-5,-17,5,0,7); ctx.arc(5,-17,5,0,7); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(-5,-18,3,0,7); ctx.arc(5,-18,3,0,7); ctx.fill();
+    ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(-5,-18,1.5,0,7); ctx.arc(5,-18,1.5,0,7); ctx.fill();
+    ctx.strokeStyle='#d95a96'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(0,-9,4,0.2,Math.PI-0.2); ctx.stroke();
+    ctx.font='9px sans-serif'; ctx.textAlign='center'; ctx.globalAlpha=0.6+0.4*Math.sin(t*0.14); ctx.fillText('🍬', 11, -20); ctx.globalAlpha=1;
+    ctx.restore(); return;
   }
   if(id==='pet_goldtoad'){
     ctx.globalAlpha=0.3+0.15*Math.sin(t*0.1); ctx.fillStyle='#ffe9a0'; ctx.beginPath(); ctx.arc(0,-10,20,0,7); ctx.fill(); ctx.globalAlpha=1;
@@ -2762,6 +2930,21 @@ function drawToad(){
     ctx.globalAlpha=1;
   }
   if(!swimming){ ctx.fillStyle='rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(bx, groundY+6, bw*0.5, 9, 0,0,7); ctx.fill(); }
+  if(worn.coat==='hh_sparkwings'){ const wf6=Math.sin(t*0.24)*bh*0.09;
+    for(const s of [-1,1]){
+      ctx.fillStyle='rgba(90,212,240,0.85)'; ctx.beginPath();
+      ctx.moveTo(bx+s*bw*0.28, cy-bh*0.18);
+      ctx.quadraticCurveTo(bx+s*bw*0.95, cy-bh*0.6-wf6, bx+s*bw*1.02, cy-bh*0.05);
+      ctx.quadraticCurveTo(bx+s*bw*0.8, cy+bh*0.2, bx+s*bw*0.28, cy+bh*0.1); ctx.closePath(); ctx.fill();
+      if(Math.floor(t/22)%2===0){ ctx.strokeStyle='#ffe23a'; ctx.lineWidth=2; ctx.beginPath();
+        ctx.moveTo(bx+s*bw*0.6, cy-bh*0.32); ctx.lineTo(bx+s*bw*0.52, cy-bh*0.14); ctx.lineTo(bx+s*bw*0.62, cy-bh*0.1); ctx.lineTo(bx+s*bw*0.54, cy+bh*0.08); ctx.stroke(); }
+    } }
+  if(worn.coat==='cd_gummycape'){
+    const wob3=Math.sin(t*0.1)*2;
+    ctx.fillStyle='rgba(255,90,120,0.8)'; ctx.beginPath(); ctx.moveTo(bx-bw*0.28, cy-bh*0.34); ctx.quadraticCurveTo(bx-bw*0.88, cy+bh*0.3+wob3, bx-bw*0.3, cy+bh*0.62); ctx.quadraticCurveTo(bx, cy+bh*0.46, bx+bw*0.3, cy+bh*0.62); ctx.quadraticCurveTo(bx+bw*0.88, cy+bh*0.3-wob3, bx+bw*0.28, cy-bh*0.34); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.ellipse(bx-bw*0.3, cy, 9, 15, -0.4, 0, 7); ctx.fill();
+    ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.fillText('🐻', bx+bw*0.16, cy+bh*0.34);
+  }
   if(worn.coat==='bf_blankie'){
     ctx.fillStyle='#a8d8f0'; ctx.beginPath(); ctx.moveTo(bx-bw*0.28, cy-bh*0.34); ctx.quadraticCurveTo(bx-bw*0.85, cy+bh*0.3, bx-bw*0.3, cy+bh*0.6); ctx.quadraticCurveTo(bx, cy+bh*0.44, bx+bw*0.3, cy+bh*0.6); ctx.quadraticCurveTo(bx+bw*0.85, cy+bh*0.3, bx+bw*0.28, cy-bh*0.34); ctx.closePath(); ctx.fill();
     ctx.strokeStyle='#78b0d0'; ctx.lineWidth=2;
@@ -2827,9 +3010,6 @@ function drawToad(){
     if(Math.floor(t/40)%3===0){ ctx.strokeStyle='#ffe23a'; ctx.lineWidth=2.5; ctx.beginPath();
       ctx.moveTo(bx-bw*0.5, cy-bh*0.1); ctx.lineTo(bx-bw*0.38, cy+bh*0.08); ctx.lineTo(bx-bw*0.48, cy+bh*0.12); ctx.lineTo(bx-bw*0.34, cy+bh*0.4); ctx.stroke(); }
     ctx.fillStyle='#1c1c30'; ctx.fillRect(bx-bw*0.28, cy-bh*0.4, bw*0.56, 6); }
-  if(worn.coat==='myth_rainbowscarf'){ const ny=cy-bh*0.06, rcols3=['#ff5a5a','#ffa53a','#ffe23a','#5ad46b','#4aa8ff','#9a6bff'];
-    for(let i=0;i<6;i++){ ctx.strokeStyle=rcols3[i]; ctx.lineWidth=3; ctx.beginPath(); ctx.ellipse(bx, ny-7+i*2.4, bw*0.3, 5, 0, Math.PI*0.05, Math.PI*0.95); ctx.stroke(); }
-    for(let i=0;i<6;i++){ ctx.fillStyle=rcols3[i]; ctx.fillRect(bx+bw*0.14+i*2, ny+2, 2, 22+Math.sin(t*0.12+i)*3); } }
   if(worn.coat==='myth_pwings'){ const wf3=Math.sin(t*0.22)*bh*0.1;
     for(const s of [-1,1]){
       ctx.fillStyle='rgba(255,138,61,0.9)'; ctx.beginPath();
@@ -2898,6 +3078,24 @@ function drawToad(){
       ctx.beginPath(); ctx.moveTo(bx-bw*0.5+i*bw*0.16+sh, cy-bh*0.55); ctx.lineTo(bx-bw*0.34+i*bw*0.16+sh, cy+bh*0.55); ctx.stroke(); }
     ctx.globalAlpha=1;
     ctx.fillStyle='#fff'; for(let i=0;i<6;i++){ const a=i*2.1; ctx.globalAlpha=0.5+0.5*Math.sin(t*0.11+i); ctx.beginPath(); ctx.arc(bx+Math.cos(a)*14, cy+Math.sin(a*1.4)*12, 1.5,0,7); ctx.fill(); } ctx.globalAlpha=1; }
+  if(sk.cardboard){
+    ctx.save(); ctx.beginPath(); ctx.ellipse(bx, cy, bw*0.5, bh*0.55, 0,0,7); ctx.clip();
+    ctx.strokeStyle='rgba(140,106,62,0.4)'; ctx.lineWidth=2;
+    for(let yy=cy-bh*0.5; yy<cy+bh*0.55; yy+=9){ ctx.beginPath(); ctx.moveTo(bx-bw*0.5, yy); ctx.lineTo(bx+bw*0.5, yy); ctx.stroke(); }
+    ctx.fillStyle='rgba(220,220,225,0.75)'; ctx.fillRect(bx-bw*0.5, cy-bh*0.14, bw, 10);   // packing tape!
+    ctx.restore();
+    ctx.fillStyle='#8c6a3e'; ctx.font='bold 9px sans-serif'; ctx.textAlign='center'; ctx.fillText('THIS SIDE UP ⬆', bx, cy+bh*0.4);
+  }
+  if(sk.pixel){
+    ctx.save(); ctx.beginPath(); ctx.ellipse(bx, cy, bw*0.5, bh*0.55, 0,0,7); ctx.clip();
+    const ps=8;
+    for(let px5=bx-bw*0.5; px5<bx+bw*0.5; px5+=ps){ for(let py5=cy-bh*0.55; py5<cy+bh*0.55; py5+=ps){
+      const hsh=((px5*7+py5*13)|0)%5;
+      ctx.fillStyle=['#9a6bff','#8a5aef','#aa7bff','#7a4bdf','#b48cff'][((hsh%5)+5)%5];
+      ctx.fillRect(px5, py5, ps-1, ps-1);
+    } }
+    ctx.restore();
+  }
   ctx.restore();
 
   if(worn.coat==='shirt' || worn.coat==='coatblue'){
@@ -2909,6 +3107,11 @@ function drawToad(){
     else { ctx.fillStyle='#c74640'; ctx.fillRect(bx-bw, top, bw*2, 4); }
     ctx.restore();
   }
+  if(worn.coat==='myth_rainbowscarf'){
+    // the scarf wraps the FRONT of the neck now — it used to hide behind the body!
+    const ny=cy-bh*0.06, rcols3=['#ff5a5a','#ffa53a','#ffe23a','#5ad46b','#4aa8ff','#9a6bff'];
+    for(let i=0;i<6;i++){ ctx.strokeStyle=rcols3[i]; ctx.lineWidth=3.5; ctx.beginPath(); ctx.ellipse(bx, ny-7+i*2.6, bw*0.34, 6, 0, Math.PI*0.04, Math.PI*0.96); ctx.stroke(); }
+    for(let i=0;i<6;i++){ ctx.fillStyle=rcols3[i]; ctx.fillRect(bx+bw*0.16+i*2.4, ny+4, 2.4, 24+Math.sin(t*0.12+i)*3); } }
   if(worn.coat==='bowtie'){ const ny=cy-bh*0.04; ctx.fillStyle='#e0554f';
     ctx.beginPath(); ctx.moveTo(bx-2,ny); ctx.lineTo(bx-17,ny-9); ctx.lineTo(bx-17,ny+9); ctx.closePath(); ctx.fill();
     ctx.beginPath(); ctx.moveTo(bx+2,ny); ctx.lineTo(bx+17,ny-9); ctx.lineTo(bx+17,ny+9); ctx.closePath(); ctx.fill();
@@ -3039,6 +3242,14 @@ function drawToad(){
     ctx.fillStyle='#6a3ac0'; ctx.beginPath(); ctx.moveTo(bx, ey-46); ctx.lineTo(bx+5, ey-38); ctx.lineTo(bx, ey-32); ctx.lineTo(bx-5, ey-38); ctx.closePath(); ctx.fill();
     ctx.globalAlpha=0.4+0.2*Math.sin(t*0.12); ctx.strokeStyle='#9a6bff'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.moveTo(bx-20, ey-24); ctx.lineTo(bx+20, ey-24); ctx.stroke(); ctx.globalAlpha=1; }
+  if(worn.hat==='hh_frosthalo'){ const hy4=ey-38+Math.sin(t*0.1)*2;
+    for(let k=0;k<4;k++){ ctx.strokeStyle=['#bfeeff','#8fd8f5','#e8f8ff','#9fe0ff'][k]; ctx.lineWidth=3; ctx.beginPath(); ctx.ellipse(bx, hy4, 20-k, 6-k*0.5, 0, 0, 7); ctx.stroke(); }
+    ctx.globalAlpha=0.5+0.5*Math.sin(t*0.12); ctx.font='10px sans-serif'; ctx.textAlign='center'; ctx.fillText('❄️', bx+16, hy4-6); ctx.globalAlpha=1; }
+  if(worn.hat==='cd_candycrown'){ const y0=ey-24;
+    ctx.fillStyle='#ff8fc0'; ctx.beginPath(); ctx.moveTo(bx-20,y0); ctx.lineTo(bx-20,y0-8); ctx.lineTo(bx-10,y0-3); ctx.lineTo(bx,y0-13); ctx.lineTo(bx+10,y0-3); ctx.lineTo(bx+20,y0-8); ctx.lineTo(bx+20,y0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#d95a96'; ctx.lineWidth=2; ctx.stroke();
+    for(const [sx5,sc5] of [[-20,'#5ad46b'],[0,'#ffcf4d'],[20,'#4aa8ff']]){ ctx.fillStyle=sc5; ctx.beginPath(); ctx.arc(bx+sx5, y0-(sx5===0?15:10), 4, 0, 7); ctx.fill();
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(bx+sx5, y0-(sx5===0?15:10), 2, 0.5, 4); ctx.stroke(); } }
   if(worn.hat==='mil_legendhat'){
     ctx.fillStyle='#c9a020'; ctx.fillRect(bx-30, ey-24, 60, 8);
     ctx.fillStyle='#ffcf3a'; ctx.fillRect(bx-20, ey-54, 40, 34);
@@ -3069,6 +3280,10 @@ function drawToad(){
       ctx.fillStyle='rgba(190,235,255,0.55)'; ctx.beginPath(); ctx.arc(bxx, byy, 6+(i%2)*2, 0, 7); ctx.fill();
       ctx.strokeStyle='rgba(255,255,255,0.8)'; ctx.lineWidth=1.5; ctx.stroke();
       ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(bxx-2, byy-2, 1.5, 0, 7); ctx.fill(); } }
+  if(worn.glasses==='hh_stargoggles'){
+    ctx.font='17px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('⭐', bx-ex, ey-2); ctx.fillText('⭐', bx+ex, ey-2); ctx.textBaseline='alphabetic';
+    ctx.strokeStyle='#c9a020'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(bx-4, ey-3); ctx.lineTo(bx+4, ey-3); ctx.stroke(); }
   if(worn.glasses==='ore_gemgoggles'){ for(const s of [-1,1]){ const gx=bx+s*ex;
       ctx.fillStyle='rgba(180,140,240,0.55)'; ctx.beginPath(); ctx.moveTo(gx, ey-12); ctx.lineTo(gx+9, ey-2); ctx.lineTo(gx, ey+8); ctx.lineTo(gx-9, ey-2); ctx.closePath(); ctx.fill();
       ctx.strokeStyle='#8a5ac0'; ctx.lineWidth=2.5; ctx.stroke(); }
@@ -3296,7 +3511,7 @@ function stepGame(){
           const d=Math.hypot(b.x-babyPos.x, b.y-(babyPos.y-20)); if(d<bd){ bd=d; best=b; }
         }
         if(best){
-          const got=gainCoins(best.val||1); addXp(1);
+          const got=gainCoins(best.val||1); addXp(1); hourlyBump('bug');
           pops.push({x:best.x, y:best.y, t:0, val:got});
           pops.push({x:babyPos.x, y:babyPos.y-32, t:0, txt:'👶👅'});
           sfx('coin');
@@ -3311,6 +3526,11 @@ function stepGame(){
       }
     }
   } else babyAssistT=0;
+  // 🍬 the cotton candy magic: "You feel magical." … white flash … Candyland!
+  if(candyTeleT>0){
+    candyTeleT--;
+    if(candyTeleT===45 && started && !twoP){ if(inside){ inside=false; } goArea('candy'); }
+  }
   if(gardenMode){ updateGarden(); return; }
   if(homeMode || showMode){ if(showMode) showTimer++; return; }
   if(twoP){ update2P(); return; }
@@ -3354,6 +3574,13 @@ function frame(now){
   if(steps===4) frameAcc=0;
   drawGame();
   drawStick();
+  if(candyTeleT>0 && candyTeleT<=90){
+    // the whole world goes white for a second…
+    const a=candyTeleT>45? (90-candyTeleT)/45 : candyTeleT/45;
+    ctx.save(); ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.globalAlpha=Math.min(1,a); ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
   requestAnimationFrame(frame);
 }
 
@@ -3599,6 +3826,27 @@ SHOP.push(
   { id:'uc_tridentcrown', name:'Trident Crown', emoji:'🔱', price:0, slot:'hat',  secret:true },
   { id:'uc_pearlcape',    name:'Pearl Cape',    emoji:'🦪', price:0, slot:'coat', secret:true },
   { id:'pet_mercat',      name:'Mermaid Cat',   emoji:'🧜', price:0, slot:'pet',  secret:true },
+  // 🍬 Candyland!
+  { id:'use_cotton',   name:'Magic Cotton Candy · you feel… magical?', emoji:'🍬', price:100, slot:'use', city:2 },
+  { id:'cd_candycrown',name:'Candy Crown',   emoji:'🍭', price:0, slot:'hat',  secret:true },
+  { id:'cd_gummycape', name:'Gummy Cape',    emoji:'🐻', price:0, slot:'coat', secret:true },
+  { id:'cd_lollipop',  name:'Lucky Lollipop',emoji:'🍭', char:'🍭', price:0, slot:'emote', secret:true },
+  { id:'pet_candy',    name:'Candy Toad',    emoji:'🍬', price:0, slot:'pet',  secret:true },
+  // Update 18 milestone spotlight items
+  { id:'tg_xmas',    name:'Christmas Tongue', emoji:'🎄', price:0, slot:'tongue', secret:true },
+  { id:'tg_feather', name:'Feather-Fluffy Tongue', emoji:'🪶', price:0, slot:'tongue', secret:true },
+  { id:'tg_bubblegum', name:'Bubblegum Tongue', emoji:'🫧', price:0, slot:'tongue', secret:true },
+  { id:'tg_choco',   name:'Chocolate Tongue', emoji:'🍫', price:0, slot:'tongue', secret:true },
+  { id:'cardboard',  name:'Cardboard Toad',   emoji:'📦', price:0, slot:'skin', secret:true },
+  { id:'pixelpurple',name:'Purple Pixel Toad',emoji:'🟪', price:0, slot:'skin', secret:true },
+  { id:'baby_sugar', name:'Sugar Baby Toad',  emoji:'🍬', price:0, slot:'baby', secret:true },
+  // 🕐 Hourly Honesty exclusives
+  { id:'hh_frosthalo',  name:'Frost Halo',     emoji:'❄️', price:0, slot:'hat',     secret:true },
+  { id:'hh_sparkwings', name:'Spark Wings',    emoji:'⚡', price:0, slot:'coat',    secret:true },
+  { id:'hh_stargoggles',name:'Star Goggles',   emoji:'⭐', price:0, slot:'glasses', secret:true },
+  { id:'hh_flamebadge', name:'Flame Badge',    emoji:'🔥', char:'🔥', price:0, slot:'emote', secret:true },
+  { id:'hh_moonveil',   name:'Moon Veil',      emoji:'🌙', char:'🌙', price:0, slot:'emote', secret:true },
+  { id:'hh_sunpendant', name:'Sun Pendant',    emoji:'☀️', char:'☀️', price:0, slot:'emote', secret:true },
   // outfit sets — whole styles for one price!
   { id:'set_fancy', name:'Fancy Set · top hat + tuxedo + monocle', emoji:'🎩', price:70, slot:'setb', bundle:['hat','tux','monocle'] },
   { id:'set_cozy',  name:'Cozy Set · scarf + sweater + glasses',   emoji:'🧣', price:60, slot:'setb', bundle:['scarf','cozysweater','cozyglasses'] },
@@ -3700,14 +3948,70 @@ const MILESTONES={
   21:{coins:200}, 22:{item:'tg_galaxy'}, 23:{baby:'baby_night'}, 24:{coins:250},
   25:{item:'mil_legendhat'}, 26:{item:'tg_sparkle'}, 27:{coins:300}, 28:{item:'mil_rainbowwings'},
   29:{coins:400}, 30:{item:'tg_ultimate', coins:1000},
+  // Update 18 spotlight rewards
+  35:{item:'tg_xmas'}, 40:{baby:'baby_sugar'}, 45:{item:'cardboard'},
+  55:{item:'tg_feather'}, 65:{item:'pixelpurple'}, 75:{item:'tg_bubblegum'}, 85:{item:'tg_choco'},
 };
+// …and 100+ MORE special rewards: every 3rd level from 31-400 opens a themed treasure chest!
+(function(){
+  const CHESTS=[['🎁','Treasure Chest'],['💰','Coin Sack'],['🧺','Sugar Basket'],['🎀','Gift Box'],['🪙','Golden Pouch']];
+  for(let l=31;l<=400;l++){
+    if(MILESTONES[l]) continue;
+    if(l%3===0){ const c=CHESTS[l%CHESTS.length]; MILESTONES[l]={chest:40+l*2, chestName:c[0]+' '+c[1]}; }
+  }
+})();
 function ensureBaby(id){ return ensurePet(id); }   // babies have full needs, XP & vibes — just like pets
+/* ---- 🕐 HOURLY HONESTY — a task board that refreshes every hour, themed on the visiting Mystic Pet ---- */
+const HH_TASKS=[
+  {k:'bug',  e:'🐛', n:'Catch bugs',    t:8},
+  {k:'fish', e:'🎣', n:'Catch fish',    t:2},
+  {k:'ore',  e:'⛏️', n:'Mine ores',     t:2},
+  {k:'boss', e:'⚔️', n:'Defeat a boss', t:1},
+  {k:'coin', e:'🪙', n:'Earn coins',    t:50},
+];
+const HH_ITEMS=['hh_frosthalo','hh_sparkwings','hh_stargoggles','hh_flamebadge','hh_moonveil','hh_sunpendant'];
+const hourly={ key:0, prog:{}, claimed:false };
+function hourKey(){ return Math.floor(Date.now()/3600000); }
+function hourlyTasks(){ const k=hourKey(); return [HH_TASKS[k%5], HH_TASKS[(k+2)%5], HH_TASKS[(k+4)%5]]; }
+function hourlyCheck(){ const k=hourKey(); if(hourly.key!==k){ hourly.key=k; hourly.prog={}; hourly.claimed=false; } }
+function hourlyBump(kind, n){
+  hourlyCheck();
+  if(hourly.claimed) return;
+  hourly.prog[kind]=(hourly.prog[kind]||0)+(n||1);
+  const tasks=hourlyTasks();
+  if(tasks.every(tk=>(hourly.prog[tk.k]||0)>=tk.t)){
+    hourly.claimed=true;
+    addXp(25);
+    const pet=mysticNow(), nxt=HH_ITEMS.find(id=>!owned[id]);
+    if(nxt){ owned[nxt]=true; const it=SHOP.find(s=>s.id===nxt);
+      showReward('🕐✨ HOURLY HONESTY done! '+pet.emoji+' '+pet.name+' gifts you the '+(it?it.emoji+' '+it.name:nxt)+'!!'); }
+    else { gainCoins(150); showReward('🕐✨ HOURLY HONESTY done! +150 🪙 from '+pet.emoji+' '+pet.name+'!'); }
+    sfx('win'); save();
+  }
+}
+function renderHourly(){
+  hourlyCheck();
+  const pet=mysticNow(), box=document.getElementById('hourlyBody');
+  let h='<div class="mysticnote">This hour\'s theme: '+pet.emoji+' <b>'+pet.name+'</b> — '+pet.power+'<br>⏳ New tasks & theme in '+mysticMinsLeft()+' min!</div>';
+  const tasks=hourlyTasks();
+  for(const tk of tasks){
+    const p=Math.min(hourly.prog[tk.k]||0, tk.t), done=p>=tk.t;
+    h+='<div style="display:flex;align-items:center;gap:10px;background:'+(done?'#e4f5da':'#f2f6f0')+';border-radius:12px;padding:9px 12px;margin-top:6px;">'
+      +'<div style="font-size:22px;">'+tk.e+'</div><div style="flex:1;text-align:left;"><div style="font-weight:900;font-size:14px;">'+tk.n+' '+p+'/'+tk.t+'</div>'
+      +'<div style="background:rgba(0,0,0,0.1);border-radius:999px;height:8px;margin-top:3px;"><div style="height:100%;width:'+Math.round(100*p/tk.t)+'%;background:#7ed957;border-radius:999px;"></div></div></div>'
+      +'<div style="font-size:18px;">'+(done?'✅':'▫️')+'</div></div>';
+  }
+  if(hourly.claimed) h+='<div class="mysticnote" style="margin-top:10px;">🏆 DONE this hour! +25 XP and your gift are claimed — come back when the next Mystic Pet visits!</div>';
+  else h+='<div class="by" style="margin-top:8px;">Finish all 3 → +25 XP and a special gift you can\'t get ANYWHERE else! ('+HH_ITEMS.filter(id=>!owned[id]).length+' gifts left)</div>';
+  box.innerHTML=h;
+}
 function addXp(n){
   xp+=n;
   while(toadLevel<401 && xp>=mlNeed(toadLevel)){
     xp-=mlNeed(toadLevel); toadLevel++;
     const r=MILESTONES[toadLevel]; let msg='🏅 TOAD LEVEL '+toadLevel+'!';
     if(r){
+      if(r.chest){ coins+=r.chest; updateCoins(); msg+=' '+r.chestName+' +'+r.chest+'🪙!'; }
       if(r.coins){ coins+=r.coins; updateCoins(); msg+=' +'+r.coins+'🪙'; }
       if(r.item){ owned[r.item]=true; const it=SHOP.find(s=>s.id===r.item); if(it) msg+=' '+it.emoji+' '+it.name+'!'; }
       if(r.baby){
@@ -3941,6 +4245,7 @@ document.getElementById('shopGrid').addEventListener('click',(e)=>{
         else if(it.id==='use_tongue') startBoost('tongue','👅 Mega tongue! (10s)');
         else if(it.id==='use_coins') startBoost('coins','🍀 Double coins! (10s)');
         else if(it.id==='use_sugar') startBoost('sugar','🍬 SUGAR RUSH! Speedy + long tongue! (10s)');
+        else if(it.id==='use_cotton') eatCottonCandy();
         document.getElementById('shopScreen').classList.add('hidden'); return; }
       owned[buy]=true;
       if(it.bundle){ for(const cid of it.bundle) owned[cid]=true; showReward('🎁 The whole '+it.name.split(' ·')[0]+' is yours! Check your slots!'); }
@@ -3952,8 +4257,8 @@ document.getElementById('shopGrid').addEventListener('click',(e)=>{
   if(wear){ const it=SHOP.find(s=>s.id===wear); if(it){ worn[it.slot] = (worn[it.slot]===wear? null : wear); rerenderShop(); save(); } }
 });
 function updateCoins(){ document.getElementById('coinCount').textContent = coins; save(); }
-function save(){ try{ localStorage.setItem('toadsim_save', JSON.stringify({coins,owned,worn,musicOn,sfxOn,home:homeData,garden,conSeeds,difficulty,secretFound,vbest:volley.best,moveMult,ctrlMode,musicTrack,petCare,petData,bossSkin,recipesFound,fishCaught,castleOpened,battleCfg,battleGrid,battleMode,xp,toadLevel,oresMined,ucOpened,wallpaper})); }catch(e){} }
-function load(){ try{ const s=JSON.parse(localStorage.getItem('toadsim_save')||'null'); if(!s) return; if(typeof s.coins==='number') coins=s.coins; if(s.owned) Object.assign(owned,s.owned); if(s.worn) Object.assign(worn,s.worn); if(typeof s.musicOn==='boolean') musicOn=s.musicOn; if(typeof s.sfxOn==='boolean') sfxOn=s.sfxOn; if(Array.isArray(s.home)&&s.home.length){ homeData.length=0; for(const r of s.home) homeData.push({wall:r.wall||0, items:Array.isArray(r.items)?r.items:[]}); } if(Array.isArray(s.garden)&&s.garden.length){ garden.length=0; for(const p of s.garden) garden.push({seed:p.seed||null, t:p.t||0}); } if(typeof s.conSeeds==='number') conSeeds=s.conSeeds; if(s.difficulty && DIFF[s.difficulty]) difficulty=s.difficulty; if(s.secretFound) Object.assign(secretFound,s.secretFound); if(typeof s.vbest==='number') volley.best=s.vbest; if(typeof s.moveMult==='number' && [0.8,1,1.25,1.5].includes(s.moveMult)) moveMult=s.moveMult; if(s.ctrlMode==='stick'||s.ctrlMode==='zones') ctrlMode=s.ctrlMode; if(s.musicTrack && MUSIC_TRACKS[s.musicTrack]) musicTrack=s.musicTrack; if(typeof s.petCare==='boolean') petCare=s.petCare; if(s.petData) Object.assign(petData,s.petData); if(typeof s.bossSkin==='string' && BOSS_SKINS.some(x=>x[0]===s.bossSkin)) bossSkin=s.bossSkin; if(s.recipesFound) Object.assign(recipesFound,s.recipesFound); if(s.fishCaught) Object.assign(fishCaught,s.fishCaught); if(s.castleOpened) Object.assign(castleOpened,s.castleOpened); if(s.battleCfg){ for(const p of [1,2]){ const c=s.battleCfg[p]; if(c){ if(typeof c.ci==='number' && BC_COLORS[c.ci]) battleCfg[p].ci=c.ci; if(BC_EXPRS.some(x=>x[0]===c.expr)) battleCfg[p].expr=c.expr; if(c.acc===null || BC_ACCS.some(x=>x[0]===c.acc)) battleCfg[p].acc=c.acc; } } } if(s.battleGrid && BATTLE_GRIDS[s.battleGrid]) battleGrid=s.battleGrid; if(s.battleMode && BATTLE_MODES.some(m=>m[0]===s.battleMode)) battleMode=s.battleMode; if(typeof s.xp==='number' && s.xp>=0) xp=s.xp; if(typeof s.toadLevel==='number' && s.toadLevel>=1) toadLevel=Math.min(401, Math.floor(s.toadLevel)); if(s.oresMined) Object.assign(oresMined,s.oresMined); if(s.ucOpened) Object.assign(ucOpened,s.ucOpened); if(s.wallpaper && TITLE_WALLS[s.wallpaper]) wallpaper=s.wallpaper; }catch(e){} }
+function save(){ try{ localStorage.setItem('toadsim_save', JSON.stringify({coins,owned,worn,musicOn,sfxOn,home:homeData,garden,conSeeds,difficulty,secretFound,vbest:volley.best,moveMult,ctrlMode,musicTrack,petCare,petData,bossSkin,recipesFound,fishCaught,castleOpened,battleCfg,battleGrid,battleMode,xp,toadLevel,oresMined,ucOpened,wallpaper,candyFound,hourly})); }catch(e){} }
+function load(){ try{ const s=JSON.parse(localStorage.getItem('toadsim_save')||'null'); if(!s) return; if(typeof s.coins==='number') coins=s.coins; if(s.owned) Object.assign(owned,s.owned); if(s.worn) Object.assign(worn,s.worn); if(typeof s.musicOn==='boolean') musicOn=s.musicOn; if(typeof s.sfxOn==='boolean') sfxOn=s.sfxOn; if(Array.isArray(s.home)&&s.home.length){ homeData.length=0; for(const r of s.home) homeData.push({wall:r.wall||0, items:Array.isArray(r.items)?r.items:[]}); } if(Array.isArray(s.garden)&&s.garden.length){ garden.length=0; for(const p of s.garden) garden.push({seed:p.seed||null, t:p.t||0}); } if(typeof s.conSeeds==='number') conSeeds=s.conSeeds; if(s.difficulty && DIFF[s.difficulty]) difficulty=s.difficulty; if(s.secretFound) Object.assign(secretFound,s.secretFound); if(typeof s.vbest==='number') volley.best=s.vbest; if(typeof s.moveMult==='number' && [0.8,1,1.25,1.5].includes(s.moveMult)) moveMult=s.moveMult; if(s.ctrlMode==='stick'||s.ctrlMode==='zones') ctrlMode=s.ctrlMode; if(s.musicTrack && MUSIC_TRACKS[s.musicTrack]) musicTrack=s.musicTrack; if(typeof s.petCare==='boolean') petCare=s.petCare; if(s.petData) Object.assign(petData,s.petData); if(typeof s.bossSkin==='string' && BOSS_SKINS.some(x=>x[0]===s.bossSkin)) bossSkin=s.bossSkin; if(s.recipesFound) Object.assign(recipesFound,s.recipesFound); if(s.fishCaught) Object.assign(fishCaught,s.fishCaught); if(s.castleOpened) Object.assign(castleOpened,s.castleOpened); if(s.battleCfg){ for(const p of [1,2]){ const c=s.battleCfg[p]; if(c){ if(typeof c.ci==='number' && BC_COLORS[c.ci]) battleCfg[p].ci=c.ci; if(BC_EXPRS.some(x=>x[0]===c.expr)) battleCfg[p].expr=c.expr; if(c.acc===null || BC_ACCS.some(x=>x[0]===c.acc)) battleCfg[p].acc=c.acc; } } } if(s.battleGrid && BATTLE_GRIDS[s.battleGrid]) battleGrid=s.battleGrid; if(s.battleMode && BATTLE_MODES.some(m=>m[0]===s.battleMode)) battleMode=s.battleMode; if(typeof s.xp==='number' && s.xp>=0) xp=s.xp; if(typeof s.toadLevel==='number' && s.toadLevel>=1) toadLevel=Math.min(401, Math.floor(s.toadLevel)); if(s.oresMined) Object.assign(oresMined,s.oresMined); if(s.ucOpened) Object.assign(ucOpened,s.ucOpened); if(s.wallpaper && TITLE_WALLS[s.wallpaper]) wallpaper=s.wallpaper; if(s.candyFound) Object.assign(candyFound,s.candyFound); if(s.hourly && typeof s.hourly.key==='number') Object.assign(hourly,s.hourly); }catch(e){} }
 
 /* ---------------- Buttons ---------------- */
 document.getElementById('dayBtn').addEventListener('click',()=>{
@@ -4034,6 +4339,13 @@ function buildSettingsRows(){
 document.getElementById('petCareToggle').addEventListener('click',()=>{ petCare = petCare===true? false : true; save(); buildSettingsRows(); sfx('coin'); });
 /* ---- Toad News (title screen update log) ---- */
 const NEWS=[
+  {v:'Update 18', d:'Sep 10', items:[
+    '🍬 CANDYLAND!! Buy a Magic Cotton Candy at Sweet Treats (100 🪙)… you feel magical… the world goes WHITE… and you\'re in a land of candy! Explore FIVE areas (Lollipop Lane → Rainbow Sugar Peak), munch candies off the ground, and hunt VERY well hidden secrets: the Candy Crown, Gummy Cape, Lucky Lollipop — and the CANDY TOAD, a pet as rare as a mystic that gives MYTHIC clothing as it grows!',
+    '🏅 100+ MORE milestone rewards! Treasure chests every few levels, plus spotlight prizes: the 🎄 Christmas Tongue, 🍬 SUGAR BABY TOAD (drawn by Sasha!), 📦 Cardboard Toad, 🪶 Feather-Fluffy Tongue, 🟪 Purple Pixel Toad, Bubblegum & Chocolate tongues!',
+    '🕐 HOURLY HONESTY! A new task board (🕐 button) themed on the visiting Mystic Pet — finish 3 honest tasks each hour for +25 XP and gifts you can\'t get ANYWHERE else (Frost Halo, Spark Wings, Star Goggles…)',
+    '💣 NEW MODE — BOMB DUEL: a fizzing bomb lands on a random toad; 👅 pass it before it blows! Explode = OUT, and if a PLAYER explodes the other player wins instantly!',
+    '⬜ NEW MODE — SUPER SQUARE: a relaxed little square picks who to trust. Tongue it to win its power (it paints & zaps for you!) — tongue its owner to STEAL it. Most pixels wins!',
+    '🧣 Fixed: the Rainbow Scarf was hiding behind your toad\'s body — it proudly wraps the front now!']},
   {v:'Update 17', d:'Sep 8', items:[
     '🏆 RANKS! Your toad now climbs C → B → A → S — each rank holds 100 milestones. Beat all 100 to rank up and win that rank\'s trophies: 🥉 bronze, 🥈 silver, 🥇 gold and 💎 DIAMOND crowns & tongue skins! (Level rewards still pay out every single level.)',
     '👶 Baby powers! Since babies can\'t ride, they HELP instead: your baby catches bugs for you (faster as it grows) and can dig up treasures ONLY babies can find — the Daisy Bonnet 👒, Blankie Cape 🧸 and Rubber Ducky 🐤!',
@@ -4287,8 +4599,8 @@ function renderMilestones(){
     list.appendChild(row);
   }
   const hd=document.createElement('div'); hd.className='sethead'; hd.style.cssText='text-align:center;margin-top:10px;'; hd.textContent='⭐ Special level rewards (every other level pays coins!)'; list.appendChild(hd);
-  for(let l=2;l<=30;l++){
-    const r=MILESTONES[l]; if(!r) continue;
+  for(let l=2;l<=400;l++){
+    const r=MILESTONES[l]; if(!r || (r.chest && !r.item && !r.baby && !r.coins)) continue;   // chests are a surprise — only special items listed
     const got=toadLevel>=l;
     const bits=[];
     if(r.coins) bits.push('🪙 '+r.coins+' coins');
@@ -4301,6 +4613,8 @@ function renderMilestones(){
   }
 }
 document.getElementById('milesBtn').addEventListener('click',()=>{ renderMilestones(); document.getElementById('milesScreen').classList.remove('hidden'); sfx('coin'); });
+document.getElementById('hourBtn').addEventListener('click',()=>{ renderHourly(); document.getElementById('hourlyScreen').classList.remove('hidden'); sfx('coin'); });
+document.getElementById('closeHourly').addEventListener('click',()=>document.getElementById('hourlyScreen').classList.add('hidden'));
 document.getElementById('closeMiles').addEventListener('click',()=>document.getElementById('milesScreen').classList.add('hidden'));
 document.getElementById('elevForest').addEventListener('click',()=>goArea('forest'));
 document.getElementById('elevMountain').addEventListener('click',()=>goArea('mountain'));
@@ -4621,6 +4935,30 @@ function aiFriendTick(){
   if(g==='wheel'){ if(wheelG.turn===2 && wheelG.phase==='wait' && aiT%50===0) wheelSpin(); return; }
   if(g==='battle'){
     if(P2.stun>0) return;
+    if(battle.mode==='bomb' && battle.bomb){
+      const bb=battle.bomb;
+      if(bb.holder===2){
+        let best=null, bd=99;
+        for(const a of battle.ais){ if(a.out) continue; const d=Math.abs(a.gx-P2.gx)+Math.abs(a.gy-P2.gy); if(d<bd){ bd=d; best=a; } }
+        if(best && bd<=battleReach(P2)){ if(aiT%20===0) battleTongue(2); return; }
+        if(best && P2.moveCd<=0){ const dx=best.gx-P2.gx, dy=best.gy-P2.gy; battleTryMove(P2, 2, Math.abs(dx)>=Math.abs(dy)? (dx>0?'right':'left') : (dy>0?'down':'up')); }
+      } else if(P2.moveCd<=0){
+        const h=battleEntById(bb.holder); let dir;
+        if(h && Math.abs(h.gx-P2.gx)+Math.abs(h.gy-P2.gy)<4){ const dx=P2.gx-h.gx, dy=P2.gy-h.gy; dir=Math.abs(dx)>=Math.abs(dy)? (dx>=0?'right':'left') : (dy>=0?'down':'up'); }
+        else dir=['up','down','left','right'][Math.floor(Math.random()*4)];
+        battleTryMove(P2, 2, dir);
+      }
+      return;
+    }
+    if(battle.mode==='square' && battle.sq){
+      const sq=battle.sq;
+      if(sq.owner===2){ if(P2.moveCd<=0) battleTryMove(P2, 2, ['up','down','left','right'][Math.floor(Math.random()*4)]); return; }
+      const targ=sq.owner? battleEntById(sq.owner) : sq;
+      const d=Math.abs(P2.gx-targ.gx)+Math.abs(P2.gy-targ.gy);
+      if(d<=battleReach(P2)){ if(aiT%40===0) battleTongue(2); return; }
+      if(P2.moveCd<=0){ const dx=targ.gx-P2.gx, dy=targ.gy-P2.gy; battleTryMove(P2, 2, Math.abs(dx)>=Math.abs(dy)? (dx>0?'right':'left') : (dy>0?'down':'up')); }
+      return;
+    }
     if(battle.mode==='colorboss'){
       const cb=battle.cboss; if(!cb) return;
       const mdb=Math.abs(P2.gx-cb.gx)+Math.abs(P2.gy-cb.gy);
@@ -4688,7 +5026,7 @@ const fruits=[]; let fruitSpawnT=0;
 const lily={ pads:[] };
 const volley={ x:0, y:0, vx:0, vy:0, hits:0, rot:0, best:0 };
 function startCoopBoss(i){ const b=COOP_BOSSES[i]; coop.kind=b.kind; coop.hp=coop.maxhp=Math.max(6, Math.round(b.hp*DIFF[difficulty].hp)); coop.state='approach'; coop.timer=0; coop.flash=0; coopFrozen=0; coopPetT=0; coop.x=W*0.5; coop.y = b.kind==='fly'? H*0.24 : groundY; coopSay(pickLine(BOSS_LINES[b.kind].intro), 150); }
-function nextCoopBoss(){ coopSay(pickLine(BOSS_LINES[coop.kind].lose), 130); addXp(10); coop.idx++; if(coop.idx>=COOP_BOSSES.length){ endCoop(true); } else { coop.hearts=Math.min(DIFF[difficulty].hearts, coop.hearts+1); startCoopBoss(coop.idx); } }
+function nextCoopBoss(){ coopSay(pickLine(BOSS_LINES[coop.kind].lose), 130); addXp(10); hourlyBump('boss'); coop.idx++; if(coop.idx>=COOP_BOSSES.length){ endCoop(true); } else { coop.hearts=Math.min(DIFF[difficulty].hearts, coop.hearts+1); startCoopBoss(coop.idx); } }
 function endCoop(win){ twoP=false; document.getElementById('controls2p').classList.add('hidden');
   document.getElementById('winTitle').textContent = win? '🎉 You beat all the bosses!' : '😢 The boss won!';
   document.getElementById('winScore').textContent = win? 'Amazing teamwork! 🤝' : 'Team up and try again!';
@@ -4879,7 +5217,10 @@ const BATTLE_MODES=[
   ['colorboss','🌈 Color Boss','ALL toads team up against the giant COLOR BOSS! It stomps around stealing pixels in its shifting color and blasts warning zones with debuffs — beat it before time runs out!'],
   ['hill','👑 King of the Hill','a glowing crown zone hops around the board — stand inside to earn crown points! Most points wins!'],
   ['speed','💨 Speed Paint','30 seconds. EVERYONE at turbo speed. Boosters raining. Paint the most before time runs out — GO GO GO!'],
+  ['bomb','💣 Bomb Duel','a bomb with a burning fuse lands on a random toad — 👅 someone to pass it on! Boom = you\'re OUT… and if a PLAYER blows up, the other player wins instantly!'],
+  ['square','⬜ Super Square','a relaxed, lively little square decides who to trust — tongue IT to win its power, tongue its OWNER to steal it! It paints and zaps for whoever it follows. Most pixels wins!'],
 ];
+function battleEntById(id){ return id===1? P1 : id===2? P2 : battle.ais[id-3]; }
 let battleGrid='m', battleMode='classic';
 function battleScore(id){ battle.score[id]=(battle.score[id]||0)+1; }
 function battleTopTonguer(){
@@ -4944,7 +5285,17 @@ function setupBattle(){
   }
   if(battle.mode==='chaos'){ battle.banner='☄️ CHAOS! Dodge the falling danger!'; battle.bannerT=200; }
   if(battle.mode==='wacky'){ battle.banner='🎡 Wacky Wheel is watching…'; battle.bannerT=180; }
-  for(const [,o] of battleEnts()){ o.debuff=null; o.shieldB=false; }
+  for(const [,o] of battleEnts()){ o.debuff=null; o.shieldB=false; o.out=false; }
+  if(battle.mode==='bomb'){
+    const ents=battleEnts(), [rid]=ents[Math.floor(Math.random()*ents.length)];
+    battle.bomb={holder:rid, fuse:60*9};
+    battle.banner='💣 BOMB DUEL! Pass the bomb with your 👅 before it BLOWS!'; battle.bannerT=230;
+  } else battle.bomb=null;
+  if(battle.mode==='square'){
+    battle.sq={owner:0, gx:Math.floor(battle.cols/2), gy:Math.floor(battle.rows/2), px:0, py:0, zapT:150};
+    battle.sq.px=cellPx(battle.sq.gx); battle.sq.py=cellPy(battle.sq.gy);
+    battle.banner='⬜ SUPER SQUARE! Tongue the square — it follows whoever it trusts!'; battle.bannerT=230;
+  } else battle.sq=null;
   if(battle.mode==='hill'){
     battle.hill={cx:Math.floor(battle.cols/2), cy:Math.floor(battle.rows/2), moveT:480};
     battle.banner='👑 KING OF THE HILL! Stand in the glowing zone to score!'; battle.bannerT=230;
@@ -4999,7 +5350,7 @@ function battleCbossHit(id){
 }
 function endColorBoss(win){
   twoP=false;
-  if(win) addXp(15);
+  if(win){ addXp(15); hourlyBump('boss'); }
   document.getElementById('controls2p').classList.add('hidden');
   document.getElementById('battlePads').classList.add('hidden');
   document.getElementById('winTitle').textContent = win? '🏆 TEAM VICTORY!!' : '🌈 The Color Boss wins…';
@@ -5053,6 +5404,35 @@ function battleTongue(pnum){
   P.mouth=12;
   const reach=battleReach(P);
   const md=(a,b)=>Math.abs(a.gx-b.gx)+Math.abs(a.gy-b.gy);
+  // 💣 Bomb Duel: your tongue PASSES the bomb (to anyone — even the other player!)
+  if(battle.mode==='bomb'){
+    const bb=battle.bomb;
+    let best=null, bd=99, bid=0;
+    for(const [oid,o] of battleEnts()){ if(oid===me||o.out) continue; const d=md(P,o); if(d<=battleReach(P) && d<bd){ bd=d; best=o; bid=oid; } }
+    if(bb && bb.holder===me && best){
+      bb.holder=bid; bb.fuse=Math.max(bb.fuse, 90); battleScore(me);
+      pops.push({x:best.px, y:best.py-24, t:0, txt:'💣 passed!', big:true}); sfx('mad');
+    } else { claimPlus(P.gx, P.gy, me, false); sfx('coin'); battle.fx.push({x:P.px, y:P.py, t:0}); }
+    return;
+  }
+  // ⬜ Super Square: tongue the square to earn its trust — or its owner to steal it!
+  if(battle.mode==='square'){
+    const sq=battle.sq;
+    if(sq){
+      const dSq=Math.abs(P.gx-sq.gx)+Math.abs(P.gy-sq.gy);
+      const own=sq.owner? battleEntById(sq.owner) : null;
+      if(!sq.owner && dSq<=battleReach(P)){
+        sq.owner=me; battleScore(me);
+        pops.push({x:sq.px, y:sq.py-26, t:0, txt:'⬜ it trusts you!!', big:true}); sfx('win'); return;
+      }
+      if(own && sq.owner!==me && md(P,own)<=battleReach(P)){
+        sq.owner=me; battleScore(me);
+        pops.push({x:P.px, y:P.py-30, t:0, txt:'⬜ STOLEN!', big:true}); sfx('eat'); return;
+      }
+    }
+    claimPlus(P.gx, P.gy, me, false); sfx('coin'); battle.fx.push({x:P.px, y:P.py, t:0});
+    return;
+  }
   // Color Boss mode: everyone's on ONE team — tongue the boss!
   if(battle.mode==='colorboss'){
     const cb=battle.cboss;
@@ -5274,14 +5654,94 @@ function updateBattle(){
       cb.warn={cells, t:85}; sfx('mad');
     }
   }
+  // 💣 BOMB DUEL: the fuse burns…
+  if(battle.mode==='bomb' && battle.bomb){
+    const bb=battle.bomb;
+    bb.fuse--;
+    if(bb.fuse<=0){
+      const ent=battleEntById(bb.holder);
+      battle.fx.push({x:ent.px, y:ent.py, t:0, big:true});
+      pops.push({x:ent.px, y:ent.py-30, t:0, txt:'💥', big:true}); sfx('bosshit');
+      if(bb.holder===1){ endBattle(2, '💣 BOOM! Player 1 exploded — Player 2 wins instantly!'); return; }
+      if(bb.holder===2){ endBattle(1, '💣 BOOM! Player 2 exploded — Player 1 wins instantly!'); return; }
+      ent.out=true;
+      pops.push({x:ent.px, y:ent.py-52, t:0, txt:BATTLE_NAMES[bb.holder]+' is OUT!', big:true});
+      const alive=battleEnts().filter(([id,o])=>!o.out);
+      const [nid]=alive[Math.floor(Math.random()*alive.length)];
+      bb.holder=nid; bb.fuse=60*9;
+      pops.push({x:battleEntById(nid).px, y:battleEntById(nid).py-40, t:0, txt:'💣 NEW BOMB!'});
+    }
+  }
+  // ⬜ SUPER SQUARE: follows its trusted toad and unleashes its power
+  if(battle.mode==='square' && battle.sq){
+    const sq=battle.sq;
+    if(sq.owner){
+      const o=battleEntById(sq.owner);
+      if(o){ sq.gx=o.gx; sq.gy=o.gy; sq.px+=((o.px+battle.cw*0.8)-sq.px)*0.14; sq.py+=((o.py-battle.ch*0.7)-sq.py)*0.14; }
+      sq.zapT--;
+      if(sq.zapT<=0){
+        sq.zapT=130;
+        claimPlus(sq.gx, sq.gy, sq.owner, true);   // the square is INSANELY powerful
+        const myT=battleTeamOfEnt(sq.owner);
+        for(const [oid,o2] of battleEnts()){ if(o2.out) continue; if(battleTeamOfEnt(oid)!==myT && Math.abs(o2.gx-sq.gx)+Math.abs(o2.gy-sq.gy)<=2) battleStun(o2, 60); }
+        battle.fx.push({x:sq.px, y:sq.py, t:0, big:true}); sfx('buy');
+      }
+    } else { sq.px+=(cellPx(sq.gx)-sq.px)*0.1; sq.py+=(cellPy(sq.gy)-sq.py)*0.1; }
+  }
   const hard = difficulty==='hard';
   const md=(a,b)=>Math.abs(a.gx-b.gx)+Math.abs(a.gy-b.gy);
   for(let i=0;i<battle.ais.length;i++){
     const a=battle.ais[i], myTeam=a.team;
+    if(a.out) continue;
     if(a.moveCd>0)a.moveCd--; if(a.tongueCd>0)a.tongueCd--; if(a.mouth>0)a.mouth--; if(a.bT>0)a.bT--; if(a.stun>0)a.stun--;
     if(a.debuff && a.debuff.t>0) a.debuff.t--;
     a.px+=(cellPx(a.gx)-a.px)*0.25; a.py+=(cellPy(a.gy)-a.py)*0.25;
     if(a.stun>0) continue;
+    // 💣 bomb mode: holders panic-pass, everyone else RUNS
+    if(battle.mode==='bomb' && battle.bomb){
+      const bb=battle.bomb, meId=i+3;
+      if(bb.holder===meId){
+        let best=null, bd=99, bid=0;
+        for(const [oid,o] of battleEnts()){ if(o===a||o.out) continue; const d=md(a,o); if(d<bd){ bd=d; best=o; bid=oid; } }
+        if(best && bd<=battleReach(a) && a.tongueCd<=0){
+          a.tongueCd=55; a.mouth=12; bb.holder=bid; bb.fuse=Math.max(bb.fuse, 90);
+          pops.push({x:best.px, y:best.py-22, t:0, txt:'💣!'}); sfx('mad');
+        } else if(best && a.moveCd<=0){
+          const dx=best.gx-a.gx, dy=best.gy-a.gy;
+          battleTryMove(a, meId, Math.abs(dx)>=Math.abs(dy)? (dx>0?'right':'left') : (dy>0?'down':'up'));
+          a.moveCd=battleMoveCd(a);
+        }
+      } else if(a.moveCd<=0){
+        const h=battleEntById(bb.holder);
+        let dir;
+        if(h && md(a,h)<4){ const dx=a.gx-h.gx, dy=a.gy-h.gy; dir=Math.abs(dx)>=Math.abs(dy)? (dx>=0?'right':'left') : (dy>=0?'down':'up'); }
+        else dir=['up','down','left','right'][Math.floor(Math.random()*4)];
+        battleTryMove(a, i+3, dir);
+        a.moveCd=battleMoveCd(a)+6+Math.random()*10;
+      }
+      continue;
+    }
+    // ⬜ square mode: everyone wants the square (or its owner!)
+    if(battle.mode==='square' && battle.sq){
+      const sq=battle.sq, meId=i+3;
+      if(sq.owner===meId){
+        if(a.moveCd<=0){ battleTryMove(a, meId, ['up','down','left','right'][Math.floor(Math.random()*4)]); a.moveCd=battleMoveCd(a)+10; }
+      } else {
+        const targ = sq.owner? battleEntById(sq.owner) : sq;
+        const d=Math.abs(a.gx-targ.gx)+Math.abs(a.gy-targ.gy);
+        if(d<=battleReach(a) && a.tongueCd<=0){
+          a.tongueCd=100; a.mouth=12; sq.owner=meId; battleScore(meId);
+          pops.push({x:sq.px, y:sq.py-24, t:0, txt:'⬜ '+BATTLE_NAMES[meId]+'!', big:true}); sfx('buy');
+        } else if(a.moveCd<=0){
+          const dx=targ.gx-a.gx, dy=targ.gy-a.gy;
+          let dir=Math.abs(dx)>=Math.abs(dy)? (dx>0?'right':'left') : (dy>0?'down':'up');
+          if((dx===0&&dy===0) || Math.random()<0.2) dir=['up','down','left','right'][Math.floor(Math.random()*4)];
+          battleTryMove(a, meId, dir);
+          a.moveCd=battleMoveCd(a)+8+Math.random()*12;
+        }
+      }
+      continue;
+    }
     // in Color Boss mode every friend is on the team — chase the boss and tongue it!
     if(battle.mode==='colorboss'){
       const cb=battle.cboss; if(!cb) continue;
@@ -5302,7 +5762,7 @@ function updateBattle(){
     // find the nearest toad NOT on my team (other factions, player armies... anyone)
     let best=null, bd=99, bestIsPlayer=false;
     for(const [oid,o] of battleEnts()){
-      if(o===a) continue;
+      if(o===a || o.out) continue;
       const ot = oid<=2? oid : o.team;
       if(ot===myTeam) continue;
       const isP = (o===P1||o===P2);
@@ -5543,6 +6003,7 @@ function drawBattleAll(){
   }
   for(let i=0;i<battle.ais.length;i++){
     const a=battle.ais[i], tm=a.team;
+    if(a.out){ ctx.globalAlpha=0.35; ctx.font=Math.round(fsize*0.5)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('💨', a.px, a.py); ctx.globalAlpha=1; continue; }
     const col = tm===1? bcCol(1)[0] : tm===2? bcCol(2)[0] : AI_COLS[tm-3]||'#aaa';
     const dark2 = tm===1? bcCol(1)[1] : tm===2? bcCol(2)[1] : '#5a5a62';
     const aLbl=BATTLE_NAMES[i+3]+(battle.mode==='build'? (battle.roles[i+3]==='builder'?' 🧱':' 🔨') : '');
@@ -5558,7 +6019,37 @@ function drawBattleAll(){
     if(P.debuff && P.debuff.t>0){ ctx.font=Math.round(fsize*0.4)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText(P.debuff.type==='slow'?'🐌':'🔀', P.px-fsize*0.55, P.py-fsize*0.5); }
     if(P.shieldB){ ctx.font=Math.round(fsize*0.38)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('🛡️', P.px+fsize*0.55, P.py-fsize*0.45); }
   }
-  for(const a of battle.ais){ if(a.shieldB){ ctx.font=Math.round(fsize*0.32)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('🛡️', a.px+fsize*0.5, a.py-fsize*0.4); } }
+  for(const a of battle.ais){ if(a.shieldB && !a.out){ ctx.font=Math.round(fsize*0.32)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText('🛡️', a.px+fsize*0.5, a.py-fsize*0.4); } }
+  // 💣 the bomb rides its holder, fuse ticking
+  if(battle.mode==='bomb' && battle.bomb){
+    const bb=battle.bomb, h=battleEntById(bb.holder);
+    if(h){
+      const shake=bb.fuse<180? Math.sin(t*0.8)*3 : 0;
+      ctx.font=Math.round(fsize*0.62)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('💣', h.px+shake, h.py-fsize*1.05);
+      ctx.textBaseline='alphabetic';
+      const frac=bb.fuse/(60*9);
+      ctx.strokeStyle=bb.fuse<180? '#e0554f' : '#ffcf3a'; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.arc(h.px, h.py-fsize*1.05, fsize*0.42, -Math.PI/2, -Math.PI/2+6.28*frac); ctx.stroke();
+      if(bb.fuse<180 && Math.floor(t/8)%2===0){ ctx.fillStyle='rgba(224,85,79,0.18)'; ctx.fillRect(0,0,W,H); }
+    }
+  }
+  // ⬜ the Super Square — relaxed, lively, deciding who to trust
+  if(battle.mode==='square' && battle.sq){
+    const sq=battle.sq, ss=Math.min(battle.cw,battle.ch)*1.05, bob2=Math.sin(t*0.08)*4;
+    ctx.save(); ctx.translate(sq.px, sq.py+bob2);
+    if(sq.owner){ ctx.globalAlpha=0.35+0.15*Math.sin(t*0.12); ctx.fillStyle='#ffe9a0'; ctx.beginPath(); ctx.arc(0,0,ss*0.85,0,7); ctx.fill(); ctx.globalAlpha=1; }
+    ctx.fillStyle='#f6f2e8'; ctx.strokeStyle='#8a8478'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.roundRect? ctx.roundRect(-ss/2,-ss/2,ss,ss,ss*0.2) : ctx.rect(-ss/2,-ss/2,ss,ss); ctx.fill(); ctx.stroke();
+    // relaxed closed eyes + easy little smile
+    ctx.strokeStyle='#4a463c'; ctx.lineWidth=2.5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(-ss*0.18, -ss*0.08, ss*0.1, Math.PI+0.4, -0.4); ctx.stroke();
+    ctx.beginPath(); ctx.arc(ss*0.18, -ss*0.08, ss*0.1, Math.PI+0.4, -0.4); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, ss*0.14, ss*0.14, 0.3, Math.PI-0.3); ctx.stroke();
+    ctx.fillStyle='rgba(240,120,140,0.5)'; ctx.beginPath(); ctx.arc(-ss*0.3, ss*0.1, ss*0.07, 0, 7); ctx.arc(ss*0.3, ss*0.1, ss*0.07, 0, 7); ctx.fill();
+    ctx.restore();
+    if(sq.owner){ ctx.fillStyle='#8a8478'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.fillText('following '+BATTLE_NAMES[sq.owner], sq.px, sq.py+bob2+ss*0.85); }
+  }
   for(const a of battle.ais){ if(a.debuff && a.debuff.t>0){ ctx.font=Math.round(fsize*0.34)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText(a.debuff.type==='slow'?'🐌':'🔀', a.px-fsize*0.5, a.py-fsize*0.45); } }
   drawPops();
   // HUD
@@ -5584,6 +6075,8 @@ function drawBattleAll(){
     : battle.mode==='colorboss'? '🌈 TEAM UP! Get close and 👅 the boss — stay out of the ⚠️ zones!'
     : battle.mode==='hill'? '👑 stand in the golden zone to score crown points — most points wins!'
     : battle.mode==='speed'? '💨 TURBO! Paint everything — 30 seconds only!!'
+    : battle.mode==='bomb'? '💣 got the bomb?! 👅 ANYONE next to you to pass it — don\'t be holding it at zero!'
+    : battle.mode==='square'? '⬜ tongue the square to be its friend · tongue its owner to STEAL it!'
     : 'you can\'t walk onto enemy pixels — 👅 tongue them open first! 👅 the other player = WIN';
   fitText(hint, W/2, H-12, 12);
   // 🎡 the Wacky Wheel spins ON SCREEN so every toad sees what's coming
