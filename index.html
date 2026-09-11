@@ -172,6 +172,7 @@
     <button class="iconbtn hidden" id="oreBtn" title="Ore Collection">💎</button>
     <button class="iconbtn" id="milesBtn" title="Toad Milestones">🏅</button>
     <button class="iconbtn" id="hourBtn" title="Hourly Honesty">🕐</button>
+    <button class="iconbtn" id="achBtn" title="Achievements">🏆</button>
     <button class="iconbtn" id="exprBtn" title="Expressions">😊</button>
     <button class="iconbtn" id="dayBtn" title="Time of day">☀️</button>
     <button class="iconbtn" id="bossBtn" title="Boss fight">⚔️</button>
@@ -278,6 +279,15 @@
     <div class="sethead" style="text-align:center;margin-top:10px;">⚒️ Ore Crafting — outfits made of ores! (the ores get used up)</div>
     <div id="oreCraft"></div>
     <button class="closebtn" id="closeOre">Done</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="achScreen">
+  <div class="card" style="overflow-y:auto; max-height:86vh;">
+    <h1 style="font-size:28px;">🏆 Achievements</h1>
+    <p class="by" id="achSub"></p>
+    <div id="achList"></div>
+    <button class="closebtn" id="closeAch" style="margin-top:10px;">Done</button>
   </div>
 </div>
 
@@ -652,7 +662,7 @@ const AREAS = {
 /* ---- THE STREET: 5 areas — the street itself + 4 apartment buildings ---- */
 const STREET_LOCS={0:'The Street',1:'Scoops Ice Cream 🍦',2:'Name Tag Studio 🎰',3:'Blind Box Boutique 🎁',4:'Bounce Palace 🎪'};
 const STREET_DOORS=[{fx:0.16,n:1,e:'🍦'},{fx:0.4,n:2,e:'🎰'},{fx:0.64,n:3,e:'🎁'},{fx:0.88,n:4,e:'🎪'}];
-let streetLoc=0, streetLock=false, friendVisitT=0, slideCd=0;
+let streetLoc=0, streetLock=false, friendVisitT=0, slideCd=0, doorDwell=0, parkZone=1, popcornCd=0, friendReactT=0, lastExprT=0, friendPX=0;
 /* name tags: they EARN coins every few seconds — the rarer the name, the richer you get */
 const NAMETAGS=[
   {id:'bob',n:'Bob',r:1},{id:'muddy',n:'Muddy',r:1},{id:'hop',n:'Hop',r:1},{id:'lily2',n:'Lily',r:1},{id:'spot',n:'Spot',r:1},
@@ -783,6 +793,48 @@ function candySecretCheck(){
   }
 }
 function wfPoolX(){ return W*0.34; }   // the plunge pool covers the right side of the waterfall world
+/* ---- EVERY world has 5 zones now! Walk to the edges to explore ---- */
+let worldZone=1;
+const ZONED_WORLDS=['sky','under','forest','mountain','cave','space','city','beach','waterfall'];
+const ZONE_NAMES={
+  sky:      ['Cloud Meadow','Windy Heights','Rainbow Alley','Star Steps','Thunder Top'],
+  under:    ['Root Cellar','Crystal Nook','Fossil Hall','Mushroom Grotto','The Deep Dark'],
+  forest:   ['Old Oaks','Berry Grove','Fern Hollow','Firefly Glade','The Elder Tree'],
+  mountain: ['Foothills','Pine Ridge','Eagle Pass','Snow Line','The Summit'],
+  cave:     ['Glow Pool','Echo Chamber','Jelly Grotto','Crystal Deep','Midnight Lake'],
+  space:    ['Moon Orbit','Asteroid Lane','Comet Alley','Nebula Nook','Galaxy Edge'],
+  city:     ['Shop Row','City Park','The Rooftops','Harbor View','Night Market'],
+  beach:    ['Sunny Sands','Shell Cove','Surf Point','Tide Pools','Sunset Shore'],
+  waterfall:['Misty Base','Fern Ledge','Rainbow Spray','Cliff Garden','The Hidden Falls'],
+};
+const ZONE_PROPS={
+  sky:      ['🕊️','🪁','🌈','🌠','⛈️'],
+  under:    ['🌿','🔮','🦴','🍄','🕳️'],
+  forest:   ['🌰','🫐','🍀','✨','🦉'],
+  mountain: ['🪨','🌲','🦅','☃️','🚩'],
+  cave:     ['💧','🐚','🪼','💎','🌑'],
+  space:    ['🌕','☄️','💫','🛸','🌌'],
+  city:     ['🛍️','🌳','🏗️','⛴️','🏮'],
+  beach:    ['⛱️','🐚','🏄','🦀','🌅'],
+  waterfall:['🌫️','🍃','🌈','🌺','💦'],
+};
+function isZoned(){ return ZONED_WORLDS.includes(area); }
+function drawZoneProps(){
+  if(!isZoned()) return;
+  const props=ZONE_PROPS[area], pe=props[worldZone-1];
+  ctx.textAlign='center'; ctx.font='20px sans-serif';
+  for(let i=0;i<5;i++){
+    const px8=((i*167+worldZone*97)%Math.floor(W-80))+40;
+    const ground2=(i%2===0);
+    const py8=ground2? groundY-8-((i*13)%16) : H*0.2+((i*67+worldZone*31)%Math.floor(H*0.3));
+    ctx.globalAlpha=ground2?0.95:0.8;
+    ctx.fillText(pe, px8, py8+(ground2?0:Math.sin(t*0.05+i)*5));
+  }
+  ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.font='bold 12px sans-serif';
+  if(worldZone<5) ctx.fillText('▶', W-18, groundY-40);
+  if(worldZone>1 || area==='forest') ctx.fillText('◀', 18, groundY-40);
+}
 const UC_CHESTS=[ {fx:0.22, loot:{coins:150}}, {fx:0.46, loot:{item:'uc_tridentcrown'}}, {fx:0.66, loot:{item:'uc_pearlcape'}}, {fx:0.86, loot:{item:'pet_mercat'}} ];
 const ucOpened={}; let ucProg=0, wfDive=0;
 function ucChestCheck(){
@@ -1276,6 +1328,7 @@ const SECRET_SPOTS={
 };
 const secretFound={}; let secretProg=0, secretDone=false;
 function secretPos(){
+  if(isZoned() && worldZone!==1) return null;   // secrets live in each world's FIRST zone
   if(area==='castle' && castleFloor!==3) return null;   // the castle's secret hides on floor 3
   const s=SECRET_SPOTS[area]; if(!s) return null;
   // anchor to reachable places, not screen fractions — on tall iPads a fixed fraction floats out of jump range
@@ -1345,6 +1398,7 @@ function goArea(a){
   if(a==='city'){ const pool=SHOP.filter(s=>s.price>0 && !s.secret && !s.mystic); cityAds=[]; for(let i=0;i<3;i++) cityAds.push(pool[Math.floor(Math.random()*pool.length)]); }
   if(a==='candy'){ candyFloor=1; spawnCandyPickups(); }
   if(a==='street'){ streetLoc=0; streetLock=false; friendVisitT=0; }
+  worldZone=1;
   toad.x=W*0.5; toad.y=groundY; toad.vy=0; toad.facing=-1; toad.grounded=true; pointerDirs.clear();
   // the boss follows you between worlds — it flies in from the side of the new world
   if(boss.active){ boss.x=(toad.x<W/2? W-60 : 60); boss.y=groundY; boss.vx=0; if(boss.state!=='defeated'){ boss.state='approach'; boss.timer=0; } }
@@ -1357,7 +1411,11 @@ function updateArea(){
   const dir=currentDir(); toad.move=dir||'none';
   if(dir==='left'){ toad.x-=curSpeed(); toad.facing=-1; } if(dir==='right'){ toad.x+=curSpeed(); toad.facing=1; }
   toad.x=clamp(toad.x, toad.w*0.5, W-toad.w*0.5);
-  if(area==='forest' && dir==='left' && toad.x<=toad.w*0.5+2){ enterGarden(); return; }
+  if(area==='forest' && dir==='left' && toad.x<=toad.w*0.5+2 && worldZone===1){ enterGarden(); return; }
+  if(isZoned()){
+    if(dir==='right' && toad.x>=W-toad.w*0.5-2 && worldZone<5){ worldZone++; toad.x=toad.w*0.6; areaBugs.length=0; for(let i=0;i<5;i++) areaBugs.push(spawnAreaBug()); sfx('jump'); }
+    else if(dir==='left' && toad.x<=toad.w*0.5+2 && worldZone>1){ worldZone--; toad.x=W-toad.w*0.6; areaBugs.length=0; for(let i=0;i<5;i++) areaBugs.push(spawnAreaBug()); sfx('jump'); }
+  }
   const prevY=toad.y;
   if((area==='beach' && toad.x>oceanX1()) || (area==='waterfall' && toad.x>wfPoolX())){
     // splash! swim & dive in the ocean / the waterfall's plunge pool
@@ -1370,7 +1428,7 @@ function updateArea(){
         if(wfDive>=45){ wfDive=0; goArea('ucastle'); showReward('🫧 You found the SUNKEN CASTLE!!'); sfx('win'); return; }
       } else wfDive=Math.max(0, wfDive-2);
     }
-  } else if(area==='cave'||area==='space'||area==='ucastle'){
+  } else if(area==='cave'||area==='space'||area==='ucastle'||(area==='street'&&streetLoc===4&&parkZone===5)){
     toad.vy+=0.28; toad.vy*=0.9; toad.y+=toad.vy; toad.y=clamp(toad.y, H*0.14, groundY);
     toad.grounded = toad.y>=groundY-0.5;
   } else {
@@ -1441,14 +1499,22 @@ function updateArea(){
   if(area==='ucastle') ucChestCheck();
   if(area==='street'){
     if(streetLoc===0){
-      let nearDoor=null;
-      for(const d of STREET_DOORS){ if(Math.abs(toad.x-W*d.fx)<26) nearDoor=d; }
-      if(nearDoor && !streetLock){ streetLoc=nearDoor.n; toad.x=W*0.5; streetLock=true; sfx('jump'); }
-      else if(!nearDoor) streetLock=false;
+      // friendlier doors: you must STAND on the ground at a door for a moment — no more
+      // accidental teleports while running past or jumping over!
+      let nearDoor=null, clearOfDoors=true;
+      for(const d of STREET_DOORS){
+        if(Math.abs(toad.x-W*d.fx)<26) nearDoor=d;
+        if(Math.abs(toad.x-W*d.fx)<64) clearOfDoors=false;
+      }
+      if(nearDoor && toad.y>=groundY-2 && !streetLock){
+        doorDwell++;
+        if(doorDwell>=22){ doorDwell=0; streetLoc=nearDoor.n; parkZone=1; toad.x=W*0.5; streetLock=true; sfx('jump'); }
+      } else doorDwell=0;
+      if(clearOfDoors) streetLock=false;   // the door only re-arms once you've fully walked away
     } else {
-      if(dir==='left' && toad.x<=toad.w*0.5+2){
+      if(dir==='left' && toad.x<=toad.w*0.5+2 && !(streetLoc===4 && parkZone>1)){
         const back=STREET_DOORS.find(d=>d.n===streetLoc);
-        streetLoc=0; toad.x=W*(back?back.fx:0.5)+40; streetLock=true; sfx('jump');
+        streetLoc=0; doorDwell=0; toad.x=Math.min(W-40, W*(back?back.fx:0.5)+75); streetLock=true; sfx('jump');
       } else {
         let inZone=false;
         if(streetLoc===1 && Math.abs(toad.x-W*0.62)<44){ inZone=true;
@@ -1458,21 +1524,56 @@ function updateArea(){
         if(streetLoc===3 && Math.abs(toad.x-W*0.55)<48){ inZone=true;
           if(!streetLock){ renderBlind(); document.getElementById('blindScreen').classList.remove('hidden'); streetLock=true; sfx('buy'); } }
         if(streetLoc===4){
-          // 🤸 trampolines: land on one and you fly SO high
-          for(const tx of [0.34,0.54]){
-            if(Math.abs(toad.x-W*tx)<44 && toad.y>=groundY-1){ toad.vy=-13.5; toad.grounded=false; if(Math.random()<0.2) pops.push({x:toad.x, y:toad.y-80, t:0, txt:'🤸'}); sfx('jump'); }
+          // 🎪 the Bounce Palace is FIVE rooms now — walk the edges to explore!
+          if(dir==='right' && toad.x>=W-toad.w*0.5-2 && parkZone<5){ parkZone++; toad.x=toad.w*0.6; sfx('jump'); }
+          else if(dir==='left' && toad.x<=toad.w*0.5+2 && parkZone>1){ parkZone--; toad.x=W-toad.w*0.6; sfx('jump'); }
+          if(parkZone===1){
+            // 🤸 trampolines: land on one and you fly SO high
+            for(const tx of [0.34,0.54]){
+              if(Math.abs(toad.x-W*tx)<44 && toad.y>=groundY-1){ toad.vy=-13.5; toad.grounded=false; if(Math.random()<0.2) pops.push({x:toad.x, y:toad.y-80, t:0, txt:'🤸'}); sfx('jump'); }
+            }
+            // 🛝 the slide: whoosh + 10 seconds of speed!
+            if(slideCd>0) slideCd--;
+            if(Math.abs(toad.x-W*0.85)<26 && toad.y>=groundY-1 && slideCd<=0){
+              slideCd=650; startBoost('speed','🛝 WHEEE!! Slide speed! (10s)');
+              toad.x=W*0.62; toad.vy=-4; pops.push({x:toad.x, y:toad.y-60, t:0, txt:'🛝💨', big:true}); sfx('splash');
+            }
+            // 📞 call your imaginary friend over to play!
+            if(Math.abs(toad.x-W*0.7)<24 && toad.y>=groundY-1 && friendVisitT<=0 && !streetLock){
+              inZone=true; streetLock=true; friendVisitT=60*120;
+              showReward('📞 "On my way!!" — your friend is coming to play!!'); sfx('win');
+              friendPX=W*0.3;
+            }
+          } else if(parkZone===2){
+            // 🎬 the cinema: watch together, spam expressions, laugh at the movie!
+            if(friendVisitT>0){
+              if(exprT>0 && lastExprT<=0){ friendReactT=55; sfx('coin'); }
+              if(Math.random()<0.005) pops.push({x:W*0.72, y:groundY-90, t:0.3, txt:['😂','🤣','HAHA!'][Math.floor(Math.random()*3)]});
+            }
+            lastExprT=exprT;
+            if(friendReactT>0) friendReactT--;
+          } else if(parkZone===3){
+            // 🧸 the playroom: your friend runs around and PLAYS with you!
+            if(friendVisitT>0){
+              const want=toad.x + (toad.x>friendPX? -72 : 72);
+              friendPX += (want-friendPX)*0.03 + Math.sin(t*0.06)*1.4;
+              friendPX=clamp(friendPX, 40, W-40);
+              if(Math.abs(friendPX-toad.x)<52 && toad.y>=groundY-4 && t%46===0){
+                pops.push({x:(friendPX+toad.x)/2, y:groundY-90, t:0, txt:['💕','TAG! you\'re it!','hee hee!','🎈'][Math.floor(Math.random()*4)], big:true});
+                sfx('coin');
+                friendPX=clamp(toad.x+(Math.random()<0.5?-1:1)*230, 40, W-40);
+              }
+            }
+          } else if(parkZone===4){
+            // 🍿 snack corner
+            if(popcornCd>0) popcornCd--;
+            if(Math.abs(toad.x-W*0.5)<42 && toad.y>=groundY-2 && popcornCd<=0){
+              popcornCd=1300; startBoost('calm','🍿 Fresh popcorn — mmm, cozy! (10s)');
+              for(let k=0;k<4;k++) pops.push({x:toad.x+(k-1.5)*20, y:toad.y-70-k*8, t:0, txt:'🍿'});
+              sfx('buy');
+            }
           }
-          // 🛝 the slide: whoosh + 10 seconds of speed!
-          if(slideCd>0) slideCd--;
-          if(Math.abs(toad.x-W*0.88)<28 && toad.y>=groundY-1 && slideCd<=0){
-            slideCd=650; startBoost('speed','🛝 WHEEE!! Slide speed! (10s)');
-            toad.x=W*0.66; toad.vy=-4; pops.push({x:toad.x, y:toad.y-60, t:0, txt:'🛝💨', big:true}); sfx('splash');
-          }
-          // 📞 call your imaginary friend over to play!
-          if(Math.abs(toad.x-W*0.72)<24 && toad.y>=groundY-1 && friendVisitT<=0 && !streetLock){
-            inZone=true; streetLock=true; friendVisitT=60*45;
-            showReward('📞 "'+'On my way!!'+'" — your friend is coming to play!!'); sfx('win');
-          }
+          // (zone 5 — the Star Dome — makes you FLOAT: handled in the physics!)
         }
         if(!inZone && streetLock && streetLoc!==0) streetLock=false;
       }
@@ -1500,7 +1601,7 @@ function updateArea(){
   }
   if(area==='city'){
     if(cityLock && Math.abs(toad.x-cityLockX)>64) cityLock=false;
-    if(!cityLock && toad.grounded){
+    if(!cityLock && toad.grounded && worldZone===1){   // the shops all live on Shop Row (zone 1)
       for(let i=0;i<4;i++){ if(Math.abs(toad.x-cityShopX(i))<18){ cityLock=true; cityLockX=toad.x; openCityShop(i); break; } }
     }
   }
@@ -1572,7 +1673,7 @@ function currentDir(){
   return null;
 }
 function doJump(){ if(fishing) stopFishing(); if(mining) stopMining();
-  if(swimming || area==='cave' || area==='space' || area==='ucastle' || (area==='beach' && toad.x>oceanX1()) || (area==='waterfall' && toad.x>wfPoolX())){ toad.vy = -6.2; sfx('splash'); } else if(toad.grounded){ toad.vy = JUMP; sfx('jump'); } }
+  if(swimming || area==='cave' || area==='space' || area==='ucastle' || (area==='street'&&streetLoc===4&&parkZone===5) || (area==='beach' && toad.x>oceanX1()) || (area==='waterfall' && toad.x>wfPoolX())){ toad.vy = -6.2; sfx('splash'); } else if(toad.grounded){ toad.vy = JUMP; sfx('jump'); } }
 function doEat(){
   if(fishing) stopFishing();
   if(mining) stopMining();
@@ -2584,36 +2685,101 @@ function drawArea(){
         ctx.font='22px sans-serif'; ctx.fillText('❓', W*0.55, groundY-64+Math.sin(t*0.1)*3);
         fitText('🎁 walk to the counter — what will you get?!', W*0.55, groundY-96, 12);
       } else {
-        // Bounce Palace!
-        for(const tx of [0.34,0.54]){
-          ctx.fillStyle='#4aa8e0'; ctx.beginPath(); ctx.ellipse(W*tx, groundY-6, 52, 10, 0, 0, 7); ctx.fill();
-          ctx.fillStyle='#2a689a'; for(let k=-2;k<=2;k++){ ctx.fillRect(W*tx+k*20-2, groundY-2, 4, 8); }
-        }
-        // ball pit
-        ctx.fillStyle='#e0554f'; ctx.beginPath(); ctx.ellipse(W*0.13, groundY-8, 62, 16, 0, 0, 7); ctx.fill();
-        const bp_cols=['#ffcf4d','#5ad46b','#4aa8ff','#ff8fb0','#9a6bff'];
-        for(let k=0;k<12;k++){ ctx.fillStyle=bp_cols[k%5]; ctx.beginPath(); ctx.arc(W*0.13+((k*23)%100)-50, groundY-10-((k*13)%14), 7, 0, 7); ctx.fill(); }
-        // slide
-        ctx.fillStyle='#ffcf4d'; ctx.beginPath(); ctx.moveTo(W*0.95, groundY-110); ctx.lineTo(W*0.99, groundY-110); ctx.lineTo(W*0.82, groundY); ctx.lineTo(W*0.76, groundY); ctx.closePath(); ctx.fill();
-        ctx.fillStyle='#e0a32a'; ctx.fillRect(W*0.95, groundY-110, 5, 110);
-        ctx.font='16px sans-serif'; ctx.fillText('🛝', W*0.9, groundY-118);
-        // phone
-        ctx.font='24px sans-serif'; ctx.fillText('📞', W*0.72, groundY-20+Math.sin(t*0.15)*2);
-        fitText('📞 call your friend!', W*0.72, groundY-48, 11);
-        // 🎈 the imaginary friend, come to play!
-        if(friendVisitT>0){
-          const fb=Math.abs(Math.sin(t*0.11))*70;
-          const fx7=W*0.54, fy7=groundY-14-fb;
+        // Bounce Palace — five rooms of fun!
+        const PARK_NAMES={1:'Bounce Hall 🤸',2:'Cinema 🎬',3:'Playroom 🧸',4:'Snack Corner 🍿',5:'Star Dome ⭐'};
+        function drawParkFriend(fx7, fy7, mood){
           ctx.fillStyle='#5a9bd4'; ctx.beginPath(); ctx.ellipse(fx7, fy7-14, 16, 13, 0, 0, 7); ctx.fill();
           ctx.fillStyle='#8fc8ff'; ctx.beginPath(); ctx.ellipse(fx7, fy7-10, 10, 8, 0, 0, 7); ctx.fill();
           ctx.fillStyle='#5a9bd4'; ctx.beginPath(); ctx.arc(fx7-6, fy7-26, 6, 0, 7); ctx.arc(fx7+6, fy7-26, 6, 0, 7); ctx.fill();
           ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(fx7-6, fy7-27, 3.6, 0, 7); ctx.arc(fx7+6, fy7-27, 3.6, 0, 7); ctx.fill();
           ctx.fillStyle='#161616'; ctx.beginPath(); ctx.arc(fx7-6, fy7-27, 1.8, 0, 7); ctx.arc(fx7+6, fy7-27, 1.8, 0, 7); ctx.fill();
-          ctx.strokeStyle='#274e78'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(fx7, fy7-16, 5, 0.2, Math.PI-0.2); ctx.stroke();
-          if(fb>50 && Math.random()<0.1) pops.push({x:fx7, y:fy7-40, t:0.4, txt:['WHEE!','😄','🎉'][Math.floor(Math.random()*3)]});
-          fitText('your friend! 💙', fx7, fy7-46, 11);
+          ctx.strokeStyle='#274e78'; ctx.lineWidth=2;
+          if(mood==='laugh'){ ctx.fillStyle='#274e78'; ctx.beginPath(); ctx.ellipse(fx7, fy7-15, 4.5, 3.5, 0, 0, 7); ctx.fill(); }
+          else { ctx.beginPath(); ctx.arc(fx7, fy7-16, 5, 0.2, Math.PI-0.2); ctx.stroke(); }
         }
-        fitText('🤸 bounce the trampolines · 🛝 slide = SPEED · dive the ball pit!', W/2, H*0.12, 13);
+        if(parkZone===1){
+          for(const tx of [0.34,0.54]){
+            ctx.fillStyle='#4aa8e0'; ctx.beginPath(); ctx.ellipse(W*tx, groundY-6, 52, 10, 0, 0, 7); ctx.fill();
+            ctx.fillStyle='#2a689a'; for(let k=-2;k<=2;k++){ ctx.fillRect(W*tx+k*20-2, groundY-2, 4, 8); }
+          }
+          ctx.fillStyle='#e0554f'; ctx.beginPath(); ctx.ellipse(W*0.13, groundY-8, 62, 16, 0, 0, 7); ctx.fill();
+          const bp_cols=['#ffcf4d','#5ad46b','#4aa8ff','#ff8fb0','#9a6bff'];
+          for(let k=0;k<12;k++){ ctx.fillStyle=bp_cols[k%5]; ctx.beginPath(); ctx.arc(W*0.13+((k*23)%100)-50, groundY-10-((k*13)%14), 7, 0, 7); ctx.fill(); }
+          ctx.fillStyle='#ffcf4d'; ctx.beginPath(); ctx.moveTo(W*0.92, groundY-110); ctx.lineTo(W*0.96, groundY-110); ctx.lineTo(W*0.79, groundY); ctx.lineTo(W*0.73, groundY); ctx.closePath(); ctx.fill();
+          ctx.fillStyle='#e0a32a'; ctx.fillRect(W*0.92, groundY-110, 5, 110);
+          ctx.font='16px sans-serif'; ctx.fillText('🛝', W*0.87, groundY-118);
+          ctx.font='24px sans-serif'; ctx.fillText('📞', W*0.7, groundY-20+Math.sin(t*0.15)*2);
+          if(friendVisitT<=0) fitText('📞 call your friend!', W*0.7, groundY-48, 11);
+          if(friendVisitT>0){
+            const fb=Math.abs(Math.sin(t*0.11))*70;
+            drawParkFriend(W*0.54, groundY-14-fb, fb>40?'laugh':'smile');
+            if(fb>50 && Math.random()<0.08) pops.push({x:W*0.54, y:groundY-60-fb, t:0.4, txt:['WHEE!','😄','🎉'][Math.floor(Math.random()*3)]});
+          }
+          fitText('🤸 bounce · 🛝 slide = SPEED · ball pit · walk ▶ for MORE rooms!', W/2, H*0.12, 13);
+        } else if(parkZone===2){
+          // 🎬 THE CINEMA
+          ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,W,groundY);
+          ctx.fillStyle='#0c0c18'; ctx.fillRect(W*0.14, H*0.12, W*0.72, groundY*0.52);
+          ctx.fillStyle='#f4f0e0'; ctx.fillRect(W*0.17, H*0.15, W*0.66, groundY*0.44);
+          // the movie! three little films on a loop
+          const film=Math.floor(t/900)%3, ft=(t%900)/900, mx0=W*0.17, mw0=W*0.66, mmy=H*0.15+groundY*0.22;
+          ctx.font='30px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+          if(film===0){ // The Fly Chase
+            ctx.fillText('🐸', mx0+mw0*(0.15+ft*0.6), mmy+Math.sin(t*0.2)*6);
+            ctx.font='20px sans-serif'; ctx.fillText('🪰', mx0+mw0*(0.3+ft*0.6), mmy-18+Math.sin(t*0.3)*8);
+          } else if(film===1){ // Space Toad
+            ctx.fillStyle='#0c0c2a'; ctx.fillRect(mx0, H*0.15, mw0, groundY*0.44); ctx.fillStyle='#fff';
+            for(let k=0;k<8;k++) ctx.fillRect(mx0+((k*97)%Math.floor(mw0)), H*0.17+((k*53)%Math.floor(groundY*0.4)), 2, 2);
+            ctx.font='26px sans-serif'; ctx.fillText('🚀', mx0+mw0*(0.1+ft*0.8), mmy-10);
+            ctx.fillText('🐸', mx0+mw0*(0.1+ft*0.8), mmy+14);
+          } else { // The Princess & the Bug
+            ctx.fillText('👸', mx0+mw0*0.3, mmy);
+            ctx.fillText('🐞', mx0+mw0*(0.75-Math.abs(Math.sin(ft*Math.PI))*0.25), mmy+6);
+            if(ft>0.8) ctx.fillText('💕', mx0+mw0*0.5, mmy-24);
+          }
+          ctx.textBaseline='alphabetic';
+          // flicker glow + seats
+          ctx.globalAlpha=0.06+0.04*Math.sin(t*0.3); ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,groundY); ctx.globalAlpha=1;
+          ctx.fillStyle='#7a2a3a'; for(let k=0;k<6;k++){ ctx.beginPath(); ctx.arc(W*(0.16+k*0.14), groundY-16, 16, Math.PI, 0); ctx.fill(); ctx.fillRect(W*(0.16+k*0.14)-16, groundY-16, 32, 16); }
+          if(friendVisitT>0){
+            drawParkFriend(W*0.72, groundY-30, friendReactT>0?'laugh':'smile');
+            if(friendReactT>0){ ctx.font='16px sans-serif'; ctx.fillText(['😂','🤣','ME TOO!','HAHA!'][Math.floor(friendReactT/14)%4], W*0.72, groundY-80); }
+            fitText('😊 spam your expressions — your friend reacts!!', W/2, H*0.1, 13);
+          } else fitText('🎬 movie night! (call your friend in Bounce Hall to watch together!)', W/2, H*0.1, 13);
+        } else if(parkZone===3){
+          // 🧸 THE PLAYROOM
+          ctx.font='26px sans-serif'; ctx.textAlign='center';
+          for(const [px7,e7] of [[0.15,'🧸'],[0.3,'🪀'],[0.62,'🏗️'],[0.85,'🎈'],[0.72,'🧩']]) ctx.fillText(e7, W*px7, groundY-12);
+          ctx.fillStyle='#ffd8ec'; ctx.beginPath(); ctx.ellipse(W*0.45, groundY-4, 70, 10, 0, 0, 7); ctx.fill();
+          if(friendVisitT>0){
+            const hop=Math.abs(Math.sin(t*0.13))*26;
+            drawParkFriend(friendPX, groundY-6-hop, hop>18?'laugh':'smile');
+            fitText('play TAG with your friend — run up and touch them!', W/2, H*0.1, 13);
+          } else fitText('🧸 the playroom! (call your friend in Bounce Hall — they LOVE tag!)', W/2, H*0.1, 13);
+        } else if(parkZone===4){
+          // 🍿 SNACK CORNER
+          ctx.fillStyle='#c0392b'; ctx.fillRect(W*0.4, groundY-100, W*0.2, 100);
+          ctx.fillStyle='#ffe9a8'; ctx.fillRect(W*0.43, groundY-88, W*0.14, 40);
+          ctx.font='24px sans-serif'; ctx.textAlign='center';
+          ctx.fillText('🍿', W*0.5, groundY-64+Math.sin(t*0.1)*2);
+          ctx.font='16px sans-serif'; ctx.fillText('POPCORN', W*0.5, groundY-108);
+          ctx.font='20px sans-serif'; ctx.fillText('🥤', W*0.2, groundY-14); ctx.fillText('🍭', W*0.28, groundY-12); ctx.fillText('🍫', W*0.76, groundY-12);
+          fitText('🍿 stand at the machine for FREE popcorn (so cozy!)', W/2, H*0.1, 13);
+        } else {
+          // ⭐ STAR DOME — you can FLOAT in here!
+          ctx.fillStyle='#141430'; ctx.fillRect(0,0,W,groundY);
+          for(let k=0;k<26;k++){ ctx.globalAlpha=0.4+0.6*Math.abs(Math.sin(t*0.06+k)); ctx.fillStyle=k%4===0?'#ffe9a0':'#fff'; ctx.beginPath(); ctx.arc((k*89)%W, ((k*57)%Math.floor(groundY*0.9))+10, k%3===0?2.5:1.5, 0, 7); ctx.fill(); }
+          ctx.globalAlpha=1;
+          ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=2;
+          ctx.beginPath(); ctx.arc(W*0.5, groundY, W*0.55, Math.PI, 0); ctx.stroke();
+          ctx.font='22px sans-serif'; ctx.textAlign='center'; ctx.fillText('🌙', W*0.82, H*0.2);
+          ctx.fillStyle='#fff'; fitText('⭐ THE STAR DOME — jump… and float like space!!', W/2, H*0.1, 13);
+        }
+        ctx.fillStyle= parkZone===2||parkZone===5? '#e8e8f5' : '#5a3018';
+        ctx.font='bold 12px sans-serif'; ctx.textAlign='center';
+        if(parkZone<5) ctx.fillText('▶', W-20, groundY-46);
+        if(parkZone>1) ctx.fillText('◀', 20, groundY-46);
+        fitText('🎪 '+PARK_NAMES[parkZone]+' · room '+parkZone+'/5', W/2, H*0.16, 12);
       }
     }
   } else if(area==='candy'){
@@ -2729,6 +2895,7 @@ function drawArea(){
     ctx.fillStyle='#7a6a5a'; ctx.fillRect(0,groundY,W,H-groundY);
   }
   drawTimeTint();                 // every world has afternoon, evening & night now!
+  drawZoneProps();                // …and five zones to wander!
   if(constSky) drawConstSky(H);   // every world gets its own constellation picture now
   for(const p of areaPlatforms) drawPlatform(p);
   drawPlant();
@@ -2785,7 +2952,11 @@ function drawArea(){
   drawBossHealth();
   drawWeather(); drawBoostBadge();
   ctx.fillStyle= (area==='under'||area==='space')?'#e8d8c0':(area==='forest'?'#245018':(area==='cave'?'#bfeeff':'#2a4a6a'));
-  fitText(area==='space' ? 'Space 🚀 — catch ⭐ and 🎁 for rewards!  🛗 to leave' : area==='beach' ? 'Beach 🏖️ — tap 🎣 to fish! 🐟 = collection' : area==='street' ? (streetLoc===0? '🏙️ The Street — 5 places to explore! walk to a door · 🛗 to leave' : '🏢 '+STREET_LOCS[streetLoc]+' — walk ◀ to the exit') : (AREAS[area].name+' — catch the bugs!  🛗 elevator to leave'), W/2, H-14, 15);
+  (function(){
+    let hintTxt = area==='space' ? 'Space 🚀 — catch ⭐ and 🎁 for rewards!  🛗 to leave' : area==='beach' ? 'Beach 🏖️ — tap 🎣 to fish! 🐟 = collection' : area==='street' ? (streetLoc===0? '🏙️ The Street — 5 places to explore! walk to a door · 🛗 to leave' : '🏢 '+STREET_LOCS[streetLoc]+' — walk ◀ to the exit') : (AREAS[area].name+' — catch the bugs!  🛗 elevator to leave');
+    if(isZoned()) hintTxt=AREAS[area].name+' · '+ZONE_NAMES[area][worldZone-1]+' ('+worldZone+'/5) — walk the edges to explore!';
+    fitText(hintTxt, W/2, H-14, 15);
+  })();
   if(bigMsgT>0){ bigMsgT--; ctx.globalAlpha=Math.min(1,bigMsgT/25); ctx.fillStyle='#ffe23a'; fitText(bigMsg, W/2, H*0.4, 26); ctx.globalAlpha=1; }
 }
 function drawPlatform(p){
@@ -3788,6 +3959,9 @@ function stepGame(){
     candyTeleT--;
     if(candyTeleT===45 && started && !twoP){ if(inside){ inside=false; } goArea('candy'); }
   }
+  // 🏆 achievements check twice a second — cheap, and instant bragging rights
+  achCheckT++;
+  if(achCheckT>=30 && (started||twoP)){ achCheckT=0; checkAchievements(); }
   // 📇 name tags pay out every 15 seconds, wherever you are
   if(myTags.length && started){
     tagIncomeT++;
@@ -4165,6 +4339,7 @@ const RECIPE_SPOTS={
   beach:{fx:0.97,fy:0.93}, castle:{fx:0.08,fy:'g'},
 };
 function recipePos(){
+  if(isZoned() && worldZone!==1) return null;
   const w = inside? null : area;
   if(!w) return null;
   if(w==='castle' && castleFloor!==4) return null;   // the castle's recipe hides in the Wizard Tower
@@ -4251,10 +4426,74 @@ const HH_TASKS=[
 ];
 const HH_ITEMS=['hh_frosthalo','hh_sparkwings','hh_stargoggles','hh_flamebadge','hh_moonveil','hh_sunpendant'];
 const hourly={ key:0, prog:{}, claimed:false };
+/* ---- 🏆 ACHIEVEMENTS — some easy, some a true challenge! ---- */
+const stats={ bug:0, fish:0, ore:0, boss:0, coin:0, twoP:0 };
+const achEarned={};
+function ownedCount(pred){ let n=0; for(const k in owned){ if(!owned[k]) continue; const it=SHOP.find(s=>s.id===k); if(it && pred(it)) n++; } return n; }
+const ACHIEVEMENTS=[
+  {id:'a_hop',     e:'🐛', n:'First Snack',      d:'Catch your very first bug',            test:()=>stats.bug>=1},
+  {id:'a_bug50',   e:'🍽️', n:'Bug Buffet',       d:'Catch 50 bugs',                        test:()=>stats.bug>=50},
+  {id:'a_fish1',   e:'🎣', n:'Gone Fishing',     d:'Catch your first fish',                test:()=>stats.fish>=1},
+  {id:'a_ore1',    e:'⛏️', n:'Rock Bottom',      d:'Mine your first ore',                  test:()=>stats.ore>=1},
+  {id:'a_boss1',   e:'⚔️', n:'Boss Beater',      d:'Defeat a boss',                        test:()=>stats.boss>=1},
+  {id:'a_coin500', e:'🪙', n:'Piggy Bank',       d:'Earn 500 coins in total',              test:()=>stats.coin>=500},
+  {id:'a_pet1',    e:'🐾', n:'Best Friends',     d:'Own a pet',                            test:()=>ownedCount(it=>it.slot==='pet')>=1},
+  {id:'a_style5',  e:'👕', n:'Stylish Toad',     d:'Own 5 pieces of clothing',             test:()=>ownedCount(it=>['skin','hat','glasses','coat'].includes(it.slot))>=5},
+  {id:'a_level5',  e:'🏅', n:'Level Five Alive', d:'Reach toad level 5',                   test:()=>toadLevel>=5},
+  {id:'a_tag1',    e:'📇', n:'Hello, My Name Is…', d:'Roll a name tag',                    test:()=>myTags.length>=1},
+  {id:'a_blind1',  e:'🎁', n:'Mystery Solver',   d:'Open a blind bag or box',              test:()=>Object.keys(blindOwned).some(k=>blindOwned[k]>0)},
+  {id:'a_2p1',     e:'👥', n:'Play Date',        d:'Play a 2-player game',                 test:()=>stats.twoP>=1},
+  {id:'a_bug500',  e:'🐝', n:'Bug Vacuum',       d:'Catch 500 bugs',                       test:()=>stats.bug>=500},
+  {id:'a_fish30',  e:'🐠', n:'Fish Professor',   d:'Discover 30 fish species',             test:()=>Object.keys(fishCaught).length>=30},
+  {id:'a_ore30',   e:'💎', n:'Gem Hoarder',      d:'Discover 30 different ores',           test:()=>Object.keys(oresMined).length>=30},
+  {id:'a_boss25',  e:'🛡️', n:'Boss Nightmare',   d:'Defeat 25 bosses',                     test:()=>stats.boss>=25},
+  {id:'a_rankB',   e:'🥈', n:'B is for Brave',   d:'Beat Rank C (reach level 101)',        test:()=>toadLevel>=101},
+  {id:'a_mystic',  e:'🌟', n:'Mystic Meeting',   d:'Collect a Mystic Pet',                 test:()=>Object.keys(owned).some(k=>owned[k]&&isMystic(k))},
+  {id:'a_craft',   e:'⚒️', n:'Crafty Toad',      d:'Craft anything',                       test:()=>RECIPES.some(r=>owned[r.out])||FISH_RECIPES.some(r=>owned[r.out])||ORE_RECIPES.some(r=>owned[r.out])},
+  {id:'a_apart',   e:'🏠', n:'Moving Up',        d:'Buy a better apartment',               test:()=>homeTier>=1},
+  {id:'a_candy',   e:'🍬', n:'Sweet Explorer',   d:'Find a Candyland secret',              test:()=>Object.keys(candyFound).length>=1},
+  {id:'a_sunken',  e:'🫧', n:'Deep Discoverer',  d:'Open a Sunken Castle chest',           test:()=>Object.keys(ucOpened).length>=1},
+  {id:'a_legfish', e:'🐉', n:'Legend of the Deep', d:'Catch a LEGENDARY fish',   hard:true, test:()=>FISH.some(f=>f.r===6 && (f.id in fishCaught))},
+  {id:'a_legore',  e:'🌈', n:'Heart of Stone',   d:'Mine a LEGENDARY ore',       hard:true, test:()=>ORES.some(o=>o.r===6 && (o.id in oresMined))},
+  {id:'a_legtag',  e:'👑', n:'THE LEGEND',       d:'Hold a 5-star name tag',     hard:true, test:()=>bestTagRarity()>=5},
+  {id:'a_candytoad',e:'🍭', n:'Sugar Bond',      d:'Befriend the Candy Toad',    hard:true, test:()=>owned.pet_candy===true},
+  {id:'a_palace',  e:'🏰', n:'Sky High Living',  d:'Own the Sky Palace',         hard:true, test:()=>homeTier>=3},
+  {id:'a_allblind',e:'🌌', n:'Completionist',    d:'Collect ALL 16 blind treasures', hard:true, test:()=>BLINDS.every(b=>blindOwned[b.id]>0)},
+  {id:'a_rankS',   e:'💎', n:'S-Tier Toad',      d:'Reach Rank S (level 301)',   hard:true, test:()=>toadLevel>=301},
+  {id:'a_bug5000', e:'🌪️', n:'The Bug Whisperer', d:'Catch 5,000 bugs',          hard:true, test:()=>stats.bug>=5000},
+];
+let achCheckT=0, achQueue=[];
+function checkAchievements(){
+  for(const a of ACHIEVEMENTS){
+    if(achEarned[a.id]) continue;
+    let ok=false; try{ ok=a.test(); }catch(e){}
+    if(ok){ achEarned[a.id]=true; achQueue.push(a); }
+  }
+  if(achQueue.length && bigMsgT<=0){
+    const a=achQueue.shift();
+    showReward('🏆 ACHIEVEMENT! '+a.e+' '+a.n+(a.hard?' ⭐':'')); sfx('win'); save();
+  }
+}
+function renderAchievements(){
+  const earned=ACHIEVEMENTS.filter(a=>achEarned[a.id]).length;
+  document.getElementById('achSub').textContent=earned+' / '+ACHIEVEMENTS.length+' earned — some are easy… some are a CHALLENGE ⭐';
+  const list=document.getElementById('achList'); list.innerHTML='';
+  const sorted=[...ACHIEVEMENTS].sort((a,b)=>(achEarned[b.id]?1:0)-(achEarned[a.id]?1:0) || (a.hard?1:0)-(b.hard?1:0));
+  for(const a of sorted){
+    const got=!!achEarned[a.id];
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;background:'+(got?(a.hard?'#fdf3d8':'#e4f5da'):'#f2f2ee')+';border-radius:12px;padding:8px 12px;margin-top:6px;'+(got?'':'opacity:0.7;');
+    row.innerHTML='<div style="font-size:24px;'+(got?'':'filter:grayscale(1);opacity:0.6;')+'">'+a.e+'</div>'
+      +'<div style="flex:1;text-align:left;"><div style="font-weight:900;font-size:14px;">'+a.n+(a.hard?' <span style="font-size:10px;color:#c9891e;">⭐ HARD</span>':'')+'</div><div style="font-size:11px;color:#667;">'+a.d+'</div></div>'
+      +'<div style="font-size:18px;">'+(got?'✅':'🔒')+'</div>';
+    list.appendChild(row);
+  }
+}
 function hourKey(){ return Math.floor(Date.now()/3600000); }
 function hourlyTasks(){ const k=hourKey(); return [HH_TASKS[k%5], HH_TASKS[(k+2)%5], HH_TASKS[(k+4)%5]]; }
 function hourlyCheck(){ const k=hourKey(); if(hourly.key!==k){ hourly.key=k; hourly.prog={}; hourly.claimed=false; } }
 function hourlyBump(kind, n){
+  stats[kind]=(stats[kind]||0)+(n||1);   // lifetime stats power the 🏆 achievements
   hourlyCheck();
   if(hourly.claimed) return;
   hourly.prog[kind]=(hourly.prog[kind]||0)+(n||1);
@@ -4572,8 +4811,8 @@ document.getElementById('shopGrid').addEventListener('click',(e)=>{
   if(wear){ const it=SHOP.find(s=>s.id===wear); if(it){ worn[it.slot] = (worn[it.slot]===wear? null : wear); rerenderShop(); save(); } }
 });
 function updateCoins(){ document.getElementById('coinCount').textContent = coins; save(); }
-function save(){ try{ localStorage.setItem('toadsim_save', JSON.stringify({coins,owned,worn,musicOn,sfxOn,home:homeData,garden,conSeeds,difficulty,secretFound,vbest:volley.best,moveMult,ctrlMode,musicTrack,petCare,petData,bossSkin,recipesFound,fishCaught,castleOpened,battleCfg,battleGrid,battleMode,xp,toadLevel,oresMined,ucOpened,wallpaper,candyFound,hourly,homeTier,petyardLast,myTags,blindOwned,jobLast})); }catch(e){} }
-function load(){ try{ const s=JSON.parse(localStorage.getItem('toadsim_save')||'null'); if(!s) return; if(typeof s.coins==='number') coins=s.coins; if(s.owned) Object.assign(owned,s.owned); if(s.worn) Object.assign(worn,s.worn); if(typeof s.musicOn==='boolean') musicOn=s.musicOn; if(typeof s.sfxOn==='boolean') sfxOn=s.sfxOn; if(Array.isArray(s.home)&&s.home.length){ homeData.length=0; for(const r of s.home) homeData.push({wall:r.wall||0, items:Array.isArray(r.items)?r.items:[]}); } if(Array.isArray(s.garden)&&s.garden.length){ garden.length=0; for(const p of s.garden) garden.push({seed:p.seed||null, t:p.t||0}); } if(typeof s.conSeeds==='number') conSeeds=s.conSeeds; if(s.difficulty && DIFF[s.difficulty]) difficulty=s.difficulty; if(s.secretFound) Object.assign(secretFound,s.secretFound); if(typeof s.vbest==='number') volley.best=s.vbest; if(typeof s.moveMult==='number' && [0.8,1,1.25,1.5].includes(s.moveMult)) moveMult=s.moveMult; if(s.ctrlMode==='stick'||s.ctrlMode==='zones') ctrlMode=s.ctrlMode; if(s.musicTrack && MUSIC_TRACKS[s.musicTrack]) musicTrack=s.musicTrack; if(typeof s.petCare==='boolean') petCare=s.petCare; if(s.petData) Object.assign(petData,s.petData); if(typeof s.bossSkin==='string' && BOSS_SKINS.some(x=>x[0]===s.bossSkin)) bossSkin=s.bossSkin; if(s.recipesFound) Object.assign(recipesFound,s.recipesFound); if(s.fishCaught) Object.assign(fishCaught,s.fishCaught); if(s.castleOpened) Object.assign(castleOpened,s.castleOpened); if(s.battleCfg){ for(const p of [1,2]){ const c=s.battleCfg[p]; if(c){ if(typeof c.ci==='number' && BC_COLORS[c.ci]) battleCfg[p].ci=c.ci; if(BC_EXPRS.some(x=>x[0]===c.expr)) battleCfg[p].expr=c.expr; if(c.acc===null || BC_ACCS.some(x=>x[0]===c.acc)) battleCfg[p].acc=c.acc; } } } if(s.battleGrid && BATTLE_GRIDS[s.battleGrid]) battleGrid=s.battleGrid; if(s.battleMode && BATTLE_MODES.some(m=>m[0]===s.battleMode)) battleMode=s.battleMode; if(typeof s.xp==='number' && s.xp>=0) xp=s.xp; if(typeof s.toadLevel==='number' && s.toadLevel>=1) toadLevel=Math.min(401, Math.floor(s.toadLevel)); if(s.oresMined) Object.assign(oresMined,s.oresMined); if(s.ucOpened) Object.assign(ucOpened,s.ucOpened); if(s.wallpaper && TITLE_WALLS[s.wallpaper]) wallpaper=s.wallpaper; if(s.candyFound) Object.assign(candyFound,s.candyFound); if(s.hourly && typeof s.hourly.key==='number') Object.assign(hourly,s.hourly); if(typeof s.homeTier==='number' && s.homeTier>=0 && s.homeTier<HOME_TIERS.length) homeTier=Math.floor(s.homeTier); if(typeof s.petyardLast==='number') petyardLast=s.petyardLast; if(Array.isArray(s.myTags)) myTags=s.myTags.filter(id=>NAMETAGS.some(x=>x.id===id)); if(s.blindOwned) Object.assign(blindOwned,s.blindOwned); if(typeof s.jobLast==='number') jobLast=s.jobLast; }catch(e){} }
+function save(){ try{ localStorage.setItem('toadsim_save', JSON.stringify({coins,owned,worn,musicOn,sfxOn,home:homeData,garden,conSeeds,difficulty,secretFound,vbest:volley.best,moveMult,ctrlMode,musicTrack,petCare,petData,bossSkin,recipesFound,fishCaught,castleOpened,battleCfg,battleGrid,battleMode,xp,toadLevel,oresMined,ucOpened,wallpaper,candyFound,hourly,homeTier,petyardLast,myTags,blindOwned,jobLast,stats,achEarned,homeYard})); }catch(e){} }
+function load(){ try{ const s=JSON.parse(localStorage.getItem('toadsim_save')||'null'); if(!s) return; if(typeof s.coins==='number') coins=s.coins; if(s.owned) Object.assign(owned,s.owned); if(s.worn) Object.assign(worn,s.worn); if(typeof s.musicOn==='boolean') musicOn=s.musicOn; if(typeof s.sfxOn==='boolean') sfxOn=s.sfxOn; if(Array.isArray(s.home)&&s.home.length){ homeData.length=0; for(const r of s.home) homeData.push({wall:r.wall||0, items:Array.isArray(r.items)?r.items:[]}); } if(Array.isArray(s.garden)&&s.garden.length){ garden.length=0; for(const p of s.garden) garden.push({seed:p.seed||null, t:p.t||0}); } if(typeof s.conSeeds==='number') conSeeds=s.conSeeds; if(s.difficulty && DIFF[s.difficulty]) difficulty=s.difficulty; if(s.secretFound) Object.assign(secretFound,s.secretFound); if(typeof s.vbest==='number') volley.best=s.vbest; if(typeof s.moveMult==='number' && [0.8,1,1.25,1.5].includes(s.moveMult)) moveMult=s.moveMult; if(s.ctrlMode==='stick'||s.ctrlMode==='zones') ctrlMode=s.ctrlMode; if(s.musicTrack && MUSIC_TRACKS[s.musicTrack]) musicTrack=s.musicTrack; if(typeof s.petCare==='boolean') petCare=s.petCare; if(s.petData) Object.assign(petData,s.petData); if(typeof s.bossSkin==='string' && BOSS_SKINS.some(x=>x[0]===s.bossSkin)) bossSkin=s.bossSkin; if(s.recipesFound) Object.assign(recipesFound,s.recipesFound); if(s.fishCaught) Object.assign(fishCaught,s.fishCaught); if(s.castleOpened) Object.assign(castleOpened,s.castleOpened); if(s.battleCfg){ for(const p of [1,2]){ const c=s.battleCfg[p]; if(c){ if(typeof c.ci==='number' && BC_COLORS[c.ci]) battleCfg[p].ci=c.ci; if(BC_EXPRS.some(x=>x[0]===c.expr)) battleCfg[p].expr=c.expr; if(c.acc===null || BC_ACCS.some(x=>x[0]===c.acc)) battleCfg[p].acc=c.acc; } } } if(s.battleGrid && BATTLE_GRIDS[s.battleGrid]) battleGrid=s.battleGrid; if(s.battleMode && BATTLE_MODES.some(m=>m[0]===s.battleMode)) battleMode=s.battleMode; if(typeof s.xp==='number' && s.xp>=0) xp=s.xp; if(typeof s.toadLevel==='number' && s.toadLevel>=1) toadLevel=Math.min(401, Math.floor(s.toadLevel)); if(s.oresMined) Object.assign(oresMined,s.oresMined); if(s.ucOpened) Object.assign(ucOpened,s.ucOpened); if(s.wallpaper && TITLE_WALLS[s.wallpaper]) wallpaper=s.wallpaper; if(s.candyFound) Object.assign(candyFound,s.candyFound); if(s.hourly && typeof s.hourly.key==='number') Object.assign(hourly,s.hourly); if(typeof s.homeTier==='number' && s.homeTier>=0 && s.homeTier<HOME_TIERS.length) homeTier=Math.floor(s.homeTier); if(typeof s.petyardLast==='number') petyardLast=s.petyardLast; if(Array.isArray(s.myTags)) myTags=s.myTags.filter(id=>NAMETAGS.some(x=>x.id===id)); if(s.blindOwned) Object.assign(blindOwned,s.blindOwned); if(typeof s.jobLast==='number') jobLast=s.jobLast; if(s.stats) Object.assign(stats,s.stats); if(s.achEarned) Object.assign(achEarned,s.achEarned); if(s.homeYard && Array.isArray(s.homeYard.items)) homeYard.items=s.homeYard.items; }catch(e){} }
 
 /* ---------------- Buttons ---------------- */
 document.getElementById('dayBtn').addEventListener('click',()=>{
@@ -4654,6 +4893,12 @@ function buildSettingsRows(){
 document.getElementById('petCareToggle').addEventListener('click',()=>{ petCare = petCare===true? false : true; save(); buildSettingsRows(); sfx('coin'); });
 /* ---- Toad News (title screen update log) ---- */
 const NEWS=[
+  {v:'Update 20', d:'Sep 10', items:[
+    '🗺️ EVERY world has FIVE ZONES now! Sky, Forest, Mountain, Underground, Cave, Space, City, Beach & Waterfall each stretch five screens wide — walk to the edges to wander from Cloud Meadow to Thunder Top, Foothills to The Summit, Moon Orbit to Galaxy Edge… (secrets & recipe scrolls still hide in each world\'s first zone!)',
+    '🏆 ACHIEVEMENTS! A new trophy button at the top of your screen — 30 achievements from the very easy (First Snack 🐛) to the truly HARD ⭐ (The Bug Whisperer: 5,000 bugs!). Gotta earn them all!',
+    '🎪 The Bounce Palace is FIVE rooms now: Bounce Hall, a real CINEMA 🎬 (three little movies on loop — spam your expressions and your friend laughs along!), the Playroom 🧸 where your called friend RUNS AROUND and plays tag with you, the Snack Corner 🍿 (free popcorn!) and the floaty STAR DOME ⭐!',
+    '🌼 Your home has a YARD! Walk past your last room to a sunny fenced garden — plant tulips, roses, sunflowers, trees & pots to make it beautiful!',
+    '🚪 Doors are polite now: stand at a building door for a moment to enter — no more accidental teleports when running past or jumping over, and exiting drops you safely clear of the door!']},
   {v:'Update 19', d:'Sep 10', items:[
     '🎟️ PASSES! Visit 🏅 Milestones for the pass shop: the Normal Pass is free, the Good Pass (100 🪙), Important Pass (1,000 🪙) and Special Pass (10,000 🪙) each pay BONUS coins on every single level-up, forever — own several and they ALL pay at once! Each comes with a free exclusive outfit.',
     '🏙️ NEW WORLD: THE STREET — five places to explore! 🍦 Scoops Ice Cream (tasty power-up treats), 🎰 the Name Tag Studio (roll names for 25 🪙 — every tag EARNS coins every 15 seconds, rarer names earn more; sell tags at the 🗑️ and work jobs at the 💼 desk based on your best name!), 🎁 the Blind Box Boutique (bags 50 🪙, boxes 100 🪙, 16 mystery treasures to collect or sell), and 🎪 the BOUNCE PALACE — mega trampolines, a speed-boost slide, a ball pit, and a 📞 to invite your imaginary friend over to play!',
@@ -4951,6 +5196,8 @@ function renderMilestones(){
 }
 document.getElementById('milesBtn').addEventListener('click',()=>{ renderMilestones(); document.getElementById('milesScreen').classList.remove('hidden'); sfx('coin'); });
 document.getElementById('hourBtn').addEventListener('click',()=>{ renderHourly(); document.getElementById('hourlyScreen').classList.remove('hidden'); sfx('coin'); });
+document.getElementById('achBtn').addEventListener('click',()=>{ checkAchievements(); renderAchievements(); document.getElementById('achScreen').classList.remove('hidden'); sfx('coin'); });
+document.getElementById('closeAch').addEventListener('click',()=>document.getElementById('achScreen').classList.add('hidden'));
 document.getElementById('closeHourly').addEventListener('click',()=>document.getElementById('hourlyScreen').classList.add('hidden'));
 /* ---- Street building overlays ---- */
 document.getElementById('closeTags').addEventListener('click',()=>{ document.getElementById('tagScreen').classList.add('hidden'); streetLock=true; });
@@ -5043,6 +5290,7 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
     for(const k in candyFound) delete candyFound[k]; candyFloor=1;
     hourly.key=0; hourly.prog={}; hourly.claimed=false;
     myTags.length=0; for(const k in blindOwned) delete blindOwned[k]; jobLast=0; tagIncomeT=0;
+    for(const k in stats) stats[k]=0; for(const k in achEarned) delete achEarned[k]; achQueue.length=0;
     try{ localStorage.removeItem('toadsim_save'); }catch(e){}
     updateCoins(); renderShop(); buildSettingsRows(); buildExprBar(); document.getElementById('settingsScreen').classList.add('hidden');
     // keep the music going after a reset (it used to stop until the app restarted)
@@ -5486,7 +5734,7 @@ function eat2(P){
 }
 function start2P(game){
   raceGame = game || raceGame || 'race';
-  twoP=true; started=false;
+  twoP=true; started=false; stats.twoP=(stats.twoP||0)+1;
   P1.coins=0; P2.coins=0; P1.x=W*0.35; P2.x=W*0.65; P1.y=groundY; P2.y=groundY; P1.vy=0; P2.vy=0; P1.dir=null; P2.dir=null; P1.tt=0; P2.tt=0; P1.hurt=0; P2.hurt=0;
   flies.length=0;
   if(raceGame==='race'){ for(let i=0;i<7;i++) flies.push(spawnFly()); raceTimer=60*60; }
@@ -7140,6 +7388,10 @@ const HOME_TIERS=[
 ];
 let homeTier=0, petyardLast=0;
 function homeRoomCount(){ return HOME_ROOMS + (HOME_TIERS[homeTier]?HOME_TIERS[homeTier].rooms:0); }
+const homeYard={ items:[] };   // 🌼 the outdoor yard — every home has one, right after the last room!
+function inYard(){ return homeRoom>=homeRoomCount(); }
+function curHomeRoom(){ return inYard()? homeYard : homeData[homeRoom]; }
+function homeStops(){ return homeRoomCount()+1; }
 function ensureHomeRooms(){ while(homeData.length<homeRoomCount()) homeData.push({wall:homeData.length%WALLPAPERS.length, items:[]}); }
 const homeData=[];
 const WALLPAPERS=[ {n:'Cream',c:'#f0e6d2'},{n:'Sky',c:'#cfe8f5'},{n:'Mint',c:'#d7f0dd'},{n:'Pink',c:'#f7dbe8'},{n:'Lavender',c:'#e6ddf5'},{n:'Sunny',c:'#f7edc0'},{n:'Peach',c:'#fadfc8'} ];
@@ -7152,16 +7404,20 @@ const FURNITURE=[ {id:'sofa',e:'🛋️'},{id:'chair',e:'🪑'},{id:'bed',e:'�
   {id:'discoball',e:'🪩',cost:50},{id:'bigtv',e:'🖥️',cost:40},{id:'ferniture',e:'🌿',cost:20},{id:'statue',e:'🗿',cost:60},
   {id:'swing',e:'🎠',cost:55},{id:'castleblocks',e:'🏰',cost:35},{id:'rocketlamp',e:'🚀',cost:35},{id:'rainbowrug',e:'🌈',cost:30},
   {id:'snowglobe',e:'❄️',cost:25},{id:'trophycase',e:'🏆',cost:40},{id:'jukebox',e:'📻',cost:35},{id:'bubblemachine',e:'🫧',cost:35},
+  // 🌼 flowers & plants for the yard (or anywhere!)
+  {id:'tulip',e:'🌷',cost:8},{id:'rose',e:'🌹',cost:8},{id:'sunflower',e:'🌻',cost:8},{id:'hibiscus',e:'🌺',cost:8},
+  {id:'cherryblossom',e:'🌸',cost:8},{id:'seedling',e:'🌱',cost:5},{id:'yardtree',e:'🌳',cost:25},{id:'pot',e:'🏺',cost:10},
   // special furniture with real powers!
   {id:'desk',e:'🗄️',cost:40},{id:'petyard',e:'🐾',cost:60} ];
 const INTERACT_FX={ guitar:'🎵', tv:'✨', clock:'🕐', bed:'💤', teddy:'💕', cake:'🍰', ball:'⚽', balloon:'🎈', gamepad:'🕹️', train:'💨', candy:'😋', cookie:'😋', juice:'😋', cup:'😋', flower:'🦋', skateboard:'💨', bugjar:'🪰', tub:'🫧', toilet:'🫧', crayons:'🌈',
-  piano:'🎶', fireplace:'🔥', aquarium:'🐟', fountain:'💦', arcade:'👾', robot:'🤖', drums:'🥁', telescope:'🌟', discoball:'✨', bigtv:'📺', ferniture:'🍃', statue:'😐', swing:'🎠', castleblocks:'👑', rocketlamp:'🚀', rainbowrug:'🌈', snowglobe:'❄️', trophycase:'🏅', jukebox:'🎵', bubblemachine:'🫧' };
+  piano:'🎶', fireplace:'🔥', aquarium:'🐟', fountain:'💦', arcade:'👾', robot:'🤖', drums:'🥁', telescope:'🌟', discoball:'✨', bigtv:'📺', ferniture:'🍃', statue:'😐', swing:'🎠', castleblocks:'👑', rocketlamp:'🚀', rainbowrug:'🌈', snowglobe:'❄️', trophycase:'🏅', jukebox:'🎵', bubblemachine:'🫧',
+  tulip:'🦋', rose:'💕', sunflower:'🐝', hibiscus:'🦋', cherryblossom:'🌸', seedling:'✨', yardtree:'🍃', pot:'🌱' };
 function initHome(){ if(homeData.length) return; for(let i=0;i<HOME_ROOMS;i++) homeData.push({wall:i%WALLPAPERS.length, items:[]}); }
-function updateHomeLabel(){ document.getElementById('homeRoomLabel').textContent=HOME_TIERS[homeTier].name.split(' ')[0]+' · Room '+(homeRoom+1)+'/'+homeRoomCount(); }
+function updateHomeLabel(){ document.getElementById('homeRoomLabel').textContent= inYard()? '🌼 Yard' : HOME_TIERS[homeTier].name.split(' ')[0]+' · Room '+(homeRoom+1)+'/'+homeRoomCount(); }
 function buildHomeItems(){
   const box=document.getElementById('homeItems'); box.innerHTML='';
   for(const f of FURNITURE){ const cost=f.cost||30; const b=document.createElement('button'); b.className='fchip'; b.innerHTML=f.e+'<span class="cost">'+cost+'</span>';
-    b.addEventListener('click',()=>{ if(coins>=cost){ coins-=cost; updateCoins(); const room=homeData[homeRoom]; const it={id:f.id, x:W*0.5+(room.items.length%3-1)*46, y:homeFloor()-46, s:1}; room.items.push(it); homeSel=it; sfx('buy'); save(); } });
+    b.addEventListener('click',()=>{ if(coins>=cost){ coins-=cost; updateCoins(); const room=curHomeRoom(); const it={id:f.id, x:W*0.5+(room.items.length%3-1)*46, y:homeFloor()-46, s:1}; room.items.push(it); homeSel=it; sfx('buy'); save(); } });
     box.appendChild(b); }
 }
 function enterHome(){
@@ -7175,7 +7431,7 @@ function enterHome(){
 }
 function exitHome(){ homeMode=false; document.getElementById('homeTop').classList.add('hidden'); document.getElementById('homePanel').classList.add('hidden'); document.querySelector('.hud').style.display=''; updateAreaButtons(area); save(); }
 function trashPos(){ return {x:W-42, y:homeFloor()-30}; }
-function homePointerDown(e){ if(!homeMode) return; const x=e.clientX, y=e.clientY; const room=homeData[homeRoom];
+function homePointerDown(e){ if(!homeMode) return; const x=e.clientX, y=e.clientY; const room=curHomeRoom();
   const items=[...room.items].sort((a,b)=>b.y-a.y);
   for(const it of items){ if(Math.hypot(it.x-x, it.y-y)<30*(it.s||1)){ homeDrag=it; homeSel=it; homeDragMoved=0; homeDragLast={x,y}; return; } }
   homeSel=null;
@@ -7210,7 +7466,7 @@ function interactHome(it){
   sfx(it.id==='guitar'?'win':(it.id==='bed'||it.id==='teddy'?'splash':'jump'));
 }
 function homePointerUp(){ if(!homeMode||!homeDrag) return; const tp=trashPos();
-  if(Math.hypot(tp.x-homeDrag.x, tp.y-homeDrag.y)<40){ const room=homeData[homeRoom]; const i=room.items.indexOf(homeDrag); if(i>=0) room.items.splice(i,1); if(homeSel===homeDrag) homeSel=null; sfx('mad'); }
+  if(Math.hypot(tp.x-homeDrag.x, tp.y-homeDrag.y)<40){ const room=curHomeRoom(); const i=room.items.indexOf(homeDrag); if(i>=0) room.items.splice(i,1); if(homeSel===homeDrag) homeSel=null; sfx('mad'); }
   else if(homeDragMoved<8){ interactHome(homeDrag); }
   homeDrag=null; save();
 }
@@ -7222,7 +7478,21 @@ function homeFloor(){ return H*0.60; }
 function drawHome(){
   const fy=homeFloor();
   ctx.clearRect(0,0,W,H);
-  const room=homeData[homeRoom], wall=WALLPAPERS[room.wall%WALLPAPERS.length];
+  const room=curHomeRoom();
+  if(inYard()){
+    // 🌼 THE YARD — plant flowers, make it beautiful!
+    const g=ctx.createLinearGradient(0,0,0,fy); g.addColorStop(0,'#8fd0ff'); g.addColorStop(1,'#d8f0e0'); ctx.fillStyle=g; ctx.fillRect(0,0,W,fy);
+    ctx.fillStyle='#ffe066'; ctx.beginPath(); ctx.arc(W*0.85, fy*0.2, 26, 0, 7); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.9)'; for(const [cx3,cy3] of [[0.2,0.18],[0.5,0.12]]){ ctx.beginPath(); ctx.arc(W*cx3, fy*cy3, 16, 0, 7); ctx.arc(W*cx3+18, fy*cy3+4, 12, 0, 7); ctx.arc(W*cx3-18, fy*cy3+5, 11, 0, 7); ctx.fill(); }
+    // fence
+    ctx.fillStyle='#e8d8c0'; for(let x=6;x<W;x+=34){ ctx.fillRect(x, fy*0.52, 10, fy*0.46); ctx.beginPath(); ctx.moveTo(x, fy*0.52); ctx.lineTo(x+5, fy*0.46); ctx.lineTo(x+10, fy*0.52); ctx.fill(); }
+    ctx.fillStyle='#d8c8a8'; ctx.fillRect(0, fy*0.62, W, 6); ctx.fillRect(0, fy*0.82, W, 6);
+    // butterflies & bee
+    ctx.font='13px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('🦋', W*0.3+Math.sin(t*0.05)*40, fy*0.35+Math.cos(t*0.07)*18);
+    ctx.fillText('🐝', W*0.7+Math.sin(t*0.06+2)*46, fy*0.3+Math.sin(t*0.09)*14);
+  } else {
+  const wall=WALLPAPERS[room.wall%WALLPAPERS.length];
   ctx.fillStyle=wall.c; ctx.fillRect(0,0,W,fy);
   ctx.fillStyle='rgba(0,0,0,0.04)'; for(let x=24;x<W;x+=60) ctx.fillRect(x,0,3,fy);
   // the fancier the apartment, the fancier the room!
@@ -7242,8 +7512,14 @@ function drawHome(){
     ctx.fillStyle='#c9a020'; ctx.fillRect(0, fy-6, W, 3);
   }
   if(homeTier>=3){ for(let k=0;k<5;k++){ ctx.globalAlpha=0.4+0.5*Math.sin(t*0.08+k*2); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc((k*173)%W, 24+((k*61)%Math.floor(fy*0.3)), 1.8, 0, 7); ctx.fill(); } ctx.globalAlpha=1; }
+  }
+  if(inYard()){
+    ctx.fillStyle='#7ecb5a'; ctx.fillRect(0,fy,W,H-fy);
+    ctx.fillStyle='#69b849'; for(let x=0;x<W;x+=26){ ctx.beginPath(); ctx.moveTo(x, fy); ctx.lineTo(x+6, fy-6); ctx.lineTo(x+12, fy); ctx.fill(); }
+  } else {
   ctx.fillStyle= homeTier>=2? '#d8c9a8' : '#c69a6a'; ctx.fillRect(0,fy,W,H-fy);
   ctx.fillStyle= homeTier>=2? '#c8b890' : '#b8895a'; for(let x=0;x<W;x+=40) ctx.fillRect(x,fy,2,H-fy);
+  }
   const items=[...room.items].sort((a,b)=>a.y-b.y);
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for(const it of items){ const f=FURNITURE.find(x=>x.id===it.id); if(!f) continue;
@@ -7291,8 +7567,8 @@ function drawHome(){
 }
 document.getElementById('homeBtn').addEventListener('click',()=>{ if(started && !twoP && !showMode && !inside && area==='ground') enterHome(); });
 document.getElementById('homeDone').addEventListener('click', exitHome);
-document.getElementById('homePrev').addEventListener('click',()=>{ const n=homeRoomCount(); homeRoom=(homeRoom+n-1)%n; homeDrag=null; homeSel=null; updateHomeLabel(); });
-document.getElementById('homeNext').addEventListener('click',()=>{ const n=homeRoomCount(); homeRoom=(homeRoom+1)%n; homeDrag=null; homeSel=null; updateHomeLabel(); });
+document.getElementById('homePrev').addEventListener('click',()=>{ const n=homeStops(); homeRoom=(homeRoom+n-1)%n; homeDrag=null; homeSel=null; updateHomeLabel(); });
+document.getElementById('homeNext').addEventListener('click',()=>{ const n=homeStops(); homeRoom=(homeRoom+1)%n; homeDrag=null; homeSel=null; updateHomeLabel(); });
 document.getElementById('homeUpgrade').addEventListener('click',()=>{
   if(homeTier>=HOME_TIERS.length-1){ showReward('🏰 You already live in the SKY PALACE — the best there is!'); return; }
   const nt=HOME_TIERS[homeTier+1];
@@ -7306,7 +7582,7 @@ document.getElementById('homeUpgrade').addEventListener('click',()=>{
 });
 document.getElementById('homeBigger').addEventListener('click',()=>{ if(homeSel){ homeSel.s=clamp((homeSel.s||1)+0.25, 0.5, 3); homeSel.pop=1; sfx('coin'); save(); } });
 document.getElementById('homeSmaller').addEventListener('click',()=>{ if(homeSel){ homeSel.s=clamp((homeSel.s||1)-0.25, 0.5, 3); homeSel.pop=1; sfx('jump'); save(); } });
-document.getElementById('homeWall').addEventListener('click',()=>{ const r=homeData[homeRoom]; r.wall=(r.wall+1)%WALLPAPERS.length; save(); sfx('coin'); });
+document.getElementById('homeWall').addEventListener('click',()=>{ if(inYard()){ showReward('🌤️ The sky is the yard\'s wallpaper!'); return; } const r=curHomeRoom(); r.wall=(r.wall+1)%WALLPAPERS.length; save(); sfx('coin'); });
 
 /* ---------------- Secret Garden (grow seeds) ---------------- */
 function enterGarden(){ initGarden(); gardenMode=true; toad.x=W*0.5; toad.y=H*0.62; toad.vy=0; toad.facing=1; toad.move='none'; pointerDirs.clear();
